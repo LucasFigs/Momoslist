@@ -6,14 +6,11 @@ import bcrypt from "bcryptjs";
 
 import { prisma } from "@/lib/prisma";
 import { credentialsSchema } from "@/schemas/auth.schema";
+import { authConfig } from "@/lib/auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma),
-  // Credentials exige sessão via JWT (o adapter continua cuidando das contas OAuth do Google).
-  session: { strategy: "jwt" },
-  pages: {
-    signIn: "/login",
-  },
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
@@ -48,20 +45,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
+    ...authConfig.callbacks,
     async signIn({ account, profile }) {
       // O vínculo automático por e-mail só vale se o Google garante que o e-mail é da pessoa.
       if (account?.provider === "google") return profile?.email_verified === true;
       return true;
-    },
-    async jwt({ token, user }) {
-      if (user) token.id = user.id;
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user && token.id) {
-        session.user.id = token.id as string;
-      }
-      return session;
     },
   },
 });

@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { shrinkImage } from "@/lib/shrink-image";
 import { createGiftAction, updateGiftAction } from "@/actions/gift.actions";
 
 type ActionResult = { success: true } | { success: false; error: string };
@@ -67,6 +68,10 @@ export function GiftFormDialog({ eventId, gift, trigger, pixConfigured = true }:
   function handleSubmit(formData: FormData) {
     setError(null);
     startTransition(async () => {
+      // Reduz a foto no navegador: a Vercel recusa requisições acima de ~4,5 MB.
+      const image = formData.get("image");
+      if (image instanceof File && image.size > 0) formData.set("image", await shrinkImage(image));
+
       const action: (fd: FormData) => Promise<ActionResult> = isEditing
         ? (fd) => updateGiftAction(gift!.id, fd)
         : (fd) => createGiftAction(eventId, fd);

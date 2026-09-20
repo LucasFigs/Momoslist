@@ -4,3 +4,12 @@ node_modules
 .env.local
 *.log
 .DS_Store
+
+# Vercel / TypeScript / geração local
+.vercel
+*.tsbuildinfo
+.env*.local
+PROJECT_SNAPSHOT.md
+
+# Configuração local do Claude Code
+.claude/settings.local.json

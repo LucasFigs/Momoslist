@@ -11,6 +11,7 @@ import { formatCentsToBRL } from "@/lib/utils";
 import type { FundTotals } from "@/lib/fund";
 import type { FundOverviewItem } from "./funds-overview";
 import type { RsvpItem } from "./rsvp-panel";
+import type { MessageItem } from "./messages-panel";
 import { summarizeRsvps } from "@/lib/rsvp";
 
 export const metadata: Metadata = { title: "Gerenciar lista" };
@@ -62,6 +63,8 @@ export default async function EventoPage({ params }: { params: { id: string } })
   const selections: GuestSelection[] = [];
   const fundTotals: Record<string, FundTotals> = {};
   const funds: FundOverviewItem[] = [];
+  // Recadinhos dos convidados: reservas e contribuições ativas (as canceladas nem chegam aqui).
+  const messageItems: MessageItem[] = [];
 
   for (const gift of event.gifts) {
     if (gift.kind === "FUND") {
@@ -82,6 +85,18 @@ export default async function EventoPage({ params }: { params: { id: string } })
         contributionsCount: gift.contributions.length,
       };
       fundTotals[gift.id] = totals;
+      for (const contribution of gift.contributions) {
+        if (!contribution.message) continue;
+        messageItems.push({
+          id: `c-${contribution.id}`,
+          guestName: contribution.guest.name ?? contribution.guest.email,
+          giftName: gift.name,
+          kind: "FUND",
+          amountLabel: formatCentsToBRL(contribution.amountInCents),
+          message: contribution.message,
+          at: contribution.declaredAt.toISOString(),
+        });
+      }
       funds.push({
         giftId: gift.id,
         name: gift.name,
@@ -104,6 +119,17 @@ export default async function EventoPage({ params }: { params: { id: string } })
     availableUnits += computeGiftAvailability(gift.quantity, active).availableUnits;
 
     for (const reservation of gift.reservations) {
+      if (reservation.message) {
+        messageItems.push({
+          id: `r-${reservation.id}`,
+          guestName: reservation.guest.name ?? reservation.guest.email,
+          giftName: gift.name,
+          kind: gift.kind === "PIX" ? "PIX" : "PRODUCT",
+          amountLabel: null,
+          message: reservation.message,
+          at: (reservation.messageAt ?? reservation.reservedAt).toISOString(),
+        });
+      }
       if (reservation.paymentMethod === "PIX") {
         if (reservation.pixStatus === "DECLARED") pixPendingCents += gift.priceInCents;
         if (reservation.pixStatus === "CONFIRMED") pixConfirmedCents += gift.priceInCents;
@@ -171,6 +197,7 @@ export default async function EventoPage({ params }: { params: { id: string } })
       pixConfigured={Boolean(event.pixKey && event.pixKeyType)}
       rsvpEnabled={event.rsvpEnabled}
       rsvpItems={rsvpItems}
+      messageItems={messageItems}
     />
   );
 }

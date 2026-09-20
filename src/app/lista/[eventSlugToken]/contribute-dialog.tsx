@@ -15,6 +15,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn, formatCentsToBRL } from "@/lib/utils";
 import { computeFundProgress, suggestContributionAmounts, type FundTotals } from "@/lib/fund";
 import { MAX_AMOUNT_IN_CENTS, parsePriceToCents } from "@/schemas/gift.schema";
+import { MessageField } from "./message-field";
 import {
   cancelContributionAction,
   declareContributionAction,
@@ -71,6 +72,7 @@ export function ContributeDialog({
   const [qrFailed, setQrFailed] = useState(false);
   const [copied, setCopied] = useState<"key" | "code" | null>(null);
   const [cancelTarget, setCancelTarget] = useState<MyContribution | null>(null);
+  const [message, setMessage] = useState("");
 
   const amountInCents = amountInput ? parsePriceToCents(amountInput) : NaN;
   const isValidAmount =
@@ -117,7 +119,7 @@ export function ContributeDialog({
     if (isBusy) return;
     setBusy("declare");
     try {
-      const result = await declareContributionAction(giftId, amountInCents);
+      const result = await declareContributionAction(giftId, amountInCents, message);
       if (!result.success) {
         toast({ title: "Não foi possível registrar", description: result.error, variant: "destructive" });
         return;
@@ -128,6 +130,7 @@ export function ContributeDialog({
       });
       handleOpenChange(false);
       setAmountInput("");
+      setMessage("");
       router.refresh();
     } finally {
       setBusy(null);
@@ -239,6 +242,8 @@ export function ContributeDialog({
                     </p>
                   </div>
                 </div>
+
+                <MessageField value={message} onChange={setMessage} disabled={isBusy} />
               </SheetBody>
 
               <SheetFooter>

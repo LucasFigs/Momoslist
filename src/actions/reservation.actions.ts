@@ -111,9 +111,17 @@ export async function confirmReservationMethodAction(
     return { success: false, error: "Identifique-se novamente para continuar." };
   }
 
-  const reservation = await prisma.giftReservation.findUnique({ where: { id: reservationId } });
+  const reservation = await prisma.giftReservation.findUnique({
+    where: { id: reservationId },
+    include: { gift: { select: { kind: true } } },
+  });
   if (!reservation || reservation.guestId !== guest.id) {
     return { success: false, error: "Reserva não encontrada." };
+  }
+
+  // Item do tipo Pix ainda não tem loja definida: a única forma de presentear é o Pix.
+  if (reservation.gift.kind === "PIX" && paymentMethod === "EXTERNAL_PURCHASE") {
+    return { success: false, error: "Este item é pago apenas por Pix." };
   }
 
   if (reservation.status !== "TEMPORARY") {

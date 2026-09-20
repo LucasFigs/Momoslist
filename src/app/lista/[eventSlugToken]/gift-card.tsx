@@ -30,6 +30,8 @@ interface GiftCardProps {
   };
   availability: GiftAvailability;
   isIdentified: boolean;
+  /** Item do tipo Pix: ainda sem loja, então só se presenteia por Pix (o método é escolhido sozinho). */
+  pixOnly?: boolean;
   myReservation: MyReservation | null;
 }
 
@@ -67,7 +69,7 @@ function useCountdown(expiresAt: string | undefined) {
  * o selo sobre a foto, o contorno e o texto do botão — o passo a passo (Pix/loja) abre no diálogo.
  * Assim a grade não "pula" ao reservar nem ao desistir.
  */
-export function GiftCard({ gift, availability, isIdentified, myReservation }: GiftCardProps) {
+export function GiftCard({ gift, availability, isIdentified, pixOnly = false, myReservation }: GiftCardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -89,6 +91,13 @@ export function GiftCard({ gift, availability, isIdentified, myReservation }: Gi
         // Pode ter sido um conflito (outra pessoa pegou a última unidade): atualiza o card.
         router.refresh();
         return;
+      }
+      // Sem loja para escolher: já segue para o Pix, poupando um passo ao convidado.
+      if (pixOnly && result.reservation.status === "TEMPORARY") {
+        const chosen = await confirmReservationMethodAction(result.reservation.id, "PIX");
+        if (!chosen.success) {
+          toast({ title: "Não foi possível continuar", description: chosen.error, variant: "destructive" });
+        }
       }
       setDetailsOpen(true);
       router.refresh();
@@ -251,6 +260,7 @@ export function GiftCard({ gift, availability, isIdentified, myReservation }: Gi
           reservation={myReservation}
           countdown={countdown}
           isPending={isPending}
+          pixOnly={pixOnly}
           onChooseMethod={handleChooseMethod}
           onCancel={() => setConfirmOpen(true)}
         />

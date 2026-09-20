@@ -30,13 +30,14 @@ Plataforma de **listas de presentes para chá de panela e chá de casa nova**. O
 
 - **Conta** por e-mail e senha ou por **login com Google**. As duas formas se unem quando o e-mail é o mesmo.
 - **Listas** com tipo de evento (chá de panela ou chá de casa nova), data e horário, local (com link do mapa), endereço para entrega dos presentes e uma mensagem para os convidados que preserva parágrafos.
-- **Presentes de dois tipos:**
-  - **Produto**: nome, foto, preço, quantidade e, opcionalmente, um link de loja.
-  - **Vaquinha**: meta em reais e valor mínimo por pessoa. A meta pode ser superada; as contribuições continuam abertas.
+- **Itens de três tipos:**
+  - **Presente**: nome, foto, preço, quantidade e, opcionalmente, um link de loja. O convidado escolhe entre comprar na loja ou pagar por Pix.
+  - **Pix**: algo que vocês querem comprar mas ainda não escolheram onde, então não tem link de loja: o convidado só pode presentear por Pix e o anfitrião compra depois. Dá para editar o item e trocar entre **Presente** e **Pix** a qualquer momento.
+  - **Vaquinha**: meta em reais e valor mínimo por pessoa. A meta pode ser superada; as contribuições continuam abertas. A vaquinha não muda de tipo depois de criada.
 - **Pix** com chave e tipo (CPF, CNPJ, e-mail, telefone ou aleatória), sem integração bancária.
 - **Personalização**: capa, foto de perfil circular e uma **cor de destaque por lista**. O sistema deriva a paleta a partir da cor escolhida e garante contraste de acessibilidade (WCAG AA), escurecendo a cor se for preciso.
 - **Visualizar como convidado**: prévia da página pública que só o dono acessa, com os botões desativados, para nunca gerar reservas de teste.
-- **Painel em abas**: Resumo (arrecadado, reservados, disponíveis, pendências e últimas reservas), Presentes, Confirmações, Personalização e Configurações.
+- **Painel em abas**: Resumo (métricas, vaquinhas compactas e últimas reservas), Presentes, Confirmações e Configurações (informações do evento e aparência da lista na mesma tela).
 - **Confirmação manual de Pix**: o convidado avisa que pagou e o anfitrião confirma quando o dinheiro chega. Contribuições de vaquinha podem ser confirmadas ou recusadas.
 - **Confirmação de presença (RSVP)**: liga e desliga por lista, mostra totais (pessoas, adultos, crianças, recusas), lista de respostas e **exportação em CSV**.
 - **Publicar e despublicar** a lista. Não é possível publicar uma lista sem presentes.
@@ -88,6 +89,7 @@ Plataforma de **listas de presentes para chá de panela e chá de casa nova**. O
 | **Concorrência** | A reserva roda em uma transação com isolamento **Serializable**: se dois convidados pegam a última unidade ao mesmo tempo, o banco aceita só uma. |
 | **Reserva temporária** | Expira após `RESERVATION_TIMEOUT_MINUTES` (padrão 15). A expiração é tratada sob demanda, a cada carregamento e a cada nova tentativa de reserva. |
 | **Desistência** | O convidado pode cancelar antes ou depois de confirmar; a unidade volta para a lista. Se já declarou um Pix, é avisado de que **não há estorno automático**. |
+| **Item do tipo Pix** | Não tem link de loja: o método de pagamento é escolhido sozinho (Pix) ao reservar, e o servidor recusa "compra em loja" nesse tipo. O valor cadastrado é o valor do Pix gerado. |
 | **Chave Pix** | Só é entregue a quem tem reserva ativa com método Pix; nunca aparece na página pública antes disso. |
 | **Dinheiro** | Sempre em **centavos inteiros** (nunca `float`). Nenhum pagamento passa pela plataforma: o Pix vai direto para o anfitrião. |
 | **Pix Copia e Cola** | Payload EMV / BR Code do BACEN gerado localmente em [`lib/pix-payload.ts`](src/lib/pix-payload.ts). |
@@ -119,13 +121,13 @@ Definido em [`prisma/schema.prisma`](prisma/schema.prisma).
 |---|---|
 | `User`, `Account`, `Session`, `VerificationToken` | Anfitriões e o vínculo com provedores (Auth.js). |
 | `Event` | A lista: dados do evento, Pix, tema, `slug` + `secureToken`, `published`, `rsvpEnabled`. |
-| `Gift` | Presente. `kind` = `PRODUCT` ou `FUND` (vaquinha, com meta e mínimo). |
+| `Gift` | Item da lista. `kind` = `PRODUCT` (presente), `PIX` (só Pix, sem loja) ou `FUND` (vaquinha, com meta e mínimo). |
 | `Guest` | Convidado (nome, e-mail, telefone). E-mail único. |
 | `GiftReservation` | Reserva de um produto: `status`, `paymentMethod` e `pixStatus`. |
 | `Contribution` | Contribuição a uma vaquinha, em centavos, com status próprio. |
 | `Rsvp` | Resposta de presença: uma por evento e convidado (`@@unique([eventId, guestId])`). |
 
-Enums principais: `EventType`, `PixKeyType`, `ReservationStatus` (`TEMPORARY → CONFIRMED → COMPLETED`, ou `CANCELLED`/`EXPIRED`), `PaymentMethod`, `PixStatus` (`NOT_DECLARED → DECLARED → CONFIRMED`), `GiftKind`, `ContributionStatus`, `RsvpStatus`.
+Enums principais: `EventType`, `PixKeyType`, `ReservationStatus` (`TEMPORARY → CONFIRMED → COMPLETED`, ou `CANCELLED`/`EXPIRED`), `PaymentMethod`, `PixStatus` (`NOT_DECLARED → DECLARED → CONFIRMED`), `GiftKind` (`PRODUCT`, `PIX`, `FUND`), `ContributionStatus`, `RsvpStatus`.
 
 ---
 

@@ -24,15 +24,23 @@ async function requireOwnedGift(giftId: string, userId: string) {
   return gift;
 }
 
-function parseGiftForm(formData: FormData, kindOverride?: "PRODUCT" | "FUND") {
-  const kind = kindOverride ?? (formData.get("kind") === "FUND" ? "FUND" : "PRODUCT");
+type GiftKind = "PRODUCT" | "PIX" | "FUND";
+
+/** Tipo pedido pelo formulário; qualquer valor desconhecido vira presente comum. */
+function kindFromForm(formData: FormData): GiftKind {
+  const raw = formData.get("kind");
+  return raw === "FUND" || raw === "PIX" ? raw : "PRODUCT";
+}
+
+function parseGiftForm(formData: FormData, kind: GiftKind) {
 
   return giftSchema.safeParse({
     kind,
     name: formData.get("name"),
     description: formData.get("description"),
-    // Vaquinha não tem link de loja nem quantidade: sempre 1 item, sem estoque.
-    purchaseUrl: kind === "FUND" ? "" : formData.get("purchaseUrl"),
+    // Só o presente comum tem link de loja: o tipo Pix (ainda sem loja definida) e a vaquinha pagam só por Pix.
+    purchaseUrl: kind === "PRODUCT" ? formData.get("purchaseUrl") : "",
+    // Vaquinha não tem quantidade: sempre 1 item, sem estoque.
     price: formData.get("price"),
     minContribution: formData.get("minContribution"),
     quantity: kind === "FUND" ? 1 : formData.get("quantity"),
@@ -46,7 +54,7 @@ export async function createGiftAction(eventId: string, formData: FormData): Pro
   const event = await requireOwnedEvent(eventId, session.user.id);
   if (!event) return { success: false, error: "Lista não encontrada." };
 
-  const parsed = parseGiftForm(formData);
+  const parsed = parseGiftForm(formData, kindFromForm(formData));
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
@@ -90,13 +98,16 @@ export async function updateGiftAction(giftId: string, formData: FormData): Prom
   const gift = await requireOwnedGift(giftId, session.user.id);
   if (!gift) return { success: false, error: "Presente não encontrado." };
 
-  // O tipo (produto/vaquinha) não muda depois de criado: reservas e contribuições têm regras diferentes.
-  const parsed = parseGiftForm(formData, gift.kind);
+  // Presente comum e Pix podem ser trocados um pelo outro (ambos são reservas). A vaquinha não muda de tipo,
+  // nem outro tipo vira vaquinha: contribuições e reservas seguem regras diferentes.
+  const requestedKind = kindFromForm(formData);
+  const kind: GiftKind = gift.kind === "FUND" || requestedKind === "FUND" ? gift.kind : requestedKind;
+  const parsed = parseGiftForm(formData, kind);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
 
-  const { kind, name, description, purchaseUrl, price, minContribution, quantity } = parsed.data;
+  const { name, description, purchaseUrl, price, minContribution, quantity } = parsed.data;
 
   // Regra do documento: a nova quantidade nunca pode ficar menor que o número
   // de reservas já ativas (ainda sempre 0 até a Fase 4, mas a checagem já vale).
@@ -125,6 +136,7 @@ export async function updateGiftAction(giftId: string, formData: FormData): Prom
   await prisma.gift.update({
     where: { id: giftId },
     data: {
+      kind,
       name,
       description: description || null,
       purchaseUrl: purchaseUrl || null,

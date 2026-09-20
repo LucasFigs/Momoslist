@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { GiftImage } from "@/components/gift-image";
 import { toast } from "@/hooks/use-toast";
 import { computeFundProgress, type FundTotals } from "@/lib/fund";
-import { PiggyBank } from "lucide-react";
+import { PiggyBank, QrCode } from "lucide-react";
 
 // Mesmas colunas no cabeçalho e nas linhas: miniatura | nome | quantidade | valor | ações.
 // No celular, quantidade e valor descem para baixo do nome e só sobram 3 colunas.
@@ -98,6 +98,7 @@ function GiftRow({
 
   const price = formatCentsToBRL(gift.priceInCents);
   const isFund = gift.kind === "FUND";
+  const isPixOnly = gift.kind === "PIX";
   const fund = isFund && fundTotals ? computeFundProgress(fundTotals) : null;
 
   return (
@@ -112,6 +113,12 @@ function GiftRow({
             <span className="mr-1.5 inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 align-middle text-[11px] font-medium text-primary">
               <PiggyBank className="h-3 w-3" aria-hidden="true" />
               Vaquinha
+            </span>
+          )}
+          {isPixOnly && (
+            <span className="mr-1.5 inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 align-middle text-[11px] font-medium text-primary">
+              <QrCode className="h-3 w-3" aria-hidden="true" />
+              Pix
             </span>
           )}
           {gift.name}

@@ -93,7 +93,7 @@ export function PublicListView({
 
         {/* Confirmação de presença: só aparece se o anfitrião ligou (Configurações → Confirmações). */}
         {event.rsvpEnabled && (
-          <section aria-label="Confirmação de presença" className="container pb-8 pt-6 sm:pb-10 sm:pt-8">
+          <section aria-label="Confirmação de presença" className="container pb-6 pt-5 sm:pb-8 sm:pt-6">
             <RsvpSection eventId={event.id} isIdentified={Boolean(guest)} mine={myRsvp} />
           </section>
         )}

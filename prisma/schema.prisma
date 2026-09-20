@@ -48,9 +48,11 @@ enum PixStatus {
   CONFIRMED
 }
 
-/// Tipo de item da lista: produto comum ou vaquinha (contribuição em valor livre até uma meta).
+/// Tipo de item da lista: produto (com ou sem link de loja), item só-Pix (algo a comprar ainda sem escolha
+/// de loja) ou vaquinha (contribuição em valor livre até uma meta).
 enum GiftKind {
   PRODUCT
+  PIX
   FUND
 }
 

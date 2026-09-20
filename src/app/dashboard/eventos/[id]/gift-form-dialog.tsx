@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Gift as GiftIcon, PiggyBank, Plus } from "lucide-react";
+import { Check, Gift as GiftIcon, PiggyBank, Plus, QrCode } from "lucide-react";
 import type { Gift } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { shrinkImage } from "@/lib/shrink-image";
 import { createGiftAction, updateGiftAction } from "@/actions/gift.actions";
 
 type ActionResult = { success: true } | { success: false; error: string };
-type Kind = "PRODUCT" | "FUND";
+type Kind = "PRODUCT" | "PIX" | "FUND";
 
 interface GiftFormDialogProps {
   eventId: string;
@@ -30,16 +30,32 @@ const KIND_OPTIONS: { value: Kind; title: string; description: string; icon: typ
   {
     value: "PRODUCT",
     title: "Presente",
-    description: "Um item que o convidado escolhe e compra ou paga.",
+    description: "Com link de loja ou Pix.",
     icon: GiftIcon,
+  },
+  {
+    value: "PIX",
+    title: "Pix",
+    description: "Sem loja ainda: só Pix.",
+    icon: QrCode,
   },
   {
     value: "FUND",
     title: "Vaquinha",
-    description: "Vários convidados contribuem em Pix, cada um com o valor que quiser.",
+    description: "Vários contribuem em Pix.",
     icon: PiggyBank,
   },
 ];
+
+/** Sem chave Pix ninguém consegue pagar ou contribuir: avisamos já na criação. */
+function MissingPixNotice({ action }: { action: string }) {
+  return (
+    <p role="alert" className="rounded-md bg-muted p-3 text-sm text-foreground">
+      Você ainda não cadastrou a chave Pix. Faça isso em <strong>Configurações</strong> — sem ela, os convidados
+      não conseguem {action}.
+    </p>
+  );
+}
 
 function centsToInput(cents: number): string {
   return (cents / 100).toFixed(2).replace(".", ",");
@@ -52,16 +68,23 @@ export function GiftFormDialog({ eventId, gift, trigger, pixConfigured = true }:
   const [error, setError] = useState<string | null>(null);
 
   const isEditing = Boolean(gift);
-  // O tipo não muda depois de criado: reservas e contribuições seguem regras diferentes.
-  const [kind, setKind] = useState<Kind>(gift?.kind ?? "PRODUCT");
+  const initialKind: Kind = gift?.kind ?? "PRODUCT";
+  const [kind, setKind] = useState<Kind>(initialKind);
   const isFund = kind === "FUND";
+  const isPixOnly = kind === "PIX";
+  // Presente e Pix se alternam à vontade (os dois são reservas). A vaquinha tem regras próprias e não troca de tipo.
+  const kindOptions = isEditing
+    ? initialKind === "FUND"
+      ? []
+      : KIND_OPTIONS.filter((option) => option.value !== "FUND")
+    : KIND_OPTIONS;
 
   function handleOpenChange(next: boolean) {
     setOpen(next);
     if (!next) {
       setError(null);
-      // Ao criar, o próximo item volta a começar como "Presente".
-      if (!isEditing) setKind("PRODUCT");
+      // Fechar sem salvar descarta a troca de tipo: ao criar volta a "Presente"; ao editar, ao tipo salvo.
+      setKind(initialKind);
     }
   }
 
@@ -83,7 +106,7 @@ export function GiftFormDialog({ eventId, gift, trigger, pixConfigured = true }:
         toast({ title: "Não foi possível salvar", description: result.error, variant: "destructive" });
         return;
       }
-      const noun = isFund ? "Vaquinha" : "Presente";
+      const noun = isFund ? "Vaquinha" : isPixOnly ? "Item Pix" : "Presente";
       toast({ title: isEditing ? `${noun} atualizada` : `${noun} adicionada` });
       handleOpenChange(false);
       router.refresh();
@@ -103,16 +126,20 @@ export function GiftFormDialog({ eventId, gift, trigger, pixConfigured = true }:
       <DialogContent className="max-h-[92vh] overflow-y-auto" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? (isFund ? "Editar vaquinha" : "Editar presente") : "Novo item da lista"}
+            {isEditing ? (isFund ? "Editar vaquinha" : "Editar item") : "Novo item da lista"}
           </DialogTitle>
         </DialogHeader>
 
         <form action={handleSubmit} className="flex flex-col gap-4">
           <input type="hidden" name="kind" value={kind} />
 
-          {!isEditing && (
-            <div role="radiogroup" aria-label="Tipo do item" className="grid grid-cols-2 gap-2">
-              {KIND_OPTIONS.map(({ value, title, description, icon: Icon }) => {
+          {kindOptions.length > 0 && (
+            <div
+              role="radiogroup"
+              aria-label="Tipo do item"
+              className={cn("grid grid-cols-1 gap-2", kindOptions.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2")}
+            >
+              {kindOptions.map(({ value, title, description, icon: Icon }) => {
                 const selected = kind === value;
                 return (
                   <button
@@ -158,7 +185,7 @@ export function GiftFormDialog({ eventId, gift, trigger, pixConfigured = true }:
               id="name"
               name="name"
               defaultValue={gift?.name}
-              placeholder={isFund ? "Lua de mel" : "Jogo de panelas"}
+              placeholder={isFund ? "Lua de mel" : isPixOnly ? "Geladeira" : "Jogo de panelas"}
               required
             />
           </div>
@@ -205,18 +232,13 @@ export function GiftFormDialog({ eventId, gift, trigger, pixConfigured = true }:
                 Cada convidado escolhe quanto contribuir a partir do mínimo. A meta não é um limite: dá para
                 arrecadar mais do que ela, o que evita conflito quando várias pessoas contribuem ao mesmo tempo.
               </p>
-              {!pixConfigured && (
-                <p role="alert" className="rounded-md bg-muted p-3 text-sm text-foreground">
-                  Você ainda não cadastrou a chave Pix. Faça isso em <strong>Configurações</strong> — sem ela, os
-                  convidados não conseguem contribuir.
-                </p>
-              )}
+              {!pixConfigured && <MissingPixNotice action="contribuir" />}
             </Fragment>
           ) : (
-            <Fragment key="product-fields">
+            <Fragment key={`${kind}-fields`}>
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="price">Valor (R$)</Label>
+                  <Label htmlFor="price">{isPixOnly ? "Valor do Pix (R$)" : "Valor (R$)"}</Label>
                   <Input
                     id="price"
                     name="price"
@@ -239,16 +261,26 @@ export function GiftFormDialog({ eventId, gift, trigger, pixConfigured = true }:
                 </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="purchaseUrl">Link da loja (opcional)</Label>
-                <Input
-                  id="purchaseUrl"
-                  name="purchaseUrl"
-                  type="url"
-                  placeholder="https://..."
-                  defaultValue={gift?.purchaseUrl ?? ""}
-                />
-              </div>
+              {isPixOnly ? (
+                <>
+                  <p className="-mt-2 text-xs text-muted-foreground">
+                    O convidado paga esse valor por Pix e você compra o item depois. Quando escolher a loja,
+                    edite e troque o tipo para <strong>Presente</strong>, se quiser.
+                  </p>
+                  {!pixConfigured && <MissingPixNotice action="pagar" />}
+                </>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="purchaseUrl">Link da loja (opcional)</Label>
+                  <Input
+                    id="purchaseUrl"
+                    name="purchaseUrl"
+                    type="url"
+                    placeholder="https://..."
+                    defaultValue={gift?.purchaseUrl ?? ""}
+                  />
+                </div>
+              )}
             </Fragment>
           )}
 
@@ -269,7 +301,15 @@ export function GiftFormDialog({ eventId, gift, trigger, pixConfigured = true }:
           )}
 
           <Button type="submit" disabled={isPending} className="mt-1">
-            {isPending ? "Salvando..." : isEditing ? "Salvar alterações" : isFund ? "Criar vaquinha" : "Adicionar presente"}
+            {isPending
+              ? "Salvando..."
+              : isEditing
+                ? "Salvar alterações"
+                : isFund
+                  ? "Criar vaquinha"
+                  : isPixOnly
+                    ? "Adicionar item Pix"
+                    : "Adicionar presente"}
           </Button>
         </form>
       </DialogContent>

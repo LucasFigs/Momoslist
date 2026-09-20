@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import type { Event, Gift } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventForm } from "./event-form";
 import { PublishToggle } from "./publish-toggle";
-import { CopyLinkButton, ShareLinkButtons } from "./share-link-buttons";
+import { ShareLinkButtons } from "./share-link-buttons";
+import { ListPreviewButton } from "./list-preview";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { GiftFormDialog } from "./gift-form-dialog";
 import { GiftList } from "./gift-list";
@@ -14,6 +16,7 @@ import { CoverImageUploader } from "./cover-image-uploader";
 import { ProfileImageUploader } from "./profile-image-uploader";
 import { ThemeSelector } from "./theme-selector";
 import { FundsOverview, type FundOverviewItem } from "./funds-overview";
+import { RsvpPanel, type RsvpItem } from "./rsvp-panel";
 import type { FundTotals } from "@/lib/fund";
 import { resolveThemeColor } from "@/lib/theme";
 
@@ -36,6 +39,8 @@ export interface EventDashboardViewProps {
   funds: FundOverviewItem[];
   fundTotals: Record<string, FundTotals>;
   pixConfigured: boolean;
+  rsvpEnabled: boolean;
+  rsvpItems: RsvpItem[];
 }
 
 /** Parte visual da página do evento: recebe tudo pronto, sem acessar banco nem sessão. */
@@ -50,6 +55,8 @@ export function EventDashboardView({
   funds,
   fundTotals,
   pixConfigured,
+  rsvpEnabled,
+  rsvpItems,
 }: EventDashboardViewProps) {
   return (
     <div className="flex flex-col gap-6">
@@ -83,7 +90,19 @@ export function EventDashboardView({
           </div>
           {/* 2º as ações principais, à mão. */}
           <div className="flex flex-wrap items-center gap-2">
-            {event.published && <CopyLinkButton url={publicUrl} />}
+            {/* Com a lista publicada, ver o que os convidados veem é a ação mais útil ao lado de despublicar. */}
+            {event.published ? (
+              <Button variant="outline" size="sm" asChild>
+                <a href={publicUrl} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                  Abrir lista pública
+                  <span className="sr-only"> (abre em nova aba)</span>
+                </a>
+              </Button>
+            ) : (
+              // Rascunho não tem link público (responde 404): a pré-visualização é a única forma de ver.
+              <ListPreviewButton eventId={event.id} label="Visualizar lista" />
+            )}
             <PublishToggle eventId={event.id} published={event.published} />
           </div>
         </div>
@@ -94,6 +113,7 @@ export function EventDashboardView({
         <TabsList>
           <TabsTrigger value="resumo">Resumo</TabsTrigger>
           <TabsTrigger value="presentes">Presentes</TabsTrigger>
+          <TabsTrigger value="confirmacoes">Confirmações</TabsTrigger>
           <TabsTrigger value="personalizacao">Personalização</TabsTrigger>
           <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
         </TabsList>
@@ -102,7 +122,7 @@ export function EventDashboardView({
         <TabsContent value="resumo" className="flex flex-col gap-6">
           {/* Métricas numa superfície só: fáceis de escanear e sem cara de painel financeiro. */}
           <Card>
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-5 p-5 md:grid-cols-3 lg:grid-cols-5">
+            <dl className={`grid grid-cols-2 gap-x-6 gap-y-5 p-5 md:grid-cols-3 ${primaryMetrics.length + secondaryMetrics.length >= 6 ? "lg:grid-cols-6" : "lg:grid-cols-5"}`}>
               {[...primaryMetrics, ...secondaryMetrics].map((metric, index) => (
                 <div key={metric.label} className={index === 0 ? "col-span-2 md:col-span-1" : undefined}>
                   <dt className="text-xs text-muted-foreground">{metric.label}</dt>
@@ -178,6 +198,11 @@ export function EventDashboardView({
           </Card>
         </TabsContent>
 
+        {/* Confirmações de presença */}
+        <TabsContent value="confirmacoes">
+          <RsvpPanel eventId={event.id} eventSlug={event.slug} enabled={rsvpEnabled} items={rsvpItems} />
+        </TabsContent>
+
         {/* Personalização — largura de leitura: campos e uploaders não precisam esticar. */}
         <TabsContent value="personalizacao" className="flex max-w-3xl flex-col gap-6">
           <Card>
@@ -230,6 +255,7 @@ export function EventDashboardView({
               <EventForm
                 action={updateAction}
                 submitLabel="Salvar alterações"
+                previewEventId={event.id}
                 initialValues={event}
               />
             </CardContent>

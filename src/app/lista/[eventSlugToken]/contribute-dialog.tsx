@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogTitle, SheetBody, SheetContent, SheetFooter, SheetHeader } from "@/components/ui/dialog";
 import { FundProgress } from "@/components/fund-progress";
 import { toast } from "@/hooks/use-toast";
 import { cn, formatCentsToBRL } from "@/lib/utils";
@@ -76,6 +76,7 @@ export function ContributeDialog({
   const isValidAmount =
     Number.isFinite(amountInCents) && amountInCents >= minInCents && amountInCents <= MAX_AMOUNT_IN_CENTS;
   const showAmountError = Boolean(amountInput) && !isValidAmount;
+  const showPixStep = pixConfigured && step === "pix";
 
   const progress = computeFundProgress(totals);
   const suggestions = suggestContributionAmounts(minInCents, progress.remainingInCents);
@@ -169,197 +170,215 @@ export function ContributeDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-md" aria-describedby={undefined}>
-          <DialogHeader>
-            <DialogTitle>Contribuir com a vaquinha</DialogTitle>
-            <p className="text-sm text-muted-foreground">{giftName}</p>
-          </DialogHeader>
+        <SheetContent size={showPixStep ? "lg" : "md"} aria-describedby={undefined}>
+          {showPixStep && pix ? (
+            <>
+              <SheetHeader>
+                <DialogTitle>Contribuir com a vaquinha</DialogTitle>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {giftName} · {formatCentsToBRL(progress.raisedInCents)} de {formatCentsToBRL(totals.goalInCents)} (
+                  {progress.percent}%)
+                </p>
+              </SheetHeader>
 
-          <div className="flex flex-col gap-5">
-            {step === "amount" || !pixConfigured ? (
-              <FundProgress size="lg" {...totals} />
-            ) : (
-              // No passo do Pix o foco é pagar: um resumo de uma linha libera espaço para o botão principal.
-              <p className="text-sm text-muted-foreground">
-                {formatCentsToBRL(progress.raisedInCents)} de {formatCentsToBRL(totals.goalInCents)} ·{" "}
-                <span className="font-medium text-foreground">{progress.percent}%</span> da meta
-              </p>
-            )}
-
-            {myContributions.length > 0 && step === "amount" && (
-              <div className="rounded-lg border border-border bg-muted/40 p-3">
-                <p className="mb-2 text-xs font-medium text-foreground">Suas contribuições</p>
-                <ul className="flex flex-col gap-2">
-                  {myContributions.map((contribution) => (
-                    <li key={contribution.id} className="flex items-center justify-between gap-2 text-sm">
-                      <span>
-                        <span className="font-medium">{formatCentsToBRL(contribution.amountInCents)}</span>{" "}
-                        <span
-                          className={cn(
-                            "text-xs",
-                            contribution.status === "CONFIRMED" ? "text-primary" : "text-muted-foreground"
-                          )}
-                        >
-                          · {contribution.status === "CONFIRMED" ? "confirmada" : "aguardando confirmação"}
-                        </span>
-                      </span>
-                      {contribution.status === "DECLARED" && (
-                        <button
-                          type="button"
-                          onClick={() => setCancelTarget(contribution)}
-                          disabled={isBusy}
-                          className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-                        >
-                          Cancelar
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {!pixConfigured ? (
-              <p role="alert" className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-                O anfitrião ainda não cadastrou uma chave Pix, então não dá para contribuir por aqui por
-                enquanto.
-              </p>
-            ) : step === "amount" ? (
-              <form
-                className="flex flex-col gap-3"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  handleContinue();
-                }}
-              >
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="contribution-amount">Quanto você quer contribuir?</Label>
-                  <div className="relative">
-                    <span
-                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground"
-                      aria-hidden="true"
-                    >
-                      R$
-                    </span>
-                    <Input
-                      id="contribution-amount"
-                      inputMode="decimal"
-                      autoComplete="off"
-                      placeholder="0,00"
-                      value={amountInput}
-                      onChange={(event) => setAmountInput(event.target.value.replace(/[^\d.,]/g, ""))}
-                      aria-invalid={showAmountError}
-                      aria-describedby="contribution-hint"
-                      className="pl-10 text-base"
-                    />
+              <SheetBody className="flex flex-col gap-5">
+                {/* Celular: uma coluna. Tela larga: QR à esquerda, dados à direita. */}
+                <div className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-start sm:gap-6">
+                  <div className="mx-auto">
+                    {!qrFailed && pix.qrCodeDataUrl ? (
+                      <div className="rounded-xl border border-border bg-white p-2.5">
+                        <Image
+                          src={pix.qrCodeDataUrl}
+                          alt="QR Code Pix"
+                          width={184}
+                          height={184}
+                          unoptimized
+                          onError={() => setQrFailed(true)}
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        role="img"
+                        aria-label="QR Code indisponível"
+                        className="flex h-[205px] w-[205px] flex-col items-center justify-center gap-1 rounded-xl bg-neutral-200 p-3 text-center text-neutral-500"
+                      >
+                        <ImageOff className="h-5 w-5" aria-hidden="true" />
+                        <span className="text-xs">QR Code indisponível — use a chave ou o copia e cola.</span>
+                      </div>
+                    )}
                   </div>
-                  <p
-                    id="contribution-hint"
-                    className={cn("text-xs", showAmountError ? "text-destructive" : "text-muted-foreground")}
-                  >
-                    {showAmountError
-                      ? `Informe um valor a partir de ${formatCentsToBRL(minInCents)}.`
-                      : `Mínimo de ${formatCentsToBRL(minInCents)}. Não há limite: a meta pode ser superada.`}
-                  </p>
-                </div>
 
-                <div className="flex flex-wrap gap-2" role="group" aria-label="Valores sugeridos">
-                  {suggestions.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setAmountInput(centsToInput(value))}
-                      aria-pressed={amountInCents === value}
-                      className={cn(
-                        "rounded-full border px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                        amountInCents === value
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-input bg-card hover:bg-muted"
-                      )}
-                    >
-                      {value === progress.remainingInCents ? `Completar (${formatCentsToBRL(value)})` : formatCentsToBRL(value)}
-                    </button>
-                  ))}
-                </div>
+                  <div className="flex flex-col gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Valor a enviar</p>
+                      <p className="text-2xl font-semibold tabular-nums text-foreground">{pix.amountLabel}</p>
+                    </div>
 
-                {projected && (
-                  <p role="status" className="text-sm text-muted-foreground">
-                    Com a sua contribuição a vaquinha vai para{" "}
-                    <span className="font-semibold text-foreground">{projected.percent}%</span>
-                    {projected.reached && " — meta atingida!"}
-                  </p>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        {pixKeyTypeLabel[pix.pixKeyType] ?? pix.pixKeyType} de {pix.hostName}
+                      </p>
+                      <p className="select-all break-all text-sm font-medium text-foreground">{pix.pixKey}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={() => copy(pix.pixKey, "key")}>
+                        {copied === "key" ? <Check className="mr-1.5 h-4 w-4" /> : <Copy className="mr-1.5 h-4 w-4" />}
+                        {copied === "key" ? "Copiada" : "Copiar chave"}
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" onClick={() => copy(pix.copyPasteCode, "code")}>
+                        {copied === "code" ? <Check className="mr-1.5 h-4 w-4" /> : <Copy className="mr-1.5 h-4 w-4" />}
+                        {copied === "code" ? "Copiado" : "Copia e cola"}
+                      </Button>
+                    </div>
+
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      Pague no app do seu banco e depois toque em{" "}
+                      <strong className="text-foreground">Já fiz o Pix</strong> para avisar o anfitrião. A contribuição
+                      entra na barra como &quot;aguardando&quot; até ele confirmar.
+                    </p>
+                  </div>
+                </div>
+              </SheetBody>
+
+              <SheetFooter>
+                <Button onClick={handleDeclare} disabled={isBusy} className="w-full">
+                  {busy === "declare" ? "Registrando..." : "Já fiz o Pix"}
+                </Button>
+                <Button variant="ghost" onClick={() => setStep("amount")} disabled={isBusy} className="w-full">
+                  Voltar e mudar o valor
+                </Button>
+              </SheetFooter>
+            </>
+          ) : (
+            // O <form> envolve corpo e rodapé: o botão fixo no rodapé envia o formulário (e o Enter também).
+            <form
+              className="flex min-h-0 flex-1 flex-col"
+              onSubmit={(event) => {
+                event.preventDefault();
+                handleContinue();
+              }}
+            >
+              <SheetHeader>
+                <DialogTitle>Contribuir com a vaquinha</DialogTitle>
+                <p className="mt-0.5 text-sm text-muted-foreground">{giftName}</p>
+              </SheetHeader>
+
+              <SheetBody className="flex flex-col gap-5">
+                <FundProgress size="lg" {...totals} />
+
+                {myContributions.length > 0 && (
+                  <div className="rounded-lg border border-border bg-muted/40 p-3">
+                    <p className="mb-2 text-xs font-medium text-foreground">Suas contribuições</p>
+                    <ul className="flex flex-col gap-2">
+                      {myContributions.map((contribution) => (
+                        <li key={contribution.id} className="flex items-center justify-between gap-2 text-sm">
+                          <span>
+                            <span className="font-medium">{formatCentsToBRL(contribution.amountInCents)}</span>{" "}
+                            <span
+                              className={cn(
+                                "text-xs",
+                                contribution.status === "CONFIRMED" ? "text-success" : "text-muted-foreground"
+                              )}
+                            >
+                              · {contribution.status === "CONFIRMED" ? "confirmada" : "aguardando confirmação"}
+                            </span>
+                          </span>
+                          {contribution.status === "DECLARED" && (
+                            <button
+                              type="button"
+                              onClick={() => setCancelTarget(contribution)}
+                              disabled={isBusy}
+                              className="min-h-9 px-1 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                            >
+                              Cancelar
+                            </button>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
 
-                <Button type="submit" disabled={!isValidAmount || isBusy} className="mt-1 w-full">
-                  {busy === "pix" ? "Gerando Pix..." : "Continuar para o Pix"}
-                </Button>
-              </form>
-            ) : (
-              pix && (
-                <div className="flex flex-col gap-4">
-                  <div className="text-center">
-                    <p className="text-xs text-muted-foreground">Valor a enviar</p>
-                    <p className="font-serif text-3xl font-medium text-foreground">{pix.amountLabel}</p>
-                  </div>
-
-                  {!qrFailed && pix.qrCodeDataUrl ? (
-                    <div className="mx-auto rounded-md border border-border bg-white p-2">
-                      <Image
-                        src={pix.qrCodeDataUrl}
-                        alt="QR Code Pix"
-                        width={176}
-                        height={176}
-                        unoptimized
-                        onError={() => setQrFailed(true)}
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      role="img"
-                      aria-label="QR Code indisponível"
-                      className="mx-auto flex h-[192px] w-[192px] flex-col items-center justify-center gap-1 rounded-md bg-neutral-200 p-3 text-center text-neutral-500"
-                    >
-                      <ImageOff className="h-5 w-5" aria-hidden="true" />
-                      <span className="text-[11px]">QR Code indisponível — use a chave ou o copia e cola.</span>
-                    </div>
-                  )}
-
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      {pixKeyTypeLabel[pix.pixKeyType] ?? pix.pixKeyType} de {pix.hostName}
-                    </p>
-                    <p className="break-all text-sm font-medium text-foreground">{pix.pixKey}</p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={() => copy(pix.pixKey, "key")}>
-                      {copied === "key" ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
-                      {copied === "key" ? "Copiada" : "Copiar chave"}
-                    </Button>
-                    <Button type="button" size="sm" variant="outline" onClick={() => copy(pix.copyPasteCode, "code")}>
-                      {copied === "code" ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
-                      {copied === "code" ? "Copiado" : "Copia e cola"}
-                    </Button>
-                  </div>
-
-                  <p className="rounded-md bg-muted/60 p-3 text-xs text-muted-foreground">
-                    Faça o Pix no app do seu banco e depois toque em <strong>Já fiz o Pix</strong> para avisar o
-                    anfitrião. A contribuição entra na barra como &quot;aguardando&quot; até ele confirmar.
+                {!pixConfigured ? (
+                  <p role="alert" className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                    O anfitrião ainda não cadastrou uma chave Pix, então não dá para contribuir por aqui por enquanto.
                   </p>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <Label htmlFor="contribution-amount">Quanto você quer contribuir?</Label>
+                      <div className="relative">
+                        <span
+                          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-base text-muted-foreground"
+                          aria-hidden="true"
+                        >
+                          R$
+                        </span>
+                        <Input
+                          id="contribution-amount"
+                          inputMode="decimal"
+                          autoComplete="off"
+                          placeholder="0,00"
+                          value={amountInput}
+                          onChange={(event) => setAmountInput(event.target.value.replace(/[^\d.,]/g, ""))}
+                          aria-invalid={showAmountError}
+                          aria-describedby="contribution-hint"
+                          className="h-12 pl-11 text-base"
+                        />
+                      </div>
+                      <p
+                        id="contribution-hint"
+                        className={cn("text-xs", showAmountError ? "text-destructive" : "text-muted-foreground")}
+                      >
+                        {showAmountError
+                          ? `Informe um valor a partir de ${formatCentsToBRL(minInCents)}.`
+                          : `Mínimo de ${formatCentsToBRL(minInCents)}. Não há limite: a meta pode ser superada.`}
+                      </p>
+                    </div>
 
-                  <div className="flex flex-col gap-2">
-                    <Button onClick={handleDeclare} disabled={isBusy} className="w-full">
-                      {busy === "declare" ? "Registrando..." : "Já fiz o Pix"}
-                    </Button>
-                    <Button variant="ghost" onClick={() => setStep("amount")} disabled={isBusy} className="w-full">
-                      Voltar e mudar o valor
-                    </Button>
+                    <div className="flex flex-wrap gap-2" role="group" aria-label="Valores sugeridos">
+                      {suggestions.map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setAmountInput(centsToInput(value))}
+                          aria-pressed={amountInCents === value}
+                          className={cn(
+                            "min-h-11 rounded-full border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                            amountInCents === value
+                              ? "border-primary bg-primary text-primary-foreground"
+                              : "border-input bg-card hover:bg-muted"
+                          )}
+                        >
+                          {value === progress.remainingInCents
+                            ? `Completar (${formatCentsToBRL(value)})`
+                            : formatCentsToBRL(value)}
+                        </button>
+                      ))}
+                    </div>
+
+                    {projected && (
+                      <p role="status" className="text-sm text-muted-foreground">
+                        Com a sua contribuição a vaquinha vai para{" "}
+                        <span className="font-semibold text-foreground">{projected.percent}%</span>
+                        {projected.reached && " — meta atingida!"}
+                      </p>
+                    )}
                   </div>
-                </div>
-              )
-            )}
-          </div>
-        </DialogContent>
+                )}
+              </SheetBody>
+
+              {pixConfigured && (
+                <SheetFooter>
+                  <Button type="submit" disabled={!isValidAmount || isBusy} className="w-full">
+                    {busy === "pix" ? "Gerando Pix..." : "Continuar para o Pix"}
+                  </Button>
+                </SheetFooter>
+              )}
+            </form>
+          )}
+        </SheetContent>
       </Dialog>
 
       <ConfirmDialog

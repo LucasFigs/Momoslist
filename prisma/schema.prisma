@@ -61,6 +61,12 @@ enum ContributionStatus {
   CANCELLED
 }
 
+/// Resposta do convidado ao "confirmar presença".
+enum RsvpStatus {
+  ATTENDING
+  NOT_ATTENDING
+}
+
 /// Paletas pré-definidas que o anfitrião pode escolher para a página pública.
 enum ThemeName {
   SALVIA
@@ -157,6 +163,7 @@ model Guest {
 
   reservations  GiftReservation[]
   contributions Contribution[]
+  rsvps         Rsvp[]
 
   @@unique([email])
   @@map("guests")
@@ -190,11 +197,15 @@ model Event {
 
   published Boolean @default(false)
 
+  // Confirmação de presença: o anfitrião liga por lista (desligado por padrão — não muda listas já publicadas).
+  rsvpEnabled Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   owner User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   gifts Gift[]
+  rsvps Rsvp[]
 
   @@index([ownerId])
   @@map("events")
@@ -287,4 +298,30 @@ model Contribution {
   @@index([giftId, status])
   @@index([guestId])
   @@map("contributions")
+}
+
+// ---------------------------------------------------------------------------
+// Confirmação de presença
+// ---------------------------------------------------------------------------
+
+// Uma resposta por (lista, convidado): responder de novo ATUALIZA a anterior. O próprio convidado sempre conta
+// como 1 adulto; aqui ficam só os ACOMPANHANTES (adultos e crianças). Quem não vai tem os dois em 0.
+model Rsvp {
+  id      String @id @default(cuid())
+  eventId String
+  guestId String
+
+  status            RsvpStatus
+  companionAdults   Int        @default(0)
+  companionChildren Int        @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  guest Guest @relation(fields: [guestId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, guestId])
+  @@index([eventId, status])
+  @@map("rsvps")
 }

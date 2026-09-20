@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import type { Event } from "@prisma/client";
+import { ListPreviewDialog } from "./list-preview";
 
 type ActionResult = { success: true } | { success: false; error: string };
 
@@ -21,6 +22,8 @@ function toDatetimeLocalValue(date: Date | string): string {
 interface EventFormProps {
   action: (formData: FormData) => Promise<ActionResult>;
   submitLabel: string;
+  /** Na edição de uma lista existente: habilita "Salvar e visualizar" (mostra a lista como o convidado vê). */
+  previewEventId?: string;
   initialValues?: Pick<
     Event,
     | "title"
@@ -77,13 +80,17 @@ function Field({
   );
 }
 
-export function EventForm({ action, submitLabel, initialValues }: EventFormProps) {
+export function EventForm({ action, submitLabel, previewEventId, initialValues }: EventFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  // Qual botão enviou o formulário: só "Salvar e visualizar" abre a pré-visualização depois de salvar.
+  const wantsPreview = useRef(false);
 
   function handleSubmit(formData: FormData) {
     setError(null);
+    const openPreviewAfterSave = wantsPreview.current;
     startTransition(async () => {
       const result = await action(formData);
       if (result && !result.success) {
@@ -94,6 +101,8 @@ export function EventForm({ action, submitLabel, initialValues }: EventFormProps
       }
       toast({ title: "Alterações salvas" });
       router.refresh();
+      // Só abre depois de salvar: a pré-visualização lê do banco.
+      if (openPreviewAfterSave) setPreviewOpen(true);
     });
   }
 
@@ -212,11 +221,32 @@ export function EventForm({ action, submitLabel, initialValues }: EventFormProps
         </p>
       )}
 
-      <div className="flex justify-end border-t border-border pt-6">
-        <Button type="submit" disabled={isPending} className="w-full sm:w-auto sm:min-w-[11rem]">
+      <div className="flex flex-col-reverse gap-2 border-t border-border pt-6 sm:flex-row sm:justify-end">
+        {previewEventId && (
+          // Salva e já mostra a lista como o convidado vê, com o que acabou de ser digitado.
+          <Button
+            type="submit"
+            variant="outline"
+            disabled={isPending}
+            onClick={() => (wantsPreview.current = true)}
+            className="w-full sm:w-auto"
+          >
+            Salvar e visualizar
+          </Button>
+        )}
+        <Button
+          type="submit"
+          disabled={isPending}
+          onClick={() => (wantsPreview.current = false)}
+          className="w-full sm:w-auto sm:min-w-[11rem]"
+        >
           {isPending ? "Salvando..." : submitLabel}
         </Button>
       </div>
+
+      {previewEventId && (
+        <ListPreviewDialog eventId={previewEventId} open={previewOpen} onOpenChange={setPreviewOpen} />
+      )}
     </form>
   );
 }

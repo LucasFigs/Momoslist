@@ -1,25 +1,34 @@
 import { z } from "zod";
 
-const urlOrEmpty = z
-  .string()
-  .trim()
-  .optional()
-  .or(z.literal(""))
-  .refine(
-    (value) => !value || /^https?:\/\/.+/i.test(value),
-    "A URL deve começar com http:// ou https://"
-  );
+/**
+ * `FormData.get()` devolve `null` quando o campo não existe no formulário (ex.: "minContribution" num presente
+ * comum). O Zod não aceita `null` em campo opcional — daí o "Invalid input" —, então ausente vira texto vazio.
+ */
+const emptyIfMissing = (value: unknown) => (value === null || value === undefined ? "" : value);
 
-/** Valor digitado em reais (ex: "450,00" ou "450.00") que precisa resultar em centavos > 0. */
-const moneyString = (emptyMessage: string) =>
+const optionalText = (max: number) => z.preprocess(emptyIfMissing, z.string().trim().max(max));
+
+const urlOrEmpty = z.preprocess(
+  emptyIfMissing,
   z
     .string()
     .trim()
-    .min(1, emptyMessage)
-    .refine((value) => {
-      const parsed = parsePriceToCents(value);
-      return Number.isFinite(parsed) && parsed > 0;
-    }, "Informe um valor válido maior que zero");
+    .refine((value) => !value || /^https?:\/\/.+/i.test(value), "A URL deve começar com http:// ou https://")
+);
+
+/** Valor digitado em reais (ex: "450,00" ou "450.00") que precisa resultar em centavos > 0. */
+const moneyString = (emptyMessage: string) =>
+  z.preprocess(
+    emptyIfMissing,
+    z
+      .string()
+      .trim()
+      .min(1, emptyMessage)
+      .refine((value) => {
+        const parsed = parsePriceToCents(value);
+        return Number.isFinite(parsed) && parsed > 0;
+      }, "Informe um valor válido maior que zero")
+  );
 
 // Teto de uma contribuição/meta: evita valores absurdos e estouro no campo de valor do Pix.
 export const MAX_AMOUNT_IN_CENTS = 10_000_000; // R$ 100.000,00
@@ -27,13 +36,13 @@ export const MAX_AMOUNT_IN_CENTS = 10_000_000; // R$ 100.000,00
 export const giftSchema = z
   .object({
     kind: z.enum(["PRODUCT", "FUND"]).default("PRODUCT"),
-    name: z.string().trim().min(2, "Dê um nome ao presente").max(120),
-    description: z.string().trim().max(500).optional().or(z.literal("")),
+    name: z.preprocess(emptyIfMissing, z.string().trim().min(2, "Dê um nome ao presente").max(120)),
+    description: optionalText(500),
     purchaseUrl: urlOrEmpty,
     // Produto: valor do presente. Vaquinha: META total a arrecadar.
     price: moneyString("Informe o valor"),
     // Só vaquinha: menor contribuição aceita.
-    minContribution: z.string().trim().optional().or(z.literal("")),
+    minContribution: optionalText(30),
     quantity: z.coerce.number().int().min(1, "A quantidade mínima é 1").max(999),
   })
   .superRefine((data, ctx) => {
@@ -49,7 +58,7 @@ export const giftSchema = z
 
     if (data.kind !== "FUND") return;
 
-    const minRaw = data.minContribution?.trim();
+    const minRaw = data.minContribution.trim();
     const minInCents = minRaw ? parsePriceToCents(minRaw) : NaN;
 
     if (!minRaw || !Number.isFinite(minInCents) || minInCents <= 0) {

@@ -39,7 +39,7 @@ export function ConfirmDialog({
             "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95"
           )}
         >
-          <DialogPrimitive.Title className="font-serif text-lg font-medium text-foreground">
+          <DialogPrimitive.Title className="text-lg font-semibold tracking-tight text-foreground">
             {title}
           </DialogPrimitive.Title>
           <DialogPrimitive.Description asChild>

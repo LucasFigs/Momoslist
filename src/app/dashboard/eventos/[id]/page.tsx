@@ -10,6 +10,8 @@ import { computeGiftAvailability, ACTIVE_RESERVATION_STATUSES } from "@/lib/gift
 import { formatCentsToBRL } from "@/lib/utils";
 import type { FundTotals } from "@/lib/fund";
 import type { FundOverviewItem } from "./funds-overview";
+import type { RsvpItem } from "./rsvp-panel";
+import { summarizeRsvps } from "@/lib/rsvp";
 
 export const metadata: Metadata = { title: "Gerenciar lista" };
 
@@ -22,6 +24,8 @@ export default async function EventoPage({ params }: { params: { id: string } })
   const event = await prisma.event.findUnique({
     where: { id: params.id },
     include: {
+      // Confirmações de presença (só o dono vê nome, e-mail e telefone).
+      rsvps: { include: { guest: { select: { name: true, email: true, phone: true } } } },
       gifts: {
         orderBy: { createdAt: "asc" },
         include: {
@@ -120,6 +124,19 @@ export default async function EventoPage({ params }: { params: { id: string } })
   // ISO 8601 ordena corretamente como texto.
   selections.sort((a, b) => b.reservedAt.localeCompare(a.reservedAt));
 
+  // Confirmação de presença: itens para a aba e o total de pessoas para o Resumo.
+  const rsvpItems: RsvpItem[] = event.rsvps.map((rsvp) => ({
+    id: rsvp.id,
+    name: rsvp.guest.name,
+    email: rsvp.guest.email,
+    phone: rsvp.guest.phone,
+    status: rsvp.status,
+    companionAdults: rsvp.companionAdults,
+    companionChildren: rsvp.companionChildren,
+    answeredAt: rsvp.updatedAt.toISOString(),
+  }));
+  const rsvpSummary = summarizeRsvps(rsvpItems);
+
   const primaryMetrics = [
     { label: "Total arrecadado via Pix", value: formatCentsToBRL(pixConfirmedCents) },
     { label: "Presentes reservados", value: String(selectedUnits) },
@@ -128,6 +145,10 @@ export default async function EventoPage({ params }: { params: { id: string } })
   const secondaryMetrics = [
     { label: "Total de presentes", value: String(totalGifts) },
     { label: "Pix pendentes", value: formatCentsToBRL(pixPendingCents) },
+    // Só aparece se o recurso está ligado ou já tem respostas: não polui quem não usa.
+    ...(event.rsvpEnabled || rsvpSummary.responses > 0
+      ? [{ label: "Pessoas confirmadas", value: String(rsvpSummary.people) }]
+      : []),
   ];
 
   const headersList = headers();
@@ -148,6 +169,8 @@ export default async function EventoPage({ params }: { params: { id: string } })
       funds={funds}
       fundTotals={fundTotals}
       pixConfigured={Boolean(event.pixKey && event.pixKeyType)}
+      rsvpEnabled={event.rsvpEnabled}
+      rsvpItems={rsvpItems}
     />
   );
 }

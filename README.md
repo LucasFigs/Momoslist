@@ -1,87 +1,110 @@
-# Momoslist
+<div align="center">
 
-Plataforma de **listas de presentes para chá de panela e chá de casa nova**. O anfitrião monta a lista, compartilha um link pelo WhatsApp e acompanha tudo em um painel. O convidado abre o link no celular, escolhe um presente (ou contribui com uma vaquinha), paga por Pix ou compra na loja e, se o anfitrião quiser, confirma presença — sem criar conta e sem instalar nada.
+# 🎁 Momoslist
 
-> Stack: **Next.js 14** (App Router) · **TypeScript** · **Tailwind CSS** · **Prisma** · **Supabase** (Postgres + Storage) · **Auth.js** · **Zod**
+**A lista de presentes do seu chá de panela ou casa nova, num link só.**
+Sem planilha, sem presente repetido e sem o convidado precisar criar conta.
 
----
+![Next.js](https://img.shields.io/badge/Next.js_14-000000?style=flat&logo=nextdotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
+![Tailwind](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat&logo=prisma&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat&logo=supabase&logoColor=white)
+![Auth.js](https://img.shields.io/badge/Auth.js-8B5CF6?style=flat&logo=auth0&logoColor=white)
+![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?style=flat&logo=vercel&logoColor=white)
 
-## Sumário
+[O que é](#-o-que-é) · [Por que existe](#-por-que-existe) · [Como funciona](#-como-funciona) · [Recursos](#-recursos) · [Rodar localmente](#-rodando-localmente) · [Deploy](#-deploy-na-vercel)
 
-- [O que a plataforma faz](#o-que-a-plataforma-faz)
-- [Como funciona (visão geral)](#como-funciona-visão-geral)
-- [Regras de negócio importantes](#regras-de-negócio-importantes)
-- [Arquitetura e decisões técnicas](#arquitetura-e-decisões-técnicas)
-- [Modelo de dados](#modelo-de-dados)
-- [Estrutura de pastas](#estrutura-de-pastas)
-- [Rodando localmente](#rodando-localmente)
-- [Variáveis de ambiente](#variáveis-de-ambiente)
-- [Configurando os serviços externos](#configurando-os-serviços-externos)
-- [Scripts disponíveis](#scripts-disponíveis)
-- [Deploy na Vercel](#deploy-na-vercel)
-- [Segurança e privacidade](#segurança-e-privacidade)
-- [Limitações conhecidas e próximos passos](#limitações-conhecidas-e-próximos-passos)
+</div>
 
 ---
 
-## O que a plataforma faz
+## ✨ O que é
 
-### Para o anfitrião (painel — pensado para desktop, mas responsivo)
+O **Momoslist** é uma plataforma web para montar **listas de presentes de chá de panela e chá de casa nova**.
 
-- **Conta** por e-mail e senha ou por **login com Google**. As duas formas se unem quando o e-mail é o mesmo.
-- **Listas** com tipo de evento (chá de panela ou chá de casa nova), data e horário, local (com link do mapa), endereço para entrega dos presentes e uma mensagem para os convidados que preserva parágrafos.
-- **Itens de três tipos:**
-  - **Presente**: nome, foto, preço, quantidade e, opcionalmente, um link de loja. O convidado escolhe entre comprar na loja ou pagar por Pix.
-  - **Pix**: algo que vocês querem comprar mas ainda não escolheram onde, então não tem link de loja: o convidado só pode presentear por Pix e o anfitrião compra depois. Dá para editar o item e trocar entre **Presente** e **Pix** a qualquer momento.
-  - **Vaquinha**: meta em reais e valor mínimo por pessoa. A meta pode ser superada; as contribuições continuam abertas. A vaquinha não muda de tipo depois de criada.
-- **Pix** com chave e tipo (CPF, CNPJ, e-mail, telefone ou aleatória), sem integração bancária.
-- **Personalização**: capa, foto de perfil circular e uma **cor de destaque por lista**. O sistema deriva a paleta a partir da cor escolhida e garante contraste de acessibilidade (WCAG AA), escurecendo a cor se for preciso.
-- **Visualizar como convidado**: prévia da página pública que só o dono acessa, com os botões desativados, para nunca gerar reservas de teste.
-- **Painel em abas**: Resumo (métricas, vaquinhas compactas e últimas reservas), Presentes, Confirmações e Configurações (informações do evento e aparência da lista na mesma tela).
-- **Confirmação manual de Pix**: o convidado avisa que pagou e o anfitrião confirma quando o dinheiro chega. Contribuições de vaquinha podem ser confirmadas ou recusadas.
-- **Confirmação de presença (RSVP)**: liga e desliga por lista, mostra totais (pessoas, adultos, crianças, recusas), lista de respostas e **exportação em CSV**.
-- **Publicar e despublicar** a lista. Não é possível publicar uma lista sem presentes.
+- **O anfitrião** (quem vai receber) cria a lista, escolhe a cor e a capa, publica e acompanha tudo num painel.
+- **O convidado** abre o link pelo WhatsApp, no celular, escolhe um presente ou contribui numa vaquinha, paga por **Pix** ou compra na loja, e confirma presença. **Sem cadastro com senha e sem instalar nada.**
 
-### Para o convidado (página pública — mobile-first)
+> O dinheiro **não passa pela plataforma**: o Pix vai direto do convidado para o anfitrião.
 
-- **Acesso por link** (`/lista/<slug>-<token>`), sem cadastro com senha. Ao escolher um presente, ele informa só nome, e-mail e telefone.
-- **Vitrine** de presentes em grade de 2 colunas no celular, com foto inteira (sem recortes), **busca e ordenação sincronizadas com a URL** (dá para compartilhar o link já filtrado).
-- **Reserva** com tempo limitado, escolha entre comprar na loja ou pagar por Pix, e possibilidade de **desistir a qualquer momento**, inclusive depois de confirmar.
-- **Pix** com **QR Code** e **Pix Copia e Cola** gerados localmente, com o valor exato do presente.
-- **Vaquinha** com barra de progresso, valor arrecadado, quanto falta e contribuição a partir do mínimo definido.
-- **Confirmação de presença**: diz se vai, se leva acompanhantes e quantos são adultos e crianças.
-- **Endereço de entrega copiável**, para quem prefere enviar o presente.
+## 🎯 Por que existe
 
----
+Listas em grupo de WhatsApp e planilhas compartilhadas funcionam até o segundo convidado escolher o mesmo jogo de panelas.
 
-## Como funciona (visão geral)
+| Sem o Momoslist | Com o Momoslist |
+|---|---|
+| Duas pessoas compram o mesmo presente | Cada item é **reservado** no banco: a última unidade só vai para uma pessoa, mesmo com cliques simultâneos |
+| "Já fiz o Pix" perdido numa conversa | O convidado declara o Pix e o anfitrião **confirma o recebimento** num painel |
+| Vaquinha controlada no papel | **Meta, valor mínimo e barra de progresso** em tempo real |
+| Convidado sem saber onde comprar ou pagar | Link da loja **ou** QR Code e Pix Copia e Cola já com o valor certo |
+| Contagem de quem vai ao evento feita na mão | **Confirmação de presença** com acompanhantes, adultos e crianças, e exportação em CSV |
+| Página genérica e sem identidade | Página pública **com a cor e a capa do evento**, pensada para o celular |
 
-```
-  ANFITRIÃO                                      CONVIDADO
-  ─────────                                      ─────────
-  cria a lista e os presentes
-  publica  ───────────────►  link /lista/<slug>-<token>  ───►  compartilha no WhatsApp
-                                                                      │
-                                              abre a página (sem login)
-                                                                      │
-                                     ┌────────────────────────────────┼────────────────────┐
-                                     ▼                                ▼                    ▼
-                              escolhe presente                  contribui na          confirma
-                                     │                           vaquinha              presença
-                        ┌────────────┴────────────┐                  │
-                        ▼                         ▼                  │
-                  compra na loja               paga por Pix ◄────────┘
-                  ("já comprei")               ("já fiz o Pix")
-                        │                         │
-                        └────────────┬────────────┘
-                                     ▼
-  acompanha no painel  ◄──────────────
-  confirma o recebimento do Pix
+**Quem ganha o quê**
+
+- 💚 **Anfitrião:** controle total, nenhum presente repetido, visão clara do que já chegou e do que falta confirmar.
+- 📱 **Convidado:** abre o link, escolhe e paga em poucos toques, sem criar senha.
+- 🔒 **Ambos:** privacidade. A lista só é acessível por quem tem o link, e os convidados não veem os dados uns dos outros.
+
+## 🧭 Como funciona
+
+```mermaid
+flowchart LR
+  A[Anfitrião cria a lista] --> B[Publica e compartilha o link no WhatsApp]
+  B --> C[Convidado abre no celular]
+  C --> D{O que quer fazer?}
+  D -->|Escolher presente| E[Reserva o item por 15 min]
+  E --> F{Como presentear?}
+  F -->|Comprar em loja| G[Compra no site do vendedor e marca: já comprei]
+  F -->|Pix| H[Paga com QR Code ou Pix Copia e Cola]
+  D -->|Item só Pix| H
+  D -->|Vaquinha| I[Contribui com o valor que quiser]
+  I --> H
+  D -->|Presença| J[Confirma presença e acompanhantes]
+  H --> K[Convidado declara: já fiz o Pix]
+  K --> L[Anfitrião confirma o recebimento no painel]
 ```
 
----
+### Os três tipos de item
 
-## Regras de negócio importantes
+| | 🎁 **Presente** | ⚡ **Pix** | 🐷 **Vaquinha** |
+|---|---|---|---|
+| **Para quê** | Um item que já tem onde comprar | Algo que vocês querem comprar, mas **ainda não escolheram a loja** | Um objetivo maior, como lua de mel ou reforma |
+| **Link de loja** | Opcional | Não tem | Não tem |
+| **Como o convidado paga** | Loja **ou** Pix | **Só Pix** | **Só Pix**, com o valor que quiser (a partir do mínimo) |
+| **Quantidade** | Sim | Sim | Não (é uma única vaquinha) |
+| **Sinalização para o convidado** | Sem selo | Selo **Pix** | Selo **Vaquinha** e barra de progresso |
+| **Pode mudar de tipo depois?** | ✅ Para Pix | ✅ Para Presente | ❌ Continua vaquinha |
+
+## 🧩 Recursos
+
+### 👩‍🍳 Para o anfitrião (painel, feito para desktop e responsivo)
+
+- **Conta** por e-mail e senha ou **login com Google**; as duas se unem quando o e-mail é o mesmo.
+- **Lista completa:** tipo de evento, data e horário, local com link do mapa, endereço de entrega e uma mensagem que preserva parágrafos.
+- **Aparência própria:** capa, foto de perfil e **cor de destaque** por lista. A paleta é derivada da cor escolhida com **contraste de acessibilidade (WCAG AA)** garantido.
+- **Painel em quatro abas:**
+  - **Resumo:** total arrecadado, reservados, disponíveis, Pix pendentes, vaquinhas em linhas compactas e últimas reservas.
+  - **Presentes:** cadastro, edição e exclusão, com **ordenação** por ordem de cadastro, mais recentes, nome (A–Z e Z–A), menor e maior valor, e tipo de item.
+  - **Confirmações:** liga e desliga o RSVP, totais de pessoas, adultos, crianças e recusas, lista de respostas e **exportação em CSV**.
+  - **Configurações:** dados do evento e aparência da lista na mesma tela.
+- **Visualizar como convidado:** prévia que só o dono acessa, com os botões desativados, para nunca gerar reservas de teste.
+- **Confirmação manual do Pix** e das contribuições de vaquinha, com opção de recusar.
+- **Publicar e despublicar** a lista quando quiser.
+
+### 📱 Para o convidado (página pública, feita para o celular)
+
+- **Um link**, sem cadastro com senha. Ao escolher algo, informa só nome, e-mail e telefone.
+- **Vitrine** de 2 colunas no celular, com foto inteira (sem recortes), **busca e ordenação** que ficam na URL (dá para compartilhar o link já filtrado).
+- **Sinalização clara:** itens só-Pix e vaquinhas têm selo próprio na foto, então o convidado sabe de antemão como vai presentear.
+- **Reserva com prazo** e possibilidade de **desistir a qualquer momento**, inclusive depois de confirmar.
+- **Pix com QR Code e Copia e Cola** gerados na hora, com o valor exato.
+- **Vaquinha** com progresso, quanto falta e contribuição a partir do mínimo.
+- **Confirmação de presença:** vai ou não vai, com quantos acompanhantes, adultos e crianças.
+- **Endereço de entrega copiável** para quem prefere enviar o presente.
+
+## 📏 Regras de negócio importantes
 
 | Tema | Regra |
 |---|---|
@@ -93,14 +116,35 @@ Plataforma de **listas de presentes para chá de panela e chá de casa nova**. O
 | **Chave Pix** | Só é entregue a quem tem reserva ativa com método Pix; nunca aparece na página pública antes disso. |
 | **Dinheiro** | Sempre em **centavos inteiros** (nunca `float`). Nenhum pagamento passa pela plataforma: o Pix vai direto para o anfitrião. |
 | **Pix Copia e Cola** | Payload EMV / BR Code do BACEN gerado localmente em [`lib/pix-payload.ts`](src/lib/pix-payload.ts). |
-| **Vaquinha** | Valor mínimo por pessoa; a meta pode ser ultrapassada (o excedente aparece à parte). O total arrecadado soma o **confirmado** e o **aguardando confirmação**, e a barra de progresso mostra os dois trechos separados. O anfitrião pode confirmar ou recusar cada contribuição. |
+| **Vaquinha** | Valor mínimo por pessoa; a meta pode ser ultrapassada (o excedente aparece à parte). O total arrecadado soma o **confirmado** e o **aguardando confirmação**, e a barra mostra os dois trechos separados. O anfitrião pode confirmar ou recusar cada contribuição. |
 | **Identidade do convidado** | Nome + e-mail + telefone, sem senha. Um cookie `httpOnly` lembra a pessoa por 180 dias. Se o e-mail já existe com outro telefone, o cadastro é recusado. |
 | **Confirmação de presença** | Uma resposta por convidado (pode ser alterada). Conta como 1 adulto + acompanhantes. Só funciona se a lista estiver publicada e o RSVP ligado. |
-| **Preview do anfitrião** | Somente o dono acessa; a página fica `inert`, para que nunca gere reserva de teste. |
+| **Prévia do anfitrião** | Somente o dono acessa; a página fica `inert`, para que nunca gere reserva de teste. |
+| **Ordem dos itens** | A ordenação do painel é só uma visão do anfitrião. Os convidados veem os itens na ordem de cadastro. |
 
----
+## 🏗️ Arquitetura e decisões técnicas
 
-## Arquitetura e decisões técnicas
+```mermaid
+flowchart TB
+  subgraph Clientes
+    G[Convidado no celular]
+    H[Anfitrião no desktop]
+  end
+  subgraph Vercel
+    MW[Middleware no Edge protege o painel]
+    APP[Next.js App Router com Server Components e Server Actions]
+  end
+  subgraph Supabase
+    DB[(Postgres)]
+    ST[(Storage de imagens)]
+  end
+  GO[Google OAuth]
+  G --> APP
+  H --> MW --> APP
+  APP --> DB
+  APP --> ST
+  APP --> GO
+```
 
 - **Next.js App Router com Server Components.** As páginas buscam os dados no servidor; a interatividade fica em componentes cliente pequenos.
 - **Server Actions** para todas as mutações (`src/actions`). Cada action **revalida a entrada com Zod no servidor** e confere se o usuário é dono do recurso. A validação do cliente é só conforto.
@@ -113,9 +157,21 @@ Plataforma de **listas de presentes para chá de panela e chá de casa nova**. O
 
 ---
 
-## Modelo de dados
+## 🗄️ Modelo de dados
 
 Definido em [`prisma/schema.prisma`](prisma/schema.prisma).
+
+```mermaid
+erDiagram
+  USER ||--o{ EVENT : "cria"
+  EVENT ||--o{ GIFT : "tem"
+  EVENT ||--o{ RSVP : "recebe"
+  GIFT ||--o{ GIFT_RESERVATION : "é reservado em"
+  GIFT ||--o{ CONTRIBUTION : "recebe (vaquinha)"
+  GUEST ||--o{ GIFT_RESERVATION : "faz"
+  GUEST ||--o{ CONTRIBUTION : "faz"
+  GUEST ||--o{ RSVP : "responde"
+```
 
 | Modelo | Papel |
 |---|---|
@@ -131,7 +187,7 @@ Enums principais: `EventType`, `PixKeyType`, `ReservationStatus` (`TEMPORARY →
 
 ---
 
-## Estrutura de pastas
+## 📁 Estrutura de pastas
 
 ```
 prisma/
@@ -164,7 +220,7 @@ src/
 
 ---
 
-## Rodando localmente
+## 🚀 Rodando localmente
 
 **Pré-requisitos:** Node.js 20+ e um projeto no [Supabase](https://supabase.com) (Postgres e Storage).
 
@@ -192,7 +248,7 @@ npm run check:storage
 
 ---
 
-## Variáveis de ambiente
+## 🔐 Variáveis de ambiente
 
 Copie [`.env.example`](.env.example) para `.env`. O `.env` **nunca deve ir para o git** (já está no `.gitignore`).
 
@@ -211,7 +267,7 @@ Copie [`.env.example`](.env.example) para `.env`. O `.env` **nunca deve ir para 
 
 ---
 
-## Configurando os serviços externos
+## 🔌 Configurando os serviços externos
 
 ### Supabase Storage (upload de imagens)
 
@@ -232,7 +288,7 @@ Enquanto o app estiver em modo **Testando**, só entram os e-mails cadastrados c
 
 ---
 
-## Scripts disponíveis
+## 🛠️ Scripts disponíveis
 
 | Comando | O que faz |
 |---|---|
@@ -246,7 +302,7 @@ Enquanto o app estiver em modo **Testando**, só entram os e-mails cadastrados c
 
 ---
 
-## Deploy na Vercel
+## ▲ Deploy na Vercel
 
 1. Envie o código para o GitHub e importe o repositório na Vercel (Next.js é detectado automaticamente).
 2. Cadastre as [variáveis de ambiente](#variáveis-de-ambiente) em **Settings → Environment Variables**. Use um `AUTH_SECRET` novo e `NEXT_PUBLIC_SITE_URL` com o domínio final.
@@ -259,7 +315,7 @@ Detalhes que já estão tratados no projeto para a Vercel: o `postinstall` gera 
 
 ---
 
-## Segurança e privacidade
+## 🛡️ Segurança e privacidade
 
 - **Autorização em toda mutação.** Cada action confere que o recurso pertence ao usuário logado; o painel só consulta dados do dono.
 - **Senhas** com hash bcrypt. A chave de serviço do Supabase nunca chega ao navegador.
@@ -271,7 +327,7 @@ Detalhes que já estão tratados no projeto para a Vercel: o `postinstall` gera 
 
 ---
 
-## Limitações conhecidas e próximos passos
+## 🧱 Limitações conhecidas e próximos passos
 
 - **Confirmação de e-mail no cadastro** do anfitrião ainda não existe, nem redefinição de senha ("Esqueci minha senha").
 - **Sem limite de tentativas** (rate limiting) no login.

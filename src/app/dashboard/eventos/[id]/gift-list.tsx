@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Gift } from "@prisma/client";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { formatCentsToBRL } from "@/lib/utils";
 import { deleteGiftAction } from "@/actions/gift.actions";
 import { GiftFormDialog } from "./gift-form-dialog";
@@ -19,6 +21,42 @@ import { PiggyBank, QrCode } from "lucide-react";
 // No celular, quantidade e valor descem para baixo do nome e só sobram 3 colunas.
 const ROW_GRID = "grid grid-cols-[3rem_1fr_auto] items-center gap-x-3 md:grid-cols-[3rem_1fr_6rem_8rem_6.5rem]";
 
+type SortKey = "created_asc" | "created_desc" | "name_asc" | "name_desc" | "price_asc" | "price_desc" | "type";
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "created_asc", label: "Ordem de cadastro" },
+  { value: "created_desc", label: "Mais recentes primeiro" },
+  { value: "name_asc", label: "Nome (A–Z)" },
+  { value: "name_desc", label: "Nome (Z–A)" },
+  { value: "price_asc", label: "Menor valor" },
+  { value: "price_desc", label: "Maior valor" },
+  { value: "type", label: "Tipo de item" },
+];
+
+const KIND_RANK: Record<Gift["kind"], number> = { PRODUCT: 0, PIX: 1, FUND: 2 };
+
+/** `gifts` já chega na ordem de cadastro; o sort do JS é estável, então empates mantêm essa ordem. */
+function sortGifts(gifts: Gift[], sort: SortKey): Gift[] {
+  const list = [...gifts];
+  switch (sort) {
+    case "created_desc":
+      return list.reverse();
+    case "name_asc":
+      return list.sort((a, b) => a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" }));
+    case "name_desc":
+      return list.sort((a, b) => b.name.localeCompare(a.name, "pt-BR", { sensitivity: "base" }));
+    // Na vaquinha, `priceInCents` é a meta: é o valor que faz sentido comparar na lista.
+    case "price_asc":
+      return list.sort((a, b) => a.priceInCents - b.priceInCents);
+    case "price_desc":
+      return list.sort((a, b) => b.priceInCents - a.priceInCents);
+    case "type":
+      return list.sort((a, b) => KIND_RANK[a.kind] - KIND_RANK[b.kind]);
+    default:
+      return list;
+  }
+}
+
 interface GiftListProps {
   eventId: string;
   gifts: Gift[];
@@ -28,6 +66,9 @@ interface GiftListProps {
 }
 
 export function GiftList({ eventId, gifts, fundTotals, pixConfigured }: GiftListProps) {
+  const [sort, setSort] = useState<SortKey>("created_asc");
+  const sorted = useMemo(() => sortGifts(gifts, sort), [gifts, sort]);
+
   if (gifts.length === 0) {
     return (
       <EmptyState
@@ -39,27 +80,54 @@ export function GiftList({ eventId, gifts, fundTotals, pixConfigured }: GiftList
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
-      <div
-        className={`${ROW_GRID} hidden bg-muted/40 px-3 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground md:grid`}
-        aria-hidden="true"
-      >
-        <span className="col-span-2">Presente</span>
-        <span>Quantidade</span>
-        <span>Valor</span>
-        <span className="text-right">Ações</span>
+    <div className="flex flex-col gap-3">
+      {gifts.length > 1 && (
+        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <p className="text-xs text-muted-foreground">
+            A ordem aqui é só para você organizar. Os convidados veem os itens na ordem de cadastro.
+          </p>
+          <div className="flex flex-shrink-0 items-center gap-2">
+            <Label htmlFor="gift-sort" className="whitespace-nowrap text-sm text-muted-foreground">
+              Ordenar por
+            </Label>
+            <Select
+              id="gift-sort"
+              value={sort}
+              onChange={(event) => setSort(event.target.value as SortKey)}
+              className="h-10 w-full sm:h-9 sm:w-56"
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
+      )}
+
+      <div className="overflow-hidden rounded-lg border border-border">
+        <div
+          className={`${ROW_GRID} hidden bg-muted/40 px-3 py-2.5 text-xs font-medium uppercase tracking-wide text-muted-foreground md:grid`}
+          aria-hidden="true"
+        >
+          <span className="col-span-2">Presente</span>
+          <span>Quantidade</span>
+          <span>Valor</span>
+          <span className="text-right">Ações</span>
+        </div>
+        <ul className="divide-y divide-border">
+          {sorted.map((gift) => (
+            <GiftRow
+              key={gift.id}
+              eventId={eventId}
+              gift={gift}
+              fundTotals={fundTotals[gift.id]}
+              pixConfigured={pixConfigured}
+            />
+          ))}
+        </ul>
       </div>
-      <ul className="divide-y divide-border">
-        {gifts.map((gift) => (
-          <GiftRow
-            key={gift.id}
-            eventId={eventId}
-            gift={gift}
-            fundTotals={fundTotals[gift.id]}
-            pixConfigured={pixConfigured}
-          />
-        ))}
-      </ul>
     </div>
   );
 }

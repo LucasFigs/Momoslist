@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check } from "lucide-react";
+import { Check, QrCode } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -174,6 +174,17 @@ export function GiftCard({ gift, availability, isIdentified, pixOnly = false, my
         {showSoldOut && (
           <Badge variant="overlayDark" className="absolute left-2 top-2">
             Já escolhido
+          </Badge>
+        )}
+        {/* Mesmo selo da vaquinha, para o convidado saber de antemão que este item é pago só por Pix. No canto
+            esquerdo quando livre; no direito quando "Selecionado"/"Já escolhido" já ocupam o esquerdo. */}
+        {pixOnly && (
+          <Badge
+            variant="overlay"
+            className={cn("absolute top-2", myReservation || showSoldOut ? "right-2" : "left-2")}
+          >
+            <QrCode className="h-3 w-3 text-primary" aria-hidden="true" />
+            Pix
           </Badge>
         )}
         {/* Um só destaque para qualquer etapa (falta pagar, falta comprar, concluído): "é seu". */}

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { GiftImage } from "@/components/gift-image";
 import { updateEventProfileImageAction } from "@/actions/event.actions";
+import { shrinkImage } from "@/lib/shrink-image";
 import { Upload } from "lucide-react";
 
 export function ProfileImageUploader({
@@ -23,10 +24,9 @@ export function ProfileImageUploader({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.set("profile", file);
-
     startTransition(async () => {
+      const formData = new FormData();
+      formData.set("profile", await shrinkImage(file));
       const result = await updateEventProfileImageAction(eventId, formData);
       if (!result.success) {
         toast({ title: "Não foi possível enviar a foto", description: result.error, variant: "destructive" });

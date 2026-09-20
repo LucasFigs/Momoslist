@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import NextAuth from "next-auth";
+
+import { authConfig } from "@/lib/auth.config";
+
+// Usa só a config leve (sem Prisma/bcrypt): o middleware roda no Edge, que só precisa ler o JWT da sessão.
+const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const isDashboard = req.nextUrl.pathname.startsWith("/dashboard");

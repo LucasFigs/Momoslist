@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { GiftImage } from "@/components/gift-image";
 import { updateEventCoverImageAction } from "@/actions/event.actions";
+import { shrinkImage } from "@/lib/shrink-image";
 import { Upload } from "lucide-react";
 
 export function CoverImageUploader({
@@ -23,10 +24,9 @@ export function CoverImageUploader({
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.set("cover", file);
-
     startTransition(async () => {
+      const formData = new FormData();
+      formData.set("cover", await shrinkImage(file));
       const result = await updateEventCoverImageAction(eventId, formData);
       if (!result.success) {
         toast({ title: "Não foi possível enviar a capa", description: result.error, variant: "destructive" });

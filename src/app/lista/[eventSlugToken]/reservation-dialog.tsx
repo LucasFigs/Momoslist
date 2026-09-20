@@ -25,6 +25,8 @@ interface ReservationDialogProps {
   /** mm:ss restantes da reserva temporária (null enquanto o relógio não iniciou). */
   countdown: string | null;
   isPending: boolean;
+  /** Item só-Pix: não há loja para escolher. */
+  pixOnly?: boolean;
   onChooseMethod: (method: PaymentMethod) => void;
   /** Abre a confirmação de desistência (o diálogo de confirmação fica no card). */
   onCancel: () => void;
@@ -47,6 +49,7 @@ export function ReservationDialog({
   reservation,
   countdown,
   isPending,
+  pixOnly = false,
   onChooseMethod,
   onCancel,
 }: ReservationDialogProps) {
@@ -83,7 +86,9 @@ export function ReservationDialog({
                 presentear.
               </p>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                Na loja, a compra é feita no site do vendedor: a Momoslist só guarda o presente para você.
+                {pixOnly
+                  ? "Este item ainda não tem loja definida: o presente é feito por Pix."
+                  : "Na loja, a compra é feita no site do vendedor: a Momoslist só guarda o presente para você."}
               </p>
               <button type="button" onClick={onCancel} disabled={isPending} className={cancelLink}>
                 Desistir deste presente
@@ -93,14 +98,16 @@ export function ReservationDialog({
               <Button disabled={isPending} onClick={() => onChooseMethod("PIX")} className="w-full">
                 Pagar via Pix
               </Button>
-              <Button
-                variant="outline"
-                disabled={isPending}
-                onClick={() => onChooseMethod("EXTERNAL_PURCHASE")}
-                className="w-full"
-              >
-                Comprar em uma loja
-              </Button>
+              {!pixOnly && (
+                <Button
+                  variant="outline"
+                  disabled={isPending}
+                  onClick={() => onChooseMethod("EXTERNAL_PURCHASE")}
+                  className="w-full"
+                >
+                  Comprar em uma loja
+                </Button>
+              )}
             </SheetFooter>
           </>
         ) : (

@@ -41,7 +41,8 @@ export function RsvpSection({ eventId, isIdentified, mine }: RsvpSectionProps) {
   const attending = mine?.status === "ATTENDING";
   const Icon = !mine ? CalendarCheck : attending ? CheckCircle2 : XCircle;
 
-  // Sem resposta: faixa na cor da lista (chamado à ação). Confirmada: verde. Recusada: neutra.
+  // Sem resposta: faixa discreta na cor da lista. Confirmada: verde. Recusada: neutra.
+  // É um aviso de apoio, então fica bem mais baixo e leve que o título "Lista de presentes" logo abaixo.
   const surface = !mine
     ? "border-primary-border bg-primary-subtle"
     : attending
@@ -51,46 +52,40 @@ export function RsvpSection({ eventId, isIdentified, mine }: RsvpSectionProps) {
 
   return (
     <div
-      className={`flex w-full flex-col gap-5 rounded-2xl border p-5 sm:p-6 md:flex-row md:items-center md:justify-between md:gap-10 md:px-10 md:py-8 ${surface}`}
+      className={`flex w-full flex-col gap-3 rounded-xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6 ${surface}`}
     >
-      <div className="flex min-w-0 items-center gap-4 md:gap-5">
+      <div className="flex min-w-0 items-center gap-3">
         <span
           aria-hidden="true"
-          className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-card shadow-sm ring-1 ring-black/5 md:h-14 md:w-14 ${iconTone}`}
+          className={`flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-card ring-1 ring-black/5 ${iconTone}`}
         >
-          <Icon className="h-6 w-6 md:h-7 md:w-7" />
+          <Icon className="h-[18px] w-[18px]" />
         </span>
         <div className="min-w-0">
           {!mine ? (
             <>
-              <h2 className="font-serif text-xl font-medium text-foreground md:text-2xl">Confirme sua presença</h2>
-              <p className="mt-1 max-w-xl text-sm text-muted-foreground md:text-base">
-                Conte aos anfitriões se você vai e com quantas pessoas.
-              </p>
+              <h2 className="text-sm font-semibold text-foreground sm:text-base">Confirme sua presença</h2>
+              <p className="text-sm text-muted-foreground">Conte aos anfitriões se você vai e com quantas pessoas.</p>
             </>
           ) : attending ? (
             <>
-              <h2 className="font-serif text-xl font-medium text-foreground md:text-2xl">Presença confirmada</h2>
-              <p className="mt-1 max-w-xl text-sm text-muted-foreground md:text-base">{describeParty(mine)}</p>
+              <h2 className="text-sm font-semibold text-foreground sm:text-base">Presença confirmada</h2>
+              <p className="text-sm text-muted-foreground">{describeParty(mine)}</p>
             </>
           ) : (
             <>
-              <h2 className="font-serif text-xl font-medium text-foreground md:text-2xl">
-                Você avisou que não poderá ir
-              </h2>
-              <p className="mt-1 max-w-xl text-sm text-muted-foreground md:text-base">
-                Mudou de ideia? É só alterar a resposta.
-              </p>
+              <h2 className="text-sm font-semibold text-foreground sm:text-base">Você avisou que não poderá ir</h2>
+              <p className="text-sm text-muted-foreground">Mudou de ideia? É só alterar a resposta.</p>
             </>
           )}
         </div>
       </div>
 
       <Button
-        size="lg"
+        size="sm"
         variant={mine ? "outline" : "default"}
         onClick={handleOpen}
-        className="w-full flex-shrink-0 md:w-auto md:min-w-[13rem]"
+        className="w-full flex-shrink-0 sm:w-auto"
       >
         {mine ? "Alterar resposta" : "Confirmar presença"}
       </Button>

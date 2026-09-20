@@ -2,15 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { PiggyBank } from "lucide-react";
+import { ChevronDown, PiggyBank } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { GiftImage } from "@/components/gift-image";
-import { FundProgress } from "@/components/fund-progress";
 import { toast } from "@/hooks/use-toast";
 import { cn, formatCentsToBRL } from "@/lib/utils";
-import type { FundTotals } from "@/lib/fund";
+import { computeFundProgress, type FundTotals } from "@/lib/fund";
 import { confirmContributionAction, rejectContributionAction } from "@/actions/contribution.actions";
 
 export interface FundContributionItem {
@@ -41,65 +41,117 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
 
 export function FundsOverview({ funds }: { funds: FundOverviewItem[] }) {
   return (
-    <div className="flex flex-col gap-6">
+    <ul className="flex flex-col divide-y divide-border">
       {funds.map((fund) => (
-        <FundBlock key={fund.giftId} fund={fund} />
+        <FundRow key={fund.giftId} fund={fund} />
       ))}
-    </div>
+    </ul>
   );
 }
 
-function FundBlock({ fund }: { fund: FundOverviewItem }) {
+/**
+ * Uma vaquinha numa linha só (miniatura, nome, barra e valores). As contribuições ficam recolhidas: o que exige
+ * ação do anfitrião (Pix aguardando) aparece como selo na linha, e o botão vira "Revisar".
+ */
+function FundRow({ fund }: { fund: FundOverviewItem }) {
+  const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const progress = computeFundProgress(fund.totals);
+  const panelId = `fund-panel-${fund.giftId}`;
 
   // Aguardando confirmação sempre primeiro (é onde o anfitrião precisa agir); depois, as mais recentes.
   const ordered = [...fund.contributions].sort((a, b) => {
     if (a.status !== b.status) return a.status === "DECLARED" ? -1 : 1;
     return b.declaredAt.localeCompare(a.declaredAt);
   });
+  const pendingCount = ordered.filter((item) => item.status === "DECLARED").length;
   const visible = showAll
     ? ordered
     : ordered.filter((item, index) => index < RECENT_LIMIT || item.status === "DECLARED");
   const hiddenCount = ordered.length - visible.length;
 
+  const toggleLabel = open ? "Ocultar" : pendingCount > 0 ? "Revisar" : "Contribuições";
+
   return (
-    <section aria-labelledby={`fund-${fund.giftId}`} className="flex flex-col gap-4">
+    <li className="py-3 first:pt-0 last:pb-0">
       <div className="flex items-center gap-3">
-        <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md border border-border bg-white">
-          <GiftImage src={fund.imageUrl} alt="" fill fit="contain" sizes="48px" />
+        <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-md border border-border bg-white">
+          <GiftImage src={fund.imageUrl} alt="" fill fit="contain" sizes="40px" />
         </div>
-        <div className="min-w-0">
-          <h3 id={`fund-${fund.giftId}`} className="flex items-center gap-2 font-medium text-foreground">
-            <PiggyBank className="h-4 w-4 flex-shrink-0 text-primary" aria-hidden="true" />
-            <span className="truncate">{fund.name}</span>
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            Mínimo por pessoa: {formatCentsToBRL(fund.minInCents)}
+
+        <div className="min-w-0 flex-1">
+          {/* flex-wrap: no celular o selo desce para a linha de baixo em vez de cortar o nome. */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="flex min-w-0 max-w-full items-center gap-2">
+              <PiggyBank className="h-4 w-4 flex-shrink-0 text-primary" aria-hidden="true" />
+              <h3 className="truncate text-sm font-medium text-foreground">{fund.name}</h3>
+            </span>
+            {pendingCount > 0 && (
+              <Badge variant="pending" className="flex-shrink-0">
+                {pendingCount} aguardando
+              </Badge>
+            )}
+          </div>
+
+          <div
+            role="progressbar"
+            aria-label={`Progresso de ${fund.name}`}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.min(progress.percent, 100)}
+            className="relative mt-2 h-1.5 overflow-hidden rounded-full bg-muted"
+          >
+            <div className="absolute inset-y-0 left-0 bg-primary" style={{ width: `${progress.confirmedBarPercent}%` }} />
+            <div
+              className="absolute inset-y-0 bg-primary/40"
+              style={{ left: `${progress.confirmedBarPercent}%`, width: `${progress.pendingBarPercent}%` }}
+            />
+          </div>
+          <p className="mt-1 text-xs tabular-nums text-muted-foreground">
+            <span className="font-semibold text-foreground">{formatCentsToBRL(progress.raisedInCents)}</span> de{" "}
+            {formatCentsToBRL(fund.totals.goalInCents)} · {progress.percent}%
+            {progress.reached && <span className="font-medium text-success"> · meta atingida</span>}
+            <span className="hidden sm:inline"> · mínimo {formatCentsToBRL(fund.minInCents)}</span>
           </p>
         </div>
+
+        <Button
+          variant={pendingCount > 0 && !open ? "soft" : "ghost"}
+          size="sm"
+          onClick={() => setOpen((current) => !current)}
+          aria-expanded={open}
+          aria-controls={panelId}
+          aria-label={`${toggleLabel} de ${fund.name} (${fund.contributions.length})`}
+          className="flex-shrink-0 gap-1 sm:w-32 sm:justify-between"
+        >
+          <span className="hidden sm:inline">{toggleLabel}</span>
+          <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} aria-hidden="true" />
+        </Button>
       </div>
 
-      <FundProgress size="lg" {...fund.totals} />
-
-      {fund.contributions.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
-          Ainda sem contribuições. Compartilhe o link da lista para os convidados começarem a contribuir.
-        </p>
-      ) : (
-        <div className="flex flex-col gap-3">
-          <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
-            {visible.map((item) => (
-              <ContributionRow key={item.id} item={item} />
-            ))}
-          </ul>
-          {(hiddenCount > 0 || showAll) && ordered.length > RECENT_LIMIT && (
-            <Button variant="ghost" size="sm" className="self-center" onClick={() => setShowAll((current) => !current)}>
-              {showAll ? "Mostrar só as mais recentes" : `Ver todas (${ordered.length})`}
-            </Button>
+      {open && (
+        <div id={panelId} className="mt-3">
+          {fund.contributions.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-border px-4 py-4 text-center text-sm text-muted-foreground">
+              Ainda sem contribuições. Compartilhe o link da lista para os convidados começarem a contribuir.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
+                {visible.map((item) => (
+                  <ContributionRow key={item.id} item={item} />
+                ))}
+              </ul>
+              {(hiddenCount > 0 || showAll) && ordered.length > RECENT_LIMIT && (
+                <Button variant="ghost" size="sm" className="self-center" onClick={() => setShowAll((c) => !c)}>
+                  {showAll ? "Mostrar só as mais recentes" : `Ver todas (${ordered.length})`}
+                </Button>
+              )}
+            </div>
           )}
         </div>
       )}
-    </section>
+    </li>
   );
 }
 

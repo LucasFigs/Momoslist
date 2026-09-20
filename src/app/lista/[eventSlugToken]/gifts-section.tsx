@@ -222,6 +222,7 @@ export async function GiftsSection({
               }}
               availability={availability}
               isIdentified={isIdentified}
+              pixOnly={gift.kind === "PIX"}
               myReservation={
                 mine
                   ? {

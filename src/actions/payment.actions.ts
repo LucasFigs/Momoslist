@@ -65,7 +65,10 @@ export async function getPaymentDetailsAction(
     if (!event.pixKey || !event.pixKeyType) {
       return {
         success: false,
-        error: "O anfitrião ainda não cadastrou uma chave Pix. Escolha comprar em uma loja.",
+        error:
+          gift.kind === "PIX"
+            ? "O anfitrião ainda não cadastrou uma chave Pix. Avise-o para conseguir concluir este presente."
+            : "O anfitrião ainda não cadastrou uma chave Pix. Escolha comprar em uma loja.",
       };
     }
 

@@ -35,11 +35,11 @@ export const MAX_AMOUNT_IN_CENTS = 10_000_000; // R$ 100.000,00
 
 export const giftSchema = z
   .object({
-    kind: z.enum(["PRODUCT", "FUND"]).default("PRODUCT"),
+    kind: z.enum(["PRODUCT", "PIX", "FUND"]).default("PRODUCT"),
     name: z.preprocess(emptyIfMissing, z.string().trim().min(2, "Dê um nome ao presente").max(120)),
     description: optionalText(500),
     purchaseUrl: urlOrEmpty,
-    // Produto: valor do presente. Vaquinha: META total a arrecadar.
+    // Produto/Pix: valor do presente. Vaquinha: META total a arrecadar.
     price: moneyString("Informe o valor"),
     // Só vaquinha: menor contribuição aceita.
     minContribution: optionalText(30),

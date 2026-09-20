@@ -114,7 +114,6 @@ export function EventDashboardView({
           <TabsTrigger value="resumo">Resumo</TabsTrigger>
           <TabsTrigger value="presentes">Presentes</TabsTrigger>
           <TabsTrigger value="confirmacoes">Confirmações</TabsTrigger>
-          <TabsTrigger value="personalizacao">Personalização</TabsTrigger>
           <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
         </TabsList>
 
@@ -126,22 +125,20 @@ export function EventDashboardView({
               {[...primaryMetrics, ...secondaryMetrics].map((metric, index) => (
                 <div key={metric.label} className={index === 0 ? "col-span-2 md:col-span-1" : undefined}>
                   <dt className="text-xs text-muted-foreground">{metric.label}</dt>
-                  <dd className="mt-1 text-xl font-semibold tabular-nums text-foreground">{metric.value}</dd>
+                  <dd className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{metric.value}</dd>
                 </div>
               ))}
             </dl>
           </Card>
 
           {funds.length > 0 && (
+            // Bloco de apoio: mais leve que as métricas acima (título menor, sem texto longo, linhas compactas).
             <Card>
-              <CardHeader>
-                <CardTitle>Vaquinhas</CardTitle>
-                <CardDescription>
-                  Acompanhe a evolução e confirme os Pix que chegarem. A meta pode ser superada — as
-                  contribuições continuam abertas.
-                </CardDescription>
+              <CardHeader className="px-5 pb-3 pt-4">
+                <CardTitle className="text-base">Vaquinhas</CardTitle>
+                <CardDescription>Acompanhe o progresso e confirme os Pix que chegarem.</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-5 pb-4">
                 <FundsOverview funds={funds} />
               </CardContent>
             </Card>
@@ -203,48 +200,10 @@ export function EventDashboardView({
           <RsvpPanel eventId={event.id} eventSlug={event.slug} enabled={rsvpEnabled} items={rsvpItems} />
         </TabsContent>
 
-        {/* Personalização — largura de leitura: campos e uploaders não precisam esticar. */}
-        <TabsContent value="personalizacao" className="flex max-w-3xl flex-col gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Capa e foto da lista</CardTitle>
-              <CardDescription>
-                A capa fica ao fundo, no topo da página; a foto de perfil fica redonda, metade sobre a
-                capa e metade sobre o conteúdo.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-6">
-              <div>
-                <p className="mb-2 text-sm font-medium text-foreground">Capa (banner)</p>
-                <CoverImageUploader eventId={event.id} currentUrl={event.coverImageUrl} />
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Ideal: 1800 × 600 px (proporção 3:1). No celular as laterais podem ser cortadas,
-                  então deixe o que importa no centro.
-                </p>
-              </div>
-              <div>
-                <p className="mb-2 text-sm font-medium text-foreground">Foto de perfil</p>
-                <ProfileImageUploader eventId={event.id} currentUrl={event.profileImageUrl} />
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Ideal: imagem quadrada, a partir de 400 × 400 px.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Tema</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ThemeSelector eventId={event.id} currentColor={resolveThemeColor(event.themeColor, event.theme)} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Configurações */}
-        <TabsContent value="configuracoes" className="max-w-3xl">
-          <Card>
+        {/* Configurações: informações do evento e aparência da lista, na mesma etapa. Ocupa a largura toda
+            (como as outras abas): formulário à esquerda e aparência ao lado no desktop; empilhado no celular. */}
+        <TabsContent value="configuracoes" className="grid items-start gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Informações do evento</CardTitle>
               <CardDescription>
@@ -258,6 +217,33 @@ export function EventDashboardView({
                 previewEventId={event.id}
                 initialValues={event}
               />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Aparência da lista</CardTitle>
+              <CardDescription>Capa, foto e cor que os convidados veem no topo da página.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-6">
+              <div>
+                <p className="mb-2 text-sm font-medium text-foreground">Capa (banner)</p>
+                <CoverImageUploader eventId={event.id} currentUrl={event.coverImageUrl} />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Ideal: 1800 × 600 px (proporção 3:1). No celular as laterais podem ser cortadas, então deixe o
+                  que importa no centro.
+                </p>
+              </div>
+              <div className="border-t border-border pt-6">
+                <p className="mb-2 text-sm font-medium text-foreground">Foto de perfil</p>
+                <ProfileImageUploader eventId={event.id} currentUrl={event.profileImageUrl} />
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Ideal: imagem quadrada, a partir de 400 × 400 px. Fica redonda, metade sobre a capa.
+                </p>
+              </div>
+              <div className="border-t border-border pt-6">
+                <ThemeSelector eventId={event.id} currentColor={resolveThemeColor(event.themeColor, event.theme)} />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

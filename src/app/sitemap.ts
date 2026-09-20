@@ -8,5 +8,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: siteUrl, lastModified: new Date(), priority: 1 },
     { url: `${siteUrl}/cadastro`, lastModified: new Date(), priority: 0.5 },
     { url: `${siteUrl}/login`, lastModified: new Date(), priority: 0.3 },
+    { url: `${siteUrl}/privacidade`, lastModified: new Date(), priority: 0.2 },
   ];
 }

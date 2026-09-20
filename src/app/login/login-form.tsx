@@ -25,7 +25,7 @@ export function LoginForm() {
       });
 
       if (result?.error) {
-        setError("E-mail ou senha incorretos.");
+        setError("E-mail ou senha incorretos. Se sua conta foi criada com o Google, use o botão “Entrar com Google”.");
         return;
       }
 

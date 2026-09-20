@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Wordmark } from "@/components/wordmark";
+import { SiteFooter } from "@/components/site-footer";
 import { Badge } from "@/components/ui/badge";
 
 const passos = [
@@ -119,6 +120,7 @@ export default function LandingPage() {
           </div>
         </section>
       </main>
+      <SiteFooter />
     </>
   );
 }

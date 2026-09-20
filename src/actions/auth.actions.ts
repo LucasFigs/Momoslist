@@ -26,7 +26,7 @@ export async function signUpAction(formData: FormData): Promise<SignUpResult> {
 
   const { name, email, password } = parsed.data;
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findFirst({ where: { email: { equals: email, mode: "insensitive" } } });
   if (existing) {
     return { success: false, error: "Já existe uma conta com este e-mail." };
   }

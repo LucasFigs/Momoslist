@@ -18,6 +18,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
+      // Sempre mostra o seletor de contas: sem isso o Google reaproveita em silêncio a conta já aberta no navegador.
+      authorization: { params: { prompt: "select_account" } },
+      // Quem já criou conta com e-mail/senha e depois entra com o Google (mesmo e-mail) cai na mesma conta,
+      // em vez de "OAuthAccountNotLinked". Só é seguro porque o callback signIn abaixo exige e-mail verificado.
+      allowDangerousEmailAccountLinking: true,
     }),
     Credentials({
       name: "credentials",
@@ -31,7 +36,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const { email, password } = parsed.data;
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        // Sem diferenciar maiúsculas: contas antigas podem ter sido salvas com o e-mail como foi digitado.
+        const user = await prisma.user.findFirst({ where: { email: { equals: email, mode: "insensitive" } } });
         if (!user || !user.passwordHash) return null;
 
         const passwordMatches = await bcrypt.compare(password, user.passwordHash);
@@ -42,6 +48,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
+    async signIn({ account, profile }) {
+      // O vínculo automático por e-mail só vale se o Google garante que o e-mail é da pessoa.
+      if (account?.provider === "google") return profile?.email_verified === true;
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) token.id = user.id;
       return token;

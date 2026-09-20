@@ -1,13 +1,15 @@
 import { z } from "zod";
 
 export const credentialsSchema = z.object({
-  email: z.string().email("E-mail inválido"),
+  // Normaliza antes de validar: o Google devolve o e-mail em minúsculas e celulares costumam pôr maiúscula/espaço.
+  email: z.string().trim().toLowerCase().email("E-mail inválido"),
   password: z.string().min(1, "Informe a senha"),
 });
 
 export const signUpSchema = z.object({
   name: z.string().trim().min(2, "Nome muito curto").max(80),
-  email: z.string().email("E-mail inválido"),
+  // Normaliza antes de validar: o Google devolve o e-mail em minúsculas e celulares costumam pôr maiúscula/espaço.
+  email: z.string().trim().toLowerCase().email("E-mail inválido"),
   password: z
     .string()
     .min(8, "A senha deve ter ao menos 8 caracteres")

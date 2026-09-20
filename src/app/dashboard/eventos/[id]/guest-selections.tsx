@@ -62,7 +62,7 @@ export function GuestSelections({ selections }: { selections: GuestSelection[] }
   }
 
   // Um Pix aguardando confirmação nunca some atrás do "Ver todas": é a única
-  // ação que o anfitrião precisa fazer aqui.
+  // ação que o casal precisa fazer aqui.
   const visible = showAll
     ? selections
     : selections.filter(

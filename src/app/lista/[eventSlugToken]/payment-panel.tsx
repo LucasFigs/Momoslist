@@ -69,7 +69,7 @@ function PostMessage({ reservationId, initial }: { reservationId: string; initia
       <div className="rounded-lg border border-border bg-muted/40 p-3">
         <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
           <MessageCircleHeart className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
-          Seu recadinho para os anfitriões
+          Seu recadinho para o casal
         </p>
         <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">{saved}</p>
         <button
@@ -196,7 +196,7 @@ export function PaymentPanel({
         return;
       }
       keepSentMessage();
-      toast({ title: "Pix informado", description: "Aguardando a confirmação do anfitrião." });
+      toast({ title: "Pix informado", description: "Aguardando a confirmação do casal." });
       router.refresh();
     });
   }
@@ -221,7 +221,7 @@ export function PaymentPanel({
     );
   }
 
-  // Pix já confirmado pelo anfitrião: o dinheiro foi recebido, então não há "desistir" aqui.
+  // Pix já confirmado pelo casal: o dinheiro foi recebido, então não há "desistir" aqui.
   if (pixStatus === "CONFIRMED") {
     return (
       <>
@@ -229,10 +229,10 @@ export function PaymentPanel({
           {summary}
           <p className="flex items-start gap-2 rounded-lg bg-success-soft p-3 text-sm font-medium text-success">
             <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
-            Pix confirmado pelo anfitrião. Obrigado!
+            Pix confirmado pelo casal. Obrigado!
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Para qualquer ajuste depois da confirmação, fale diretamente com o anfitrião.
+            Para qualquer ajuste depois da confirmação, fale diretamente com o casal.
           </p>
           {details && <PostMessage reservationId={reservationId} initial={details.message} />}
         </SheetBody>
@@ -274,7 +274,7 @@ export function PaymentPanel({
           {summary}
           <p className="flex items-start gap-2 rounded-lg bg-pending-soft p-3 text-sm font-medium text-pending">
             <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
-            Pix informado — aguardando a confirmação do anfitrião.
+            Pix informado — aguardando a confirmação do casal.
           </p>
           <PostMessage reservationId={reservationId} initial={details.message} />
           <button type="button" onClick={onCancel} disabled={isCancelPending} className={cancelLink}>
@@ -299,7 +299,7 @@ export function PaymentPanel({
             </p>
           </div>
           {!details.purchaseUrl && (
-            <p className="text-sm text-muted-foreground">O anfitrião não cadastrou um link de loja para este presente.</p>
+            <p className="text-sm text-muted-foreground">O casal não cadastrou um link de loja para este presente.</p>
           )}
           <MessageField value={message} onChange={setMessage} disabled={isPending} />
           <button type="button" onClick={onCancel} disabled={isCancelPending} className={cancelLink}>
@@ -386,7 +386,7 @@ export function PaymentPanel({
 
               <p className="text-xs leading-relaxed text-muted-foreground">
                 Pague no app do seu banco e depois toque em <strong className="text-foreground">Já fiz o Pix</strong>{" "}
-                para avisar o anfitrião.
+                para avisar o casal.
               </p>
             </div>
           </div>

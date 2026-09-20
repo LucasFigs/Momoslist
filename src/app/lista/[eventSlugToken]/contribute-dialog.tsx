@@ -126,7 +126,7 @@ export function ContributeDialog({
       }
       toast({
         title: "Contribuição registrada. Obrigado!",
-        description: "Assim que o anfitrião confirmar o Pix, ela passa a contar como confirmada.",
+        description: "Assim que o casal confirmar o Pix, ela passa a contar como confirmada.",
       });
       handleOpenChange(false);
       setAmountInput("");
@@ -237,7 +237,7 @@ export function ContributeDialog({
 
                     <p className="text-xs leading-relaxed text-muted-foreground">
                       Pague no app do seu banco e depois toque em{" "}
-                      <strong className="text-foreground">Já fiz o Pix</strong> para avisar o anfitrião. A contribuição
+                      <strong className="text-foreground">Já fiz o Pix</strong> para avisar o casal. A contribuição
                       entra na barra como &quot;aguardando&quot; até ele confirmar.
                     </p>
                   </div>
@@ -307,7 +307,7 @@ export function ContributeDialog({
 
                 {!pixConfigured ? (
                   <p role="alert" className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-                    O anfitrião ainda não cadastrou uma chave Pix, então não dá para contribuir por aqui por enquanto.
+                    O casal ainda não cadastrou uma chave Pix, então não dá para contribuir por aqui por enquanto.
                   </p>
                 ) : (
                   <div className="flex flex-col gap-3">
@@ -392,7 +392,7 @@ export function ContributeDialog({
         title="Cancelar esta contribuição?"
         description={
           cancelTarget
-            ? `A contribuição de ${formatCentsToBRL(cancelTarget.amountInCents)} deixa de contar na vaquinha. Se você já fez o Pix, fale com o anfitrião.`
+            ? `A contribuição de ${formatCentsToBRL(cancelTarget.amountInCents)} deixa de contar na vaquinha. Se você já fez o Pix, fale com o casal.`
             : ""
         }
         confirmLabel="Sim, cancelar"

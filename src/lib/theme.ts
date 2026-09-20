@@ -1,5 +1,5 @@
 /**
- * Cor temática da lista. O anfitrião escolhe UMA cor; daqui saem todos os tons de
+ * Cor temática da lista. O casal escolhe UMA cor; daqui saem todos os tons de
  * acento (botão, hover, active, fundo suave...) já com contraste garantido.
  *
  * Regra: a cor escolhida nunca é usada "crua". Se ela for clara demais para ter

@@ -5,9 +5,9 @@
 
 export interface FundTotals {
   goalInCents: number;
-  /** Já confirmado pelo anfitrião (Pix recebido). */
+  /** Já confirmado pelo casal (Pix recebido). */
   confirmedInCents: number;
-  /** Declarado pelo convidado, ainda sem confirmação do anfitrião. */
+  /** Declarado pelo convidado, ainda sem confirmação do casal. */
   pendingInCents: number;
   /** Quantas contribuições ativas (declaradas + confirmadas). */
   contributionsCount: number;

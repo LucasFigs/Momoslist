@@ -51,7 +51,7 @@ export function FundsOverview({ funds }: { funds: FundOverviewItem[] }) {
 
 /**
  * Uma vaquinha numa linha só (miniatura, nome, barra e valores). As contribuições ficam recolhidas: o que exige
- * ação do anfitrião (Pix aguardando) aparece como selo na linha, e o botão vira "Revisar".
+ * ação do casal (Pix aguardando) aparece como selo na linha, e o botão vira "Revisar".
  */
 function FundRow({ fund }: { fund: FundOverviewItem }) {
   const [open, setOpen] = useState(false);
@@ -59,7 +59,7 @@ function FundRow({ fund }: { fund: FundOverviewItem }) {
   const progress = computeFundProgress(fund.totals);
   const panelId = `fund-panel-${fund.giftId}`;
 
-  // Aguardando confirmação sempre primeiro (é onde o anfitrião precisa agir); depois, as mais recentes.
+  // Aguardando confirmação sempre primeiro (é onde o casal precisa agir); depois, as mais recentes.
   const ordered = [...fund.contributions].sort((a, b) => {
     if (a.status !== b.status) return a.status === "DECLARED" ? -1 : 1;
     return b.declaredAt.localeCompare(a.declaredAt);

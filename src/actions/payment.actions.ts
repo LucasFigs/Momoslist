@@ -71,8 +71,8 @@ export async function getPaymentDetailsAction(
         success: false,
         error:
           gift.kind === "PIX"
-            ? "O anfitrião ainda não cadastrou uma chave Pix. Avise-o para conseguir concluir este presente."
-            : "O anfitrião ainda não cadastrou uma chave Pix. Escolha comprar em uma loja.",
+            ? "O casal ainda não cadastrou uma chave Pix. Avise o casal para conseguir concluir este presente."
+            : "O casal ainda não cadastrou uma chave Pix. Escolha comprar em uma loja.",
       };
     }
 
@@ -149,7 +149,7 @@ export async function confirmExternalPurchaseAction(
   return { success: true };
 }
 
-/** Convidado declara que fez o Pix — ainda depende da confirmação manual do anfitrião. */
+/** Convidado declara que fez o Pix — ainda depende da confirmação manual do casal. */
 export async function declarePixPaymentAction(reservationId: string, message?: string): Promise<SimpleResult> {
   const guest = await getCurrentGuest();
   if (!guest) return { success: false, error: "Identifique-se novamente para continuar." };
@@ -211,7 +211,7 @@ export async function saveReservationMessageAction(reservationId: string, messag
   return { success: true };
 }
 
-/** Anfitrião confirma que recebeu o Pix — só o dono da lista pode fazer isso. */
+/** O casal confirma que recebeu o Pix — só o dono da lista pode fazer isso. */
 export async function confirmPixReceivedAction(reservationId: string): Promise<SimpleResult> {
   const session = await auth();
   if (!session?.user?.id) return { success: false, error: "Você precisa estar logado." };

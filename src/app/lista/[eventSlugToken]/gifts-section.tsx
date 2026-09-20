@@ -19,7 +19,7 @@ interface GiftsSectionProps {
   sort: string;
   /** URL da própria lista, sem parâmetros — destino do "Limpar busca". */
   clearHref: string;
-  /** O anfitrião cadastrou a chave Pix? Sem ela ninguém consegue contribuir com uma vaquinha. */
+  /** O casal cadastrou a chave Pix? Sem ela ninguém consegue contribuir com uma vaquinha. */
   pixConfigured: boolean;
 }
 
@@ -148,7 +148,7 @@ export async function GiftsSection({
       <EmptyState
         icon={GiftIcon}
         title="Esta lista ainda não tem presentes"
-        description="O anfitrião ainda não cadastrou nenhum presente. Volte em breve!"
+        description="O casal ainda não cadastrou nenhum presente. Volte em breve!"
       />
     );
   }

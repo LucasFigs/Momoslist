@@ -56,7 +56,7 @@ enum GiftKind {
   FUND
 }
 
-/// Ciclo de vida de uma contribuição de vaquinha (sempre via Pix, confirmada manualmente pelo anfitrião).
+/// Ciclo de vida de uma contribuição de vaquinha (sempre via Pix, confirmada manualmente pelo casal).
 enum ContributionStatus {
   DECLARED
   CONFIRMED
@@ -69,7 +69,7 @@ enum RsvpStatus {
   NOT_ATTENDING
 }
 
-/// Paletas pré-definidas que o anfitrião pode escolher para a página pública.
+/// Paletas pré-definidas que o casal pode escolher para a página pública.
 enum ThemeName {
   SALVIA
   TERRACOTA
@@ -92,7 +92,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
 
-  // Um usuário pode ser anfitrião de várias listas
+  // Um usuário (o casal) pode ter várias listas
   events        Event[]
 
   @@map("users")
@@ -153,7 +153,7 @@ model VerificationToken {
 //
 // Trade-off consciente: sem verificação de e-mail/SMS, alguém que souber o
 // e-mail E o telefone de um convidado poderia se passar por ele. Aceitável
-// para o público inicial (convidados conhecidos do anfitrião), mas não
+// para o público inicial (convidados conhecidos do casal), mas não
 // deve ser usado como está para uma lista pública/aberta.
 model Guest {
   id        String   @id @default(cuid())
@@ -181,7 +181,7 @@ model Event {
   coverImageUrl String?
   profileImageUrl String? // avatar circular sobreposto à capa
   theme         ThemeName @default(SALVIA)
-  // Cor de acento escolhida pelo anfitrião (#RRGGBB). null = usa o preset legado de `theme`.
+  // Cor de acento escolhida pelo casal (#RRGGBB). null = usa o preset legado de `theme`.
   themeColor    String?
 
   // URL pública: /lista/[slug]-[secureToken]
@@ -199,7 +199,7 @@ model Event {
 
   published Boolean @default(false)
 
-  // Confirmação de presença: o anfitrião liga por lista (desligado por padrão — não muda listas já publicadas).
+  // Confirmação de presença: o casal liga por lista (desligado por padrão — não muda listas já publicadas).
   rsvpEnabled Boolean @default(false)
 
   createdAt DateTime @default(now())
@@ -259,7 +259,7 @@ model GiftReservation {
   pixConfirmedAt      DateTime?
   cancelledAt         DateTime?
 
-  /// Recadinho opcional do convidado para os anfitriões (só o dono da lista lê). Até 500 caracteres.
+  /// Recadinho opcional do convidado para o casal (só o dono da lista lê). Até 500 caracteres.
   message   String?
   messageAt DateTime?
 
@@ -276,12 +276,12 @@ model GiftReservation {
 }
 
 // ---------------------------------------------------------------------------
-// Vaquinha — contribuições em valor livre (mínimo definido pelo anfitrião)
+// Vaquinha — contribuições em valor livre (mínimo definido pelo casal)
 // ---------------------------------------------------------------------------
 
 // A meta NÃO limita nada: as contribuições podem ultrapassar o objetivo (evita
 // conflito entre convidados que contribuem ao mesmo tempo). O progresso separa o
-// que o anfitrião já confirmou (CONFIRMED) do que só foi declarado (DECLARED).
+// que o casal já confirmou (CONFIRMED) do que só foi declarado (DECLARED).
 model Contribution {
   id      String @id @default(cuid())
   giftId  String
@@ -295,7 +295,7 @@ model Contribution {
   confirmedAt DateTime?
   cancelledAt DateTime?
 
-  /// Recadinho opcional do convidado para os anfitriões (só o dono da lista lê). Até 500 caracteres.
+  /// Recadinho opcional do convidado para o casal (só o dono da lista lê). Até 500 caracteres.
   message String?
 
   createdAt DateTime @default(now())

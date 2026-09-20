@@ -9,7 +9,7 @@ import { SiteFooter } from "@/components/site-footer";
 
 export const metadata: Metadata = {
   title: "Política de Privacidade",
-  description: "Como o Momoslist coleta, usa e protege os dados de anfitriões e convidados.",
+  description: "Como o Momoslist coleta, usa e protege os dados dos casais e dos convidados.",
 };
 
 const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL;
@@ -57,7 +57,7 @@ export default function PrivacyPage() {
 
         <Section title="Quais dados coletamos">
           <p>
-            <strong className="text-foreground">Anfitriões (quem cria a lista):</strong> nome, e-mail e senha
+            <strong className="text-foreground">Casais (quem cria a lista):</strong> nome, e-mail e senha
             (armazenada apenas de forma criptografada). Se você entrar com o Google, recebemos do Google apenas seu
             nome, e-mail e foto de perfil. Também guardamos o que você cadastra na lista: dados do evento, fotos, endereços,
             presentes e a chave Pix que você escolhe exibir.
@@ -66,7 +66,7 @@ export default function PrivacyPage() {
             <strong className="text-foreground">Convidados (quem abre o link da lista):</strong> nome, e-mail e
             telefone informados ao escolher um presente, contribuir com uma vaquinha ou confirmar presença, além das
             escolhas feitas (presentes reservados, valores contribuídos e resposta de presença com número de
-            acompanhantes) e, se quiserem, um recadinho de texto livre para os anfitriões. Evite incluir no recadinho
+            acompanhantes) e, se quiserem, um recadinho de texto livre para o casal. Evite incluir no recadinho
             informações sensíveis.
           </p>
           <p>
@@ -77,10 +77,10 @@ export default function PrivacyPage() {
 
         <Section title="Para que usamos">
           <ul className="list-disc space-y-1.5 pl-5">
-            <li>Autenticar anfitriões e permitir que gerenciem suas listas.</li>
-            <li>Mostrar ao anfitrião quem escolheu cada presente, quem contribuiu e quem confirmou presença.</li>
+            <li>Autenticar os casais e permitir que gerenciem suas listas.</li>
+            <li>Mostrar ao casal quem escolheu cada presente, quem contribuiu e quem confirmou presença.</li>
             <li>Evitar que o mesmo presente seja escolhido por duas pessoas.</li>
-            <li>Exibir a chave Pix do anfitrião ao convidado que decide contribuir por Pix.</li>
+            <li>Exibir a chave Pix do casal ao convidado que decide contribuir por Pix.</li>
           </ul>
           <p>Não vendemos nem compartilhamos seus dados com terceiros para fins de marketing.</p>
         </Section>
@@ -104,7 +104,7 @@ export default function PrivacyPage() {
 
         <Section title="Quem vê os dados">
           <p>
-            A lista é acessível somente por quem tem o link. O anfitrião vê os dados dos convidados que interagiram com
+            A lista é acessível somente por quem tem o link. O casal vê os dados dos convidados que interagiram com
             a sua lista, inclusive os recadinhos, que só o dono da lista lê e nunca aparecem na página pública. Os
             convidados não veem os dados uns dos outros. Usamos provedores de infraestrutura (hospedagem,
             banco de dados e armazenamento de imagens) que tratam os dados em nosso nome para fazer o serviço funcionar.

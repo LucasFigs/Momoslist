@@ -151,8 +151,8 @@ export function RsvpDialog({ open, onOpenChange, eventId, initial }: RsvpDialogP
         title: status === "ATTENDING" ? "Presença confirmada!" : "Resposta registrada",
         description:
           status === "ATTENDING"
-            ? "Os anfitriões já sabem que você vai. Dá para alterar quando quiser."
-            : "Avisamos os anfitriões. Se mudar de ideia, é só responder de novo.",
+            ? "O casal já sabe que você vai. Dá para alterar quando quiser."
+            : "Avisamos o casal. Se mudar de ideia, é só responder de novo.",
       });
       onOpenChange(false);
       router.refresh();
@@ -169,7 +169,7 @@ export function RsvpDialog({ open, onOpenChange, eventId, initial }: RsvpDialogP
         <SheetHeader>
           <DialogTitle>{initial ? "Alterar sua resposta" : "Confirmar presença"}</DialogTitle>
           <p className="mt-1 text-sm text-muted-foreground">
-            Assim os anfitriões conseguem se organizar. Você pode mudar a resposta depois.
+            Assim o casal consegue se organizar. Você pode mudar a resposta depois.
           </p>
         </SheetHeader>
 

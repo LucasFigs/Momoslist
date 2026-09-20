@@ -101,7 +101,7 @@ interface ListPreviewButtonProps {
   className?: string;
 }
 
-/** Botão + diálogo. Use onde o anfitrião precisa "ver como fica" sem sair da tela. */
+/** Botão + diálogo. Use onde o casal precisa "ver como fica" sem sair da tela. */
 export function ListPreviewButton({
   eventId,
   color,

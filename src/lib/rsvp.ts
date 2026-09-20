@@ -94,7 +94,7 @@ export function describeParty(answer: RsvpAnswer): string {
 }
 
 // ---------------------------------------------------------------------------
-// Planilha (CSV) para o anfitrião levar ao buffet, à portaria etc.
+// Planilha (CSV) para o casal levar ao buffet, à portaria etc.
 // ---------------------------------------------------------------------------
 
 export interface RsvpCsvRow extends RsvpAnswer {

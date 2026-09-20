@@ -1,7 +1,7 @@
 import * as React from "react";
 
 /**
- * Texto escrito pelo anfitrião: preserva quebras de linha e transforma **negrito**
+ * Texto escrito pelo casal: preserva quebras de linha e transforma **negrito**
  * em <strong>. Sem dangerouslySetInnerHTML — só monta elementos React, então
  * qualquer HTML digitado continua aparecendo como texto puro.
  */

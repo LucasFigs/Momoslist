@@ -40,7 +40,7 @@ export async function identifyGuestAction(formData: FormData): Promise<IdentifyR
         return {
           success: false,
           error:
-            "Esse e-mail já está cadastrado com outro telefone. Confira os dados ou avise o anfitrião.",
+            "Esse e-mail já está cadastrado com outro telefone. Confira os dados ou avise o casal.",
         };
       }
       guest = existing.name === name ? existing : await prisma.guest.update({

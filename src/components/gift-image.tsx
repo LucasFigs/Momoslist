@@ -35,7 +35,7 @@ export function GiftImage({
   showBrokenHint = false,
 }: GiftImageProps) {
   // Guarda a URL que falhou (e não um boolean): quando a URL muda — ex.: o
-  // anfitrião troca a capa — a imagem nova é tentada em vez de ficar presa no placeholder.
+  // o casal troca a capa — a imagem nova é tentada em vez de ficar presa no placeholder.
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const failed = src !== null && failedSrc === src;
 

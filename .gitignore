@@ -9,7 +9,6 @@ node_modules
 .vercel
 *.tsbuildinfo
 .env*.local
-PROJECT_SNAPSHOT.md
 
 # Configuração local do Claude Code
 .claude/settings.local.json

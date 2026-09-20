@@ -41,6 +41,8 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#FBF8F3",
+  // Necessário para env(safe-area-inset-bottom): mantém botões fora da barra de gestos do iPhone.
+  viewportFit: "cover" as const,
 };
 
 export default function RootLayout({

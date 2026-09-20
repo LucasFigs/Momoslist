@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { SheetBody, SheetFooter } from "@/components/ui/dialog";
 import {
   getPaymentDetailsAction,
   confirmExternalPurchaseAction,
@@ -11,7 +12,7 @@ import {
   type PaymentDetails,
 } from "@/actions/payment.actions";
 import { toast } from "@/hooks/use-toast";
-import { Copy, Check, ExternalLink, ImageOff } from "lucide-react";
+import { Copy, Check, CheckCircle2, Clock, ExternalLink, ImageOff } from "lucide-react";
 
 const pixKeyTypeLabel: Record<string, string> = {
   CPF: "CPF",
@@ -26,16 +27,28 @@ interface PaymentPanelProps {
   paymentMethod: "EXTERNAL_PURCHASE" | "PIX";
   status: "CONFIRMED" | "COMPLETED";
   pixStatus: string;
+  /** Resumo do presente (foto, nome, preço), mostrado no topo do corpo da folha. */
+  summary: React.ReactNode;
   onCancel: () => void;
+  onClose: () => void;
   isCancelPending: boolean;
 }
 
+const cancelLink =
+  "w-fit text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50";
+
+/**
+ * Passo a passo depois de escolher como presentear. Devolve corpo + rodapé de uma folha (SheetContent):
+ * o botão principal fica fixo no rodapé, sempre à vista, e só o corpo rola.
+ */
 export function PaymentPanel({
   reservationId,
   paymentMethod,
   status,
   pixStatus,
+  summary,
   onCancel,
+  onClose,
   isCancelPending,
 }: PaymentPanelProps) {
   const router = useRouter();
@@ -66,7 +79,7 @@ export function PaymentPanel({
       // Sem permissão ou contexto não seguro (http): o usuário ainda pode selecionar o texto na tela.
       toast({
         title: "Não foi possível copiar",
-        description: "Selecione o texto e copie manualmente.",
+        description: "Toque no texto para selecioná-lo e copie manualmente.",
         variant: "destructive",
       });
       return;
@@ -100,135 +113,218 @@ export function PaymentPanel({
     });
   }
 
+  const closeFooter = (
+    <SheetFooter>
+      <Button variant="outline" onClick={onClose} className="w-full">
+        Fechar
+      </Button>
+    </SheetFooter>
+  );
+
   if (loading) {
     return (
-      <div className="rounded-md border border-border bg-muted/30 p-3">
-        <div className="h-3 w-32 animate-pulse rounded bg-muted" />
-      </div>
+      <>
+        <SheetBody className="flex flex-col gap-4">
+          {summary}
+          <div className="h-3 w-40 animate-pulse rounded bg-muted" />
+          <div className="h-3 w-56 animate-pulse rounded bg-muted" />
+        </SheetBody>
+      </>
     );
   }
 
-  // Estados finais
-  if (status === "COMPLETED" && paymentMethod === "EXTERNAL_PURCHASE") {
-    return (
-      <div className="rounded-lg border border-primary-border bg-primary-subtle p-3">
-        <p className="text-xs font-medium text-primary">Compra confirmada. Obrigado!</p>
-      </div>
-    );
-  }
-
+  // Pix já confirmado pelo anfitrião: o dinheiro foi recebido, então não há "desistir" aqui.
   if (pixStatus === "CONFIRMED") {
     return (
-      <div className="rounded-lg border border-primary-border bg-primary-subtle p-3">
-        <p className="text-xs font-medium text-primary">
-          Pix confirmado pelo anfitrião. Obrigado!
-        </p>
-      </div>
+      <>
+        <SheetBody className="flex flex-col gap-4">
+          {summary}
+          <p className="flex items-start gap-2 rounded-lg bg-success-soft p-3 text-sm font-medium text-success">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            Pix confirmado pelo anfitrião. Obrigado!
+          </p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Para qualquer ajuste depois da confirmação, fale diretamente com o anfitrião.
+          </p>
+        </SheetBody>
+        {closeFooter}
+      </>
     );
   }
 
-  return (
-    <div className="rounded-lg border border-primary-border bg-primary-subtle p-3 [&_a]:h-auto [&_a]:min-h-10 [&_a]:whitespace-normal [&_a]:py-2 [&_a]:text-center [&_a]:leading-tight [&_button]:h-auto [&_button]:min-h-10 [&_button]:whitespace-normal [&_button]:py-2 [&_button]:text-center [&_button]:leading-tight [&_button.underline-link]:min-h-0">
-      {/* Só erro de carregamento dos dados do pagamento; falhas de ação viram toast. */}
-      {error && <p role="alert" className="mb-2 text-xs text-destructive">{error}</p>}
+  // Compra em loja confirmada: continua dando para desistir (ex.: clicou em "Já comprei" por engano).
+  if (status === "COMPLETED" && paymentMethod === "EXTERNAL_PURCHASE") {
+    return (
+      <>
+        <SheetBody className="flex flex-col gap-4">
+          {summary}
+          <p className="flex items-start gap-2 rounded-lg bg-success-soft p-3 text-sm font-medium text-success">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            Compra confirmada. Obrigado!
+          </p>
+          <div className="rounded-lg bg-muted/60 p-3">
+            <p className="text-sm font-medium text-foreground">Confirmou por engano?</p>
+            <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+              Você pode desistir: o presente volta a ficar disponível para os outros convidados.
+            </p>
+            <button type="button" onClick={onCancel} disabled={isCancelPending} className={`mt-2 ${cancelLink}`}>
+              Desistir deste presente
+            </button>
+          </div>
+        </SheetBody>
+        {closeFooter}
+      </>
+    );
+  }
 
-      {details?.kind === "EXTERNAL_PURCHASE" && (
-        <div className="flex flex-col gap-2">
-          <div>
+  if (details?.kind === "PIX" && pixStatus === "DECLARED") {
+    return (
+      <>
+        <SheetBody className="flex flex-col gap-4">
+          {summary}
+          <p className="flex items-start gap-2 rounded-lg bg-pending-soft p-3 text-sm font-medium text-pending">
+            <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            Pix informado — aguardando a confirmação do anfitrião.
+          </p>
+          <button type="button" onClick={onCancel} disabled={isCancelPending} className={cancelLink}>
+            Desistir deste presente
+          </button>
+        </SheetBody>
+        {closeFooter}
+      </>
+    );
+  }
+
+  if (details?.kind === "EXTERNAL_PURCHASE") {
+    return (
+      <>
+        <SheetBody className="flex flex-col gap-4">
+          {summary}
+          <div className="rounded-lg bg-primary-subtle p-3 ring-1 ring-primary-border">
             <p className="text-sm font-medium text-foreground">Você vai comprar em uma loja</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
               O site do vendedor abre em outra aba e a compra é feita lá. Depois de comprar, volte aqui e toque em
               &quot;Já comprei&quot;.
             </p>
           </div>
-          {details.purchaseUrl ? (
-            <Button size="sm" asChild>
+          {!details.purchaseUrl && (
+            <p className="text-sm text-muted-foreground">O anfitrião não cadastrou um link de loja para este presente.</p>
+          )}
+          <button type="button" onClick={onCancel} disabled={isCancelPending} className={cancelLink}>
+            Desistir deste presente
+          </button>
+        </SheetBody>
+        <SheetFooter>
+          {details.purchaseUrl && (
+            <Button asChild className="w-full">
               <a href={details.purchaseUrl} target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />
                 Abrir site da loja
               </a>
             </Button>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              O anfitrião não cadastrou um link de loja para este presente.
-            </p>
           )}
-          <Button size="sm" variant="outline" onClick={handleConfirmPurchase} disabled={isPending}>
+          <Button
+            variant={details.purchaseUrl ? "outline" : "default"}
+            onClick={handleConfirmPurchase}
+            disabled={isPending}
+            className="w-full"
+          >
             {isPending ? "Confirmando..." : "Já comprei"}
           </Button>
-        </div>
-      )}
+        </SheetFooter>
+      </>
+    );
+  }
 
-      {details?.kind === "PIX" && (
-        <div className="flex flex-col gap-2.5">
-          {pixStatus === "DECLARED" ? (
-            <p className="text-xs font-medium text-pending">
-              Pix informado — aguardando a confirmação do anfitrião.
-            </p>
-          ) : (
-            <>
-              <div>
-                <p className="text-xs text-muted-foreground">Valor a pagar</p>
-                <p className="font-medium text-foreground">{details.amountLabel}</p>
-              </div>
+  if (details?.kind === "PIX") {
+    return (
+      <>
+        <SheetBody className="flex flex-col gap-5">
+          {summary}
 
-              {details.qrCodeDataUrl && !qrFailed && (
-                <div className="mx-auto rounded-md bg-white p-2">
+          {/* Celular: uma coluna, QR centralizado. Tela larga: QR à esquerda e dados à direita. */}
+          <div className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-start sm:gap-6">
+            <div className="mx-auto">
+              {details.qrCodeDataUrl && !qrFailed ? (
+                <div className="rounded-xl border border-border bg-white p-2.5">
                   <Image
                     src={details.qrCodeDataUrl}
                     alt="QR Code Pix"
-                    width={160}
-                    height={160}
+                    width={184}
+                    height={184}
                     unoptimized
                     onError={() => setQrFailed(true)}
                   />
                 </div>
-              )}
-              {qrFailed && (
+              ) : (
                 <div
                   role="img"
                   aria-label="QR Code indisponível"
-                  className="mx-auto flex h-[176px] w-[176px] flex-col items-center justify-center gap-1 rounded-md bg-neutral-200 p-3 text-center text-neutral-500"
+                  className="flex h-[205px] w-[205px] flex-col items-center justify-center gap-1 rounded-xl bg-neutral-200 p-3 text-center text-neutral-500"
                 >
                   <ImageOff className="h-5 w-5" aria-hidden="true" />
-                  <span className="text-[11px]">QR Code indisponível — use a chave ou o copia e cola.</span>
+                  <span className="text-xs">QR Code indisponível — use a chave ou o copia e cola.</span>
                 </div>
               )}
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Valor a pagar</p>
+                <p className="text-2xl font-semibold tabular-nums text-foreground">{details.amountLabel}</p>
+              </div>
 
               <div>
                 <p className="text-xs text-muted-foreground">
                   {pixKeyTypeLabel[details.pixKeyType] ?? details.pixKeyType} de {details.hostName}
                 </p>
-                <p className="break-all text-xs font-medium text-foreground">{details.pixKey}</p>
+                <p className="select-all break-all text-sm font-medium text-foreground">{details.pixKey}</p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" className="flex-1" onClick={() => copy(details.pixKey, "key")}>
-                  {copied === "key" ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" size="sm" onClick={() => copy(details.pixKey, "key")}>
+                  {copied === "key" ? <Check className="mr-1.5 h-4 w-4" /> : <Copy className="mr-1.5 h-4 w-4" />}
                   {copied === "key" ? "Copiada" : "Copiar chave"}
                 </Button>
-                <Button size="sm" variant="outline" className="flex-1" onClick={() => copy(details.copyPasteCode, "code")}>
-                  {copied === "code" ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
+                <Button variant="outline" size="sm" onClick={() => copy(details.copyPasteCode, "code")}>
+                  {copied === "code" ? <Check className="mr-1.5 h-4 w-4" /> : <Copy className="mr-1.5 h-4 w-4" />}
                   {copied === "code" ? "Copiado" : "Copia e cola"}
                 </Button>
               </div>
 
-              <Button size="sm" onClick={handleDeclarePix} disabled={isPending}>
-                {isPending ? "Enviando..." : "Já fiz o Pix"}
-              </Button>
-            </>
-          )}
-        </div>
-      )}
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Pague no app do seu banco e depois toque em <strong className="text-foreground">Já fiz o Pix</strong>{" "}
+                para avisar o anfitrião.
+              </p>
+            </div>
+          </div>
 
-      <button
-        type="button"
-        onClick={onCancel}
-        disabled={isCancelPending}
-        className="underline-link mt-2 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
-      >
-        Desistir deste presente
-      </button>
-    </div>
+          <button type="button" onClick={onCancel} disabled={isCancelPending} className={cancelLink}>
+            Desistir deste presente
+          </button>
+        </SheetBody>
+        <SheetFooter>
+          <Button onClick={handleDeclarePix} disabled={isPending} className="w-full">
+            {isPending ? "Enviando..." : "Já fiz o Pix"}
+          </Button>
+        </SheetFooter>
+      </>
+    );
+  }
+
+  // Falha ao carregar os dados do pagamento.
+  return (
+    <>
+      <SheetBody className="flex flex-col gap-4">
+        {summary}
+        <p role="alert" className="text-sm text-destructive">
+          {error ?? "Não foi possível carregar os dados do pagamento."}
+        </p>
+        <button type="button" onClick={onCancel} disabled={isCancelPending} className={cancelLink}>
+          Desistir deste presente
+        </button>
+      </SheetBody>
+      {closeFooter}
+    </>
   );
 }

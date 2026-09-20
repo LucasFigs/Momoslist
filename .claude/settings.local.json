@@ -41,10 +41,44 @@
       "Bash(sed -i 's#<Button size=\"sm\" variant=\"outline\" onClick={\\(\\) => copy\\(details.pixKey, \"key\"\\)}>#<Button size=\"sm\" variant=\"outline\" className=\"flex-1\" onClick={\\(\\) => copy\\(details.pixKey, \"key\"\\)}>#; s#<Button size=\"sm\" variant=\"outline\" onClick={\\(\\) => copy\\(details.copyPasteCode, \"code\"\\)}>#<Button size=\"sm\" variant=\"outline\" className=\"flex-1\" onClick={\\(\\) => copy\\(details.copyPasteCode, \"code\"\\)}>#' \"src/app/lista/[eventSlugToken]/payment-panel.tsx\")",
       "Bash(sed -i 's/\"Comprar em uma loja\"/\"Comprar em loja\"/' .tmp-shot-reserve.cjs)",
       "Bash(node .tmp-shot-dash.cjs)",
-      "PowerShell(Set-Location C:\\\\Users\\\\lucas\\\\Downloads\\\\gift-list-platform; npx next lint 2>&1 | Select-Object -First 10; npx next build 2>&1 | Select-String -Pattern \"error|Error|Failed|Compiled|^├|^└|^┌\" | Select-Object -First 16; npx tsc --noEmit; \"tsc exit: $LASTEXITCODE\")"
+      "PowerShell(Set-Location C:\\\\Users\\\\lucas\\\\Downloads\\\\gift-list-platform; npx next lint 2>&1 | Select-Object -First 10; npx next build 2>&1 | Select-String -Pattern \"error|Error|Failed|Compiled|^├|^└|^┌\" | Select-Object -First 16; npx tsc --noEmit; \"tsc exit: $LASTEXITCODE\")",
+      "Bash(node .tmp-adj1.cjs)",
+      "Bash(rm .tmp-adj1.cjs)",
+      "Bash(node .tmp-adj2.cjs)",
+      "Bash(sed -n '/<div className=\"flex justify-end border-t/,$p' src/app/dashboard/eventos/[id]/event-form.tsx)",
+      "Bash(node .tmp-adj3.cjs)",
+      "Bash(rm .tmp-adj3.cjs)",
+      "Bash(node .tmp-host-test.cjs)",
+      "Bash(node .tmp-fixture.cjs cleanup)",
+      "Bash(node .tmp-diag.cjs)",
+      "Bash(node .tmp-guest-test.cjs)",
+      "Bash(sed -i 's/className=\"font-serif text-lg font-medium text-foreground\"/className=\"text-lg font-semibold tracking-tight text-foreground\"/' src/components/ui/confirm-dialog.tsx)",
+      "PowerShell(Set-Location C:\\\\Users\\\\lucas\\\\Downloads\\\\gift-list-platform; npx next lint 2>&1 | Select-Object -First 8; npx next build 2>&1 | Select-String -Pattern \"error|Error|Failed|Compiled|^├|^└|^┌\" | Select-Object -First 18; npx tsc --noEmit; \"tsc exit: $LASTEXITCODE\")",
+      "Bash(node .tmp-contrib.cjs)",
+      "Bash(rm .tmp-contrib.cjs)",
+      "Bash(node .tmp-cardstates.cjs)",
+      "Bash(rm .tmp-cardstates.cjs)",
+      "Bash(node .tmp-msg.cjs)",
+      "Bash(node .tmp-final-test.cjs)",
+      "PowerShell(Set-Location C:\\\\Users\\\\lucas\\\\Downloads\\\\gift-list-platform; npx next lint 2>&1 | Select-Object -First 8; npx next build 2>&1 | Select-String -Pattern \"error|Error|Failed|Compiled|^├|^└|^┌\" | Select-Object -First 16; npx tsc --noEmit; \"tsc exit: $LASTEXITCODE\")",
+      "Bash(node .tmp-e2e-host.cjs)",
+      "Bash(node .tmp-e2e-guest.cjs)",
+      "PowerShell(Set-Location C:\\\\Users\\\\lucas\\\\Downloads\\\\gift-list-platform; npx next lint 2>&1 | Select-Object -First 6; npx next build 2>&1 | Select-String -Pattern \"error|Error|Failed|Compiled\" | Select-Object -First 6; npx tsc --noEmit; \"tsc exit: $LASTEXITCODE\")",
+      "Bash(node .tmp-schema-rsvp.cjs)",
+      "Bash(rm .tmp-schema-rsvp.cjs)",
+      "Bash(awk '{print $5, $6, $7, $8, $9}')",
+      "Bash(node .tmp-wire-guest.cjs)",
+      "Bash(rm .tmp-wire-guest.cjs)",
+      "Bash(node .tmp-wire-host.cjs)",
+      "Bash(rm .tmp-wire-host.cjs)",
+      "Bash(node .tmp-e2e-rsvp.cjs)",
+      "Bash(cd \"C:/Users/lucas/Downloads/gift-list-platform\" && sed -i 's#<CardTitle>Resumo</CardTitle>#<CardTitle>Totais</CardTitle>#' \"src/app/dashboard/eventos/[id]/rsvp-panel.tsx\" && grep -c \"<CardTitle>Totais</CardTitle>\" \"src/app/dashboard/eventos/[id]/rsvp-panel.tsx\")",
+      "PowerShell(Set-Location C:\\\\Users\\\\lucas\\\\Downloads\\\\gift-list-platform; npx next lint 2>&1 | Select-Object -First 8; npx next build 2>&1 | Select-String -Pattern \"error|Error|Failed|Compiled\" | Select-Object -First 6; npx tsc --noEmit; \"tsc exit: $LASTEXITCODE\")",
+      "Bash(python -)"
     ],
     "additionalDirectories": [
-      "C:\\Users\\lucas\\Downloads\\gift-list-platform\\app\\lista\\[eventSlugToken]"
+      "C:\\Users\\lucas\\Downloads\\gift-list-platform\\app\\lista\\[eventSlugToken]",
+      "C:\\Users\\lucas\\Downloads\\gift-list-platform\\src\\app\\dashboard\\eventos\\[id]"
     ]
   }
 }

@@ -1,17 +1,13 @@
 import { CalendarDays, MapPin } from "lucide-react";
 import { GiftImage } from "@/components/gift-image";
 import { FormattedText } from "@/components/formatted-text";
-import { Button } from "@/components/ui/button";
-import { ExpandableText } from "@/components/ui/expandable-text";
+import { CopyableAddress } from "@/components/copyable-address";
 import { SharePublicListButton } from "./share-public-list-button";
 
 const eventTypeLabel: Record<string, string> = {
   CHA_PANELA: "Chá de Panela",
   CHA_CASA_NOVA: "Chá de Casa Nova",
 };
-
-// Acima disso o recado vira "Ler mais": os presentes precisam aparecer logo na primeira tela.
-const LONG_DESCRIPTION_CHARS = 200;
 
 interface HeaderPublicoProps {
   title: string;
@@ -25,8 +21,6 @@ interface HeaderPublicoProps {
   description: string | null;
   deliveryAddress: string | null;
   publicUrl: string;
-  /** Há presentes na lista? Sem eles não faz sentido o botão "Ver presentes". */
-  hasGifts: boolean;
 }
 
 /**
@@ -45,7 +39,6 @@ export function HeaderPublico({
   description,
   deliveryAddress,
   publicUrl,
-  hasGifts,
 }: HeaderPublicoProps) {
   return (
     <header>
@@ -121,34 +114,15 @@ export function HeaderPublico({
         )}
 
         {description && (
-          // Mensagem sem moldura: é a voz dos anfitriões, não um "aviso do sistema".
-          <ExpandableText
-            isLong={description.length > LONG_DESCRIPTION_CHARS}
-            collapsedClassName="max-h-[4.9rem]"
-            fadeClassName="from-background"
-            className="w-full max-w-xl text-left text-[15px] leading-relaxed text-foreground/85 sm:text-base"
-          >
+          // A mensagem aparece INTEIRA: são as orientações da lista, e quem tem menos familiaridade com
+          // tecnologia pode não perceber um "Ler mais". Sem moldura: é a voz dos anfitriões, não um aviso do sistema.
+          <div className="w-full max-w-xl whitespace-pre-line text-left text-[15px] leading-relaxed text-foreground/90 sm:text-base">
             <FormattedText text={description} />
-          </ExpandableText>
+          </div>
         )}
 
-        {deliveryAddress && (
-          // <details> nativo: acessível por teclado e leitor de tela, sem JS.
-          <details className="group w-full max-w-xl text-left">
-            <summary className="mx-auto w-fit cursor-pointer list-none rounded-md text-sm font-medium text-muted-foreground underline decoration-border underline-offset-4 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [&::-webkit-details-marker]:hidden">
-              Prefere enviar o presente? Ver endereço de entrega
-            </summary>
-            <p className="mt-3 whitespace-pre-line rounded-lg border border-border bg-card p-4 text-sm text-foreground/85">
-              <FormattedText text={deliveryAddress} />
-            </p>
-          </details>
-        )}
-
-        {hasGifts && (
-          <Button asChild size="lg" className="mt-1 w-full max-w-xs">
-            <a href="#presentes">Ver presentes</a>
-          </Button>
-        )}
+        {/* Texto puro e copiável (o convidado cola no app da loja). Os ** de negrito não fazem sentido aqui. */}
+        {deliveryAddress && <CopyableAddress text={deliveryAddress.replace(/\*\*(.+?)\*\*/gs, "$1")} />}
       </div>
     </header>
   );

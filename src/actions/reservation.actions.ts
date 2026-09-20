@@ -157,8 +157,18 @@ export async function cancelReservationAction(reservationId: string): Promise<Si
     return { success: false, error: "Reserva não encontrada." };
   }
 
-  if (!["TEMPORARY", "CONFIRMED"].includes(reservation.status)) {
+  // COMPLETED entra: quem clicou "Já comprei" por engano precisa poder desfazer.
+  if (!["TEMPORARY", "CONFIRMED", "COMPLETED"].includes(reservation.status)) {
     return { success: false, error: "Essa reserva não pode mais ser cancelada." };
+  }
+
+  // Pix confirmado = o anfitrião já recebeu o dinheiro. Devolver o presente à lista sozinho deixaria a
+  // conta desencontrada, então esse caso fica com o anfitrião.
+  if (reservation.paymentMethod === "PIX" && reservation.pixStatus === "CONFIRMED") {
+    return {
+      success: false,
+      error: "O anfitrião já confirmou o recebimento do seu Pix. Fale com ele para qualquer ajuste.",
+    };
   }
 
   await prisma.giftReservation.update({

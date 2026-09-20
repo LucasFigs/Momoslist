@@ -2,7 +2,7 @@
 
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Gift as GiftIcon, PiggyBank, Plus } from "lucide-react";
+import { Check, Gift as GiftIcon, PiggyBank, Plus } from "lucide-react";
 import type { Gift } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
@@ -117,15 +117,30 @@ export function GiftFormDialog({ eventId, gift, trigger, pixConfigured = true }:
                     aria-checked={selected}
                     onClick={() => setKind(value)}
                     className={cn(
-                      "flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-                      selected ? "border-primary bg-primary/5" : "border-input bg-card hover:bg-muted"
+                      // border-2 nos dois estados: trocar a seleção não "empurra" o layout.
+                      "relative flex flex-col items-start gap-1 rounded-lg border-2 p-3 pr-10 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+                      selected
+                        ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                        : "border-border bg-card text-foreground hover:border-input hover:bg-muted"
                     )}
                   >
-                    <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                    {/* Marcador tipo "radio": vazio quando não escolhido, com check quando escolhido. */}
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "absolute right-2.5 top-2.5 flex h-5 w-5 items-center justify-center rounded-full border-2",
+                        selected ? "border-primary-foreground bg-primary-foreground text-primary" : "border-input bg-card"
+                      )}
+                    >
+                      {selected && <Check className="h-3 w-3" strokeWidth={3} />}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-sm font-semibold">
                       <Icon className="h-4 w-4" aria-hidden="true" />
                       {title}
                     </span>
-                    <span className="text-xs text-muted-foreground">{description}</span>
+                    <span className={cn("text-xs", selected ? "text-primary-foreground/85" : "text-muted-foreground")}>
+                      {description}
+                    </span>
                   </button>
                 );
               })}

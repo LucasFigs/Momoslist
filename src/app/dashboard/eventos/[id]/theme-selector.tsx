@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { deriveTheme, themeToCssVars, THEME_PRESETS } from "@/lib/theme";
 import { updateEventThemeAction } from "@/actions/event.actions";
+import { ListPreviewButton } from "./list-preview";
 
 /**
  * Cor de acento da lista pública. A base (fundo, textos, bordas) é sempre neutra; a cor escolhida aparece
@@ -124,7 +125,7 @@ export function ThemeSelector({ eventId, currentColor }: { eventId: string; curr
             Presentear
           </Button>
           <Badge variant="primary">Vaquinha</Badge>
-          <span className="text-sm font-medium text-primary underline underline-offset-4">Ver presentes</span>
+          <span className="text-sm font-medium text-primary underline underline-offset-4">Ler mais</span>
         </div>
         <div className="mt-4 max-w-xs">
           <div className="mb-1 flex justify-between text-xs">
@@ -145,10 +146,12 @@ export function ThemeSelector({ eventId, currentColor }: { eventId: string; curr
         </p>
       )}
 
-      <div>
+      <div className="flex flex-wrap items-center gap-2">
         <Button onClick={handleSave} disabled={!dirty || isPending} className="w-full sm:w-auto">
           {isPending ? "Salvando..." : "Salvar cor"}
         </Button>
+        {/* Mostra a lista inteira com a cor escolhida agora, mesmo antes de salvar. */}
+        <ListPreviewButton eventId={eventId} color={color} className="h-12 w-full sm:h-11 sm:w-auto" />
       </div>
     </div>
   );

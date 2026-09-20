@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Momoslist — sistema de design
+
+  Dois níveis:
+  1) MARCA (neutra): fundo off-white quente, superfícies brancas, grafite e cinzas quentes.
+     É fixa em todo o produto e nunca muda com a cor da lista.
+  2) LISTA (acento): a família --primary*. No painel usa o verde-sálvia da marca; na página
+     pública é sobrescrita por `style` com a cor que o anfitrião escolheu (ver src/lib/theme.ts,
+     que deriva hover/active/soft/foreground já com contraste ≥ 4,5:1).
+
+  Estados (pendente, sucesso, erro) têm cores próprias e SEMPRE vêm acompanhados de texto/ícone:
+  cor nunca é o único indicador.
+*/
+
+@layer base {
+  :root {
+    /* Neutros da marca */
+    --background: 36 38% 97%;
+    --foreground: 30 8% 14%;
+
+    --card: 40 40% 99%;
+    --card-foreground: 30 8% 14%;
+
+    --muted: 36 20% 93%;
+    --muted-foreground: 30 6% 36%;
+
+    /* Ação secundária neutra (antes era rosa): superfície cinza-quente com texto grafite */
+    --secondary: 36 18% 91%;
+    --secondary-foreground: 30 8% 14%;
+
+    --accent: 36 20% 93%;
+    --accent-foreground: 30 8% 14%;
+
+    --border: 36 14% 88%;
+    /* Borda de campos: ≥3:1 contra o card (WCAG 1.4.11). --border é só divisória. */
+    --input: 30 8% 55%;
+
+    /* Acento — padrão da marca (Sálvia). Sobrescrito por lista em `style`. */
+    --primary: 140 15% 24%;
+    --primary-hover: 140 15% 30%;
+    --primary-active: 140 15% 35%;
+    --primary-soft: 140 15% 92%;
+    --primary-subtle: 140 15% 96%;
+    --primary-border: 140 15% 82%;
+    --primary-foreground: 40 30% 98%;
+
+    /* Estados */
+    --destructive: 4 72% 46%;
+    --destructive-foreground: 40 30% 98%;
+    --success: 152 42% 24%;
+    --success-soft: 150 30% 92%;
+    --pending: 30 85% 26%;
+    --pending-soft: 38 90% 91%;
+
+    /* Raios hierárquicos: sm 8 · md 10 (campos/botões) · lg 12 (cards). Selos usam pílula. */
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Respeita quem pediu menos movimento no sistema (vestibular/enxaqueca): sem pulso de skeleton nem animações. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

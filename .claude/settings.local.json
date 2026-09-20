@@ -1,0 +1,50 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(npx tsc --noEmit 2>&1)",
+      "PowerShell(npx tsc --noEmit; \"tsc exit: $LASTEXITCODE\"; npx next lint --dir src/app/lista 2>&1 | Select-Object -First 20)",
+      "PowerShell(npx tsc --noEmit; \"tsc exit: $LASTEXITCODE\"; npx next lint --dir src/app/dashboard --dir src/components 2>&1 | Select-Object -First 20)",
+      "PowerShell(npx tsc --noEmit; \"tsc exit: $LASTEXITCODE\"; npx next lint 2>&1 | Select-Object -First 30)",
+      "PowerShell(npx next build 2>&1)",
+      "Bash(node scripts/check-storage.mjs)",
+      "Bash(cd \"C:/Users/lucas/Downloads/gift-list-platform/src\" && sed -i 's/text-secondary\\\\b\\\\\\([^-]\\\\\\)/text-secondary-strong\\\\1/g' app/page.tsx \"app/lista/[eventSlugToken]/header-publico.tsx\" \"app/lista/[eventSlugToken]/payment-panel.tsx\" \"app/lista/[eventSlugToken]/gift-card.tsx\" && sed -i 's/rounded-md border border-border bg-card/rounded-md border border-input bg-card/' components/ui/input.tsx components/ui/select.tsx components/ui/textarea.tsx && grep -rn \"text-secondary\\\\|border-input\" app components | grep -v \"text-secondary-foreground\")",
+      "PowerShell(Set-Location C:\\\\Users\\\\lucas\\\\Downloads\\\\gift-list-platform; npx tsc --noEmit; \"tsc exit: $LASTEXITCODE\"; npx next lint 2>&1 | Select-Object -First 30; npx next build 2>&1 | Select-String -Pattern \"error|Error|Failed|✓ Compiled|Route \\\\\\(app\\\\\\)\" | Select-Object -First 20)",
+      "Bash(node -e ' *)",
+      "Bash(node .tmp-e2e3.cjs)",
+      "Bash(node .tmp-e2e4.cjs)",
+      "Bash(rm -rf .shots/profile)",
+      "Bash(node .tmp-e2e5.cjs)",
+      "Bash(node .tmp-e2e6.cjs)",
+      "Bash(node .tmp-e2e7.cjs)",
+      "PowerShell(Set-Location C:\\\\Users\\\\lucas\\\\Downloads\\\\gift-list-platform; npx tsc --noEmit; \"tsc exit: $LASTEXITCODE\"; npx next lint 2>&1 | Select-Object -First 12; npx next build 2>&1 | Select-String -Pattern \"error|Error|Failed|Compiled|^├|^└|^┌\" | Select-Object -First 16; npx tsc --noEmit; \"tsc \\(pós-build\\) exit: $LASTEXITCODE\")",
+      "Bash(node .tmp-apply-theme.cjs)",
+      "Bash(sed -i 's#edit\\(\"app/#edit\\(\"src/app/#; s#edit\\(\"schemas/#edit\\(\"src/schemas/#; s#edit\\(\"components/#edit\\(\"src/components/#' .tmp-p1a.cjs)",
+      "Bash(node .tmp-p1a.cjs)",
+      "Bash(rm .tmp-p1a.cjs)",
+      "Bash(node .tmp-p1b.cjs)",
+      "Bash(rm .tmp-p1b.cjs)",
+      "Bash(node .tmp-card.cjs)",
+      "Bash(rm .tmp-card.cjs)",
+      "Bash(node .tmp-pay.cjs)",
+      "Bash(rm .tmp-pay.cjs)",
+      "Bash(node .tmp-dash.cjs)",
+      "Bash(rm .tmp-dash.cjs)",
+      "Bash(node .tmp-p3.cjs)",
+      "Bash(rm .tmp-p3.cjs)",
+      "Bash(node .tmp-p4.cjs)",
+      "Bash(rm .tmp-p4.cjs)",
+      "Bash(node .tmp-shot-public.cjs)",
+      "Bash(node .tmp-refine.cjs)",
+      "Bash(rm .tmp-refine.cjs)",
+      "Bash(node .tmp-shot-reserve.cjs)",
+      "Bash(node .tmp-reserved.cjs)",
+      "Bash(sed -i 's#<Button size=\"sm\" variant=\"outline\" onClick={\\(\\) => copy\\(details.pixKey, \"key\"\\)}>#<Button size=\"sm\" variant=\"outline\" className=\"flex-1\" onClick={\\(\\) => copy\\(details.pixKey, \"key\"\\)}>#; s#<Button size=\"sm\" variant=\"outline\" onClick={\\(\\) => copy\\(details.copyPasteCode, \"code\"\\)}>#<Button size=\"sm\" variant=\"outline\" className=\"flex-1\" onClick={\\(\\) => copy\\(details.copyPasteCode, \"code\"\\)}>#' \"src/app/lista/[eventSlugToken]/payment-panel.tsx\")",
+      "Bash(sed -i 's/\"Comprar em uma loja\"/\"Comprar em loja\"/' .tmp-shot-reserve.cjs)",
+      "Bash(node .tmp-shot-dash.cjs)",
+      "PowerShell(Set-Location C:\\\\Users\\\\lucas\\\\Downloads\\\\gift-list-platform; npx next lint 2>&1 | Select-Object -First 10; npx next build 2>&1 | Select-String -Pattern \"error|Error|Failed|Compiled|^├|^└|^┌\" | Select-Object -First 16; npx tsc --noEmit; \"tsc exit: $LASTEXITCODE\")"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\lucas\\Downloads\\gift-list-platform\\app\\lista\\[eventSlugToken]"
+    ]
+  }
+}

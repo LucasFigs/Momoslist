@@ -1,0 +1,290 @@
+// Schema Prisma — Plataforma de Lista de Presentes
+// Fase 1: modelo de dados completo já preparado para as fases seguintes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum EventType {
+  CHA_PANELA
+  CHA_CASA_NOVA
+}
+
+enum PixKeyType {
+  CPF
+  CNPJ
+  EMAIL
+  TELEFONE
+  ALEATORIA
+}
+
+enum ReservationStatus {
+  TEMPORARY
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum PaymentMethod {
+  EXTERNAL_PURCHASE
+  PIX
+}
+
+enum PixStatus {
+  NOT_APPLICABLE
+  NOT_DECLARED
+  DECLARED
+  CONFIRMED
+}
+
+/// Tipo de item da lista: produto comum ou vaquinha (contribuição em valor livre até uma meta).
+enum GiftKind {
+  PRODUCT
+  FUND
+}
+
+/// Ciclo de vida de uma contribuição de vaquinha (sempre via Pix, confirmada manualmente pelo anfitrião).
+enum ContributionStatus {
+  DECLARED
+  CONFIRMED
+  CANCELLED
+}
+
+/// Paletas pré-definidas que o anfitrião pode escolher para a página pública.
+enum ThemeName {
+  SALVIA
+  TERRACOTA
+}
+
+// ---------------------------------------------------------------------------
+// Autenticação (Auth.js / Prisma Adapter)
+// ---------------------------------------------------------------------------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String? // null quando o login é apenas via Google
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+
+  // Um usuário pode ser anfitrião de várias listas
+  events        Event[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Domínio principal
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Convidado (identificação leve — Fase 8)
+// ---------------------------------------------------------------------------
+
+// O convidado NÃO é um User autenticado (sem senha, sem Auth.js). Ele se
+// identifica com nome + e-mail + telefone, guardados aqui, e um cookie
+// assinado no navegador lembra quem ele é. Para gerenciar a reserva de outro
+// aparelho, ele se identifica de novo com o mesmo e-mail + telefone.
+//
+// Trade-off consciente: sem verificação de e-mail/SMS, alguém que souber o
+// e-mail E o telefone de um convidado poderia se passar por ele. Aceitável
+// para o público inicial (convidados conhecidos do anfitrião), mas não
+// deve ser usado como está para uma lista pública/aberta.
+model Guest {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reservations  GiftReservation[]
+  contributions Contribution[]
+
+  @@unique([email])
+  @@map("guests")
+}
+
+model Event {
+  id            String    @id @default(cuid())
+  ownerId       String
+  title         String
+  type          EventType
+  description   String?   @db.Text
+  eventDate     DateTime?
+  coverImageUrl String?
+  profileImageUrl String? // avatar circular sobreposto à capa
+  theme         ThemeName @default(SALVIA)
+  // Cor de acento escolhida pelo anfitrião (#RRGGBB). null = usa o preset legado de `theme`.
+  themeColor    String?
+
+  // URL pública: /lista/[slug]-[secureToken]
+  slug        String @unique
+  secureToken String @unique
+
+  pixKey     String?
+  pixKeyType PixKeyType?
+
+  // Fase 9 — conteúdo configurável da lista
+  deliveryAddress String? @db.Text // endereço para entrega do presente, se o convidado preferir enviar
+  locationName    String? // nome do local do evento (ex: "Salão de Festas Village Noble")
+  locationAddress String? @db.Text
+  locationMapsUrl String? // link opcional pro Google Maps / Waze
+
+  published Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  gifts Gift[]
+
+  @@index([ownerId])
+  @@map("events")
+}
+
+model Gift {
+  id          String  @id @default(cuid())
+  eventId     String
+  name        String
+  description String? @db.Text
+  imageUrl    String?
+  purchaseUrl String?
+
+  kind GiftKind @default(PRODUCT)
+
+  // Sempre em centavos — nunca float. Em vaquinha (kind = FUND) é a META total.
+  priceInCents Int
+
+  // Só vaquinha: menor valor que um convidado pode contribuir.
+  minContributionInCents Int?
+
+  quantity Int @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event         Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  reservations  GiftReservation[]
+  contributions Contribution[]
+
+  @@index([eventId])
+  @@map("gifts")
+}
+
+model GiftReservation {
+  id      String @id @default(cuid())
+  giftId  String
+  guestId String
+
+  status ReservationStatus @default(TEMPORARY)
+
+  paymentMethod PaymentMethod?
+  pixStatus     PixStatus      @default(NOT_APPLICABLE)
+
+  reservedAt          DateTime  @default(now())
+  expiresAt           DateTime
+  purchaseConfirmedAt DateTime?
+  pixDeclaredAt       DateTime?
+  pixConfirmedAt      DateTime?
+  cancelledAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  gift  Gift  @relation(fields: [giftId], references: [id], onDelete: Cascade)
+  guest Guest @relation(fields: [guestId], references: [id], onDelete: Cascade)
+
+  // Consulta de disponibilidade: por presente + status
+  @@index([giftId, status])
+  @@index([guestId])
+  @@map("gift_reservations")
+}
+
+// ---------------------------------------------------------------------------
+// Vaquinha — contribuições em valor livre (mínimo definido pelo anfitrião)
+// ---------------------------------------------------------------------------
+
+// A meta NÃO limita nada: as contribuições podem ultrapassar o objetivo (evita
+// conflito entre convidados que contribuem ao mesmo tempo). O progresso separa o
+// que o anfitrião já confirmou (CONFIRMED) do que só foi declarado (DECLARED).
+model Contribution {
+  id      String @id @default(cuid())
+  giftId  String
+  guestId String
+
+  // Sempre em centavos.
+  amountInCents Int
+  status        ContributionStatus @default(DECLARED)
+
+  declaredAt  DateTime  @default(now())
+  confirmedAt DateTime?
+  cancelledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  gift  Gift  @relation(fields: [giftId], references: [id], onDelete: Cascade)
+  guest Guest @relation(fields: [guestId], references: [id], onDelete: Cascade)
+
+  @@index([giftId, status])
+  @@index([guestId])
+  @@map("contributions")
+}

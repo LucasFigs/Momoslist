@@ -24,12 +24,12 @@ interface PublicListViewProps {
   themeColorOverride?: string | null;
   /** Resposta de confirmação de presença deste convidado (null = ainda não respondeu). */
   myRsvp?: RsvpAnswer | null;
-  /** Modo pré-visualização do anfitrião: nada é clicável, para nunca gerar reserva/contribuição de teste. */
+  /** Modo pré-visualização do casal: nada é clicável, para nunca gerar reserva/contribuição de teste. */
   preview?: boolean;
 }
 
 /**
- * A lista como o convidado vê. Usada pela página pública e pela pré-visualização do anfitrião,
+ * A lista como o convidado vê. Usada pela página pública e pela pré-visualização do casal,
  * para que as duas nunca divirjam.
  */
 export function PublicListView({
@@ -91,7 +91,7 @@ export function PublicListView({
           </div>
         )}
 
-        {/* Confirmação de presença: só aparece se o anfitrião ligou (Configurações → Confirmações). */}
+        {/* Confirmação de presença: só aparece se o casal ligou (Configurações → Confirmações). */}
         {event.rsvpEnabled && (
           <section aria-label="Confirmação de presença" className="container pb-6 pt-5 sm:pb-8 sm:pt-6">
             <RsvpSection eventId={event.id} isIdentified={Boolean(guest)} mine={myRsvp} />

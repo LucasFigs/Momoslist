@@ -23,17 +23,17 @@ Sem planilha, sem presente repetido e sem o convidado precisar criar conta.
 
 O **Momoslist** é uma plataforma web para montar **listas de presentes de chá de panela e chá de casa nova**.
 
-- **O anfitrião** (quem vai receber) cria a lista, escolhe a cor e a capa, publica e acompanha tudo num painel.
+- **O casal** (quem vai receber) cria a lista, escolhe a cor e a capa, publica e acompanha tudo num painel.
 - **O convidado** abre o link pelo WhatsApp, no celular, escolhe um presente ou contribui numa vaquinha, paga por **Pix** ou compra na loja, e confirma presença. **Sem cadastro com senha e sem instalar nada.**
 
-> O dinheiro **não passa pela plataforma**: o Pix vai direto do convidado para o anfitrião.
+> O dinheiro **não passa pela plataforma**: o Pix vai direto do convidado para o casal.
 
 ### Destaques
 
 | | | |
 |---|---|---|
-| 🎁 **Presentes, Pix e Vaquinha**<br>Três tipos de item para cada situação, com loja, só Pix ou meta coletiva. | 💌 **Recadinhos**<br>O convidado deixa uma mensagem carinhosa ao presentear; o anfitrião lê tudo numa aba própria. | 🙋 **Confirmação de presença**<br>Quem vai, com quantos acompanhantes, adultos e crianças, com totais e CSV. |
-| ⚡ **Pix na hora**<br>QR Code e Pix Copia e Cola gerados com o valor exato, sem intermediário. | 🎨 **A cara do evento**<br>Capa, foto e cor de destaque por lista, com contraste de acessibilidade garantido. | 🔒 **Privado por link**<br>Só entra quem recebe o link; recados e dados dos convidados só o anfitrião vê. |
+| 🎁 **Presentes, Pix e Vaquinha**<br>Três tipos de item para cada situação, com loja, só Pix ou meta coletiva. | 💌 **Recadinhos**<br>O convidado deixa uma mensagem carinhosa ao presentear; o casal lê tudo numa aba própria. | 🙋 **Confirmação de presença**<br>Quem vai, com quantos acompanhantes, adultos e crianças, com totais e CSV. |
+| ⚡ **Pix na hora**<br>QR Code e Pix Copia e Cola gerados com o valor exato, sem intermediário. | 🎨 **A cara do evento**<br>Capa, foto e cor de destaque por lista, com contraste de acessibilidade garantido. | 🔒 **Privado por link**<br>Só entra quem recebe o link; recados e dados dos convidados só o casal vê. |
 | 📱 **Feito para o celular**<br>O convidado abre pelo WhatsApp e resolve em poucos toques. | 🧭 **Painel organizado**<br>Resumo, presentes, confirmações, recadinhos e configurações em abas. | 🚫 **Sem presente repetido**<br>Reservas protegidas no banco contra escolhas simultâneas. |
 
 ## 🎯 Por que existe
@@ -43,16 +43,16 @@ Listas em grupo de WhatsApp e planilhas compartilhadas funcionam até o segundo 
 | Sem o Momoslist | Com o Momoslist |
 |---|---|
 | Duas pessoas compram o mesmo presente | Cada item é **reservado** no banco: a última unidade só vai para uma pessoa, mesmo com cliques simultâneos |
-| "Já fiz o Pix" perdido numa conversa | O convidado declara o Pix e o anfitrião **confirma o recebimento** num painel |
+| "Já fiz o Pix" perdido numa conversa | O convidado declara o Pix e o casal **confirma o recebimento** num painel |
 | Vaquinha controlada no papel | **Meta, valor mínimo e barra de progresso** em tempo real |
 | Convidado sem saber onde comprar ou pagar | Link da loja **ou** QR Code e Pix Copia e Cola já com o valor certo |
-| Mensagens carinhosas perdidas em conversas soltas | Cada convidado pode deixar um **recadinho** ao presentear, e o anfitrião lê todos numa aba própria |
+| Mensagens carinhosas perdidas em conversas soltas | Cada convidado pode deixar um **recadinho** ao presentear, e o casal lê todos numa aba própria |
 | Contagem de quem vai ao evento feita na mão | **Confirmação de presença** com acompanhantes, adultos e crianças, e exportação em CSV |
 | Página genérica e sem identidade | Página pública **com a cor e a capa do evento**, pensada para o celular |
 
 **Quem ganha o quê**
 
-- 💚 **Anfitrião:** controle total, nenhum presente repetido, visão clara do que já chegou e do que falta confirmar.
+- 💚 **Casal:** controle total, nenhum presente repetido, visão clara do que já chegou e do que falta confirmar.
 - 📱 **Convidado:** abre o link, escolhe e paga em poucos toques, sem criar senha.
 - 🔒 **Ambos:** privacidade. A lista só é acessível por quem tem o link, e os convidados não veem os dados uns dos outros.
 
@@ -60,7 +60,7 @@ Listas em grupo de WhatsApp e planilhas compartilhadas funcionam até o segundo 
 
 ```mermaid
 flowchart LR
-  A[Anfitrião cria a lista] --> B[Publica e compartilha o link no WhatsApp]
+  A[Casal cria a lista] --> B[Publica e compartilha o link no WhatsApp]
   B --> C[Convidado abre no celular]
   C --> D{O que quer fazer?}
   D -->|Escolher presente| E[Reserva o item por 15 min]
@@ -71,10 +71,10 @@ flowchart LR
   D -->|Vaquinha| I[Contribui com o valor que quiser]
   I --> H
   D -->|Presença| J[Confirma presença e acompanhantes]
-  N[Recadinho opcional para os anfitriões] -.-> G
+  N[Recadinho opcional para o casal] -.-> G
   N -.-> K
   H --> K[Convidado declara: já fiz o Pix]
-  K --> L[Anfitrião confirma o recebimento no painel]
+  K --> L[Casal confirma o recebimento no painel]
 ```
 
 ### Os três tipos de item
@@ -90,7 +90,7 @@ flowchart LR
 
 ### Jornada de quem presenteia
 
-1. Abre o link recebido no WhatsApp e vê a **capa, o local, a data e a mensagem** dos anfitriões.
+1. Abre o link recebido no WhatsApp e vê a **capa, o local, a data e a mensagem** do casal.
 2. Navega pela vitrine (busca e ordenação ficam na URL) e toca em **Presentear** ou **Contribuir**.
 3. Se apresenta uma única vez com nome, e-mail e telefone. Sem senha.
 4. Escolhe **loja** ou **Pix**. Itens só-Pix e vaquinhas já seguem direto para o pagamento.
@@ -139,14 +139,14 @@ flowchart LR
 │        │  QR Code  │          │
 │        └───────────┘          │
 │ [Copiar chave] [Copia e cola] │
-│ ✎ Deixar um recadinho para os │
-│   anfitriões (opcional)       │
+│ ✎ Deixar um recadinho para o  │
+│   casal (opcional)            │
 ├───────────────────────────────┤
 │        [ Já fiz o Pix ]       │
 └───────────────────────────────┘
 ```
 
-**Painel do anfitrião (desktop)**
+**Painel do casal (desktop)**
 
 ```
 Resumo │ Presentes │ Confirmações │ Recadinhos ⑦ │ Configurações
@@ -164,7 +164,7 @@ Resumo │ Presentes │ Confirmações │ Recadinhos ⑦ │ Configurações
 
 ## 🧩 Recursos
 
-### 👩‍🍳 Para o anfitrião (painel, feito para desktop e responsivo)
+### 💍 Para o casal (painel, feito para desktop e responsivo)
 
 - **Conta** por e-mail e senha ou **login com Google**; as duas se unem quando o e-mail é o mesmo.
 - **Lista completa:** tipo de evento, data e horário, local com link do mapa, endereço de entrega e uma mensagem que preserva parágrafos.
@@ -185,7 +185,7 @@ Resumo │ Presentes │ Confirmações │ Recadinhos ⑦ │ Configurações
 - **Vitrine** de 2 colunas no celular, com foto inteira (sem recortes), **busca e ordenação** que ficam na URL (dá para compartilhar o link já filtrado).
 - **Sinalização clara:** itens só-Pix e vaquinhas têm selo próprio na foto, então o convidado sabe de antemão como vai presentear.
 - **Reserva com prazo** e possibilidade de **desistir a qualquer momento**, inclusive depois de confirmar.
-- **Recadinho para os anfitriões:** ao presentear (loja, Pix ou vaquinha) há um convite discreto para deixar uma mensagem de até 500 caracteres. Dá para escrevê-la antes de avisar o pagamento ou **depois**, e editar ou remover quando quiser. Só os anfitriões leem.
+- **Recadinho para o casal:** ao presentear (loja, Pix ou vaquinha) há um convite discreto para deixar uma mensagem de até 500 caracteres. Dá para escrevê-la antes de avisar o pagamento ou **depois**, e editar ou remover quando quiser. Só o casal lê.
 - **Pix com QR Code e Copia e Cola** gerados na hora, com o valor exato.
 - **Vaquinha** com progresso, quanto falta e contribuição a partir do mínimo.
 - **Confirmação de presença:** vai ou não vai, com quantos acompanhantes, adultos e crianças.
@@ -201,14 +201,14 @@ Resumo │ Presentes │ Confirmações │ Recadinhos ⑦ │ Configurações
 | **Desistência** | O convidado pode cancelar antes ou depois de confirmar; a unidade volta para a lista. Se já declarou um Pix, é avisado de que **não há estorno automático**. |
 | **Item do tipo Pix** | Não tem link de loja: o método de pagamento é escolhido sozinho (Pix) ao reservar, e o servidor recusa "compra em loja" nesse tipo. O valor cadastrado é o valor do Pix gerado. |
 | **Chave Pix** | Só é entregue a quem tem reserva ativa com método Pix; nunca aparece na página pública antes disso. |
-| **Dinheiro** | Sempre em **centavos inteiros** (nunca `float`). Nenhum pagamento passa pela plataforma: o Pix vai direto para o anfitrião. |
+| **Dinheiro** | Sempre em **centavos inteiros** (nunca `float`). Nenhum pagamento passa pela plataforma: o Pix vai direto para o casal. |
 | **Pix Copia e Cola** | Payload EMV / BR Code do BACEN gerado localmente em [`lib/pix-payload.ts`](src/lib/pix-payload.ts). |
-| **Vaquinha** | Valor mínimo por pessoa; a meta pode ser ultrapassada (o excedente aparece à parte). O total arrecadado soma o **confirmado** e o **aguardando confirmação**, e a barra mostra os dois trechos separados. O anfitrião pode confirmar ou recusar cada contribuição. |
+| **Vaquinha** | Valor mínimo por pessoa; a meta pode ser ultrapassada (o excedente aparece à parte). O total arrecadado soma o **confirmado** e o **aguardando confirmação**, e a barra mostra os dois trechos separados. O casal pode confirmar ou recusar cada contribuição. |
 | **Identidade do convidado** | Nome + e-mail + telefone, sem senha. Um cookie `httpOnly` lembra a pessoa por 180 dias. Se o e-mail já existe com outro telefone, o cadastro é recusado. |
 | **Confirmação de presença** | Uma resposta por convidado (pode ser alterada). Conta como 1 adulto + acompanhantes. Só funciona se a lista estiver publicada e o RSVP ligado. |
-| **Recadinhos** | Opcionais, com até **500 caracteres**, validados no servidor e exibidos sempre como texto puro. Ficam presos à reserva ou à contribuição: só o anfitrião dono da lista os lê, nunca aparecem na página pública, e somem se a reserva for cancelada ou a contribuição recusada. O convidado pode adicionar, editar ou remover o seu enquanto a reserva estiver ativa. |
-| **Prévia do anfitrião** | Somente o dono acessa; a página fica `inert`, para que nunca gere reserva de teste. |
-| **Ordem dos itens** | A ordenação do painel é só uma visão do anfitrião. Os convidados veem os itens na ordem de cadastro. |
+| **Recadinhos** | Opcionais, com até **500 caracteres**, validados no servidor e exibidos sempre como texto puro. Ficam presos à reserva ou à contribuição: só o casal responsável pela lista os lê, nunca aparecem na página pública, e somem se a reserva for cancelada ou a contribuição recusada. O convidado pode adicionar, editar ou remover o seu enquanto a reserva estiver ativa. |
+| **Prévia do casal** | Somente o dono acessa; a página fica `inert`, para que nunca gere reserva de teste. |
+| **Ordem dos itens** | A ordenação do painel é só uma visão do casal. Os convidados veem os itens na ordem de cadastro. |
 
 ## 🏗️ Arquitetura e decisões técnicas
 
@@ -216,7 +216,7 @@ Resumo │ Presentes │ Confirmações │ Recadinhos ⑦ │ Configurações
 flowchart TB
   subgraph Clientes
     G[Convidado no celular]
-    H[Anfitrião no desktop]
+    H[Casal no desktop]
   end
   subgraph Vercel
     MW[Middleware no Edge protege o painel]
@@ -237,7 +237,7 @@ flowchart TB
 - **Next.js App Router com Server Components.** As páginas buscam os dados no servidor; a interatividade fica em componentes cliente pequenos.
 - **Server Actions** para todas as mutações (`src/actions`). Cada action **revalida a entrada com Zod no servidor** e confere se o usuário é dono do recurso. A validação do cliente é só conforto.
 - **Autenticação em duas camadas.** `lib/auth.config.ts` é a configuração leve (sem Prisma nem bcrypt), usada no **middleware** que protege `/dashboard/*` no Edge. `lib/auth.ts` é a configuração completa (Prisma, Google, senha). Sessão em **JWT**.
-- **Anfitrião e convidado são entidades diferentes.** O anfitrião é um `User` com Auth.js. O convidado é um `Guest` leve (sem senha), o que tira atrito de quem só quer presentear.
+- **Casal e convidado são entidades diferentes.** O casal é um `User` com Auth.js. O convidado é um `Guest` leve (sem senha), o que tira atrito de quem só quer presentear.
 - **Imagens.** Vão para o **Supabase Storage** (bucket público `gift-images`) pelo servidor, com a chave de serviço. Antes de enviar, o navegador **reduz a foto** (`lib/shrink-image.ts`), porque a Vercel recusa requisições acima de ~4,5 MB.
 - **Identidade visual.** Base neutra e fixa, com uma **cor de destaque por lista** aplicada via variáveis CSS (`--primary*`). Tipografia: Inter para a interface e Fraunces (serifada) só em títulos de destaque. Componentes no estilo shadcn/ui sobre Radix.
 - **Acessibilidade.** Contraste garantido nas cores derivadas, foco visível, atalho "Pular para o conteúdo", diálogos com `role="alertdialog"` para ações destrutivas, `aria-label` em botões de ícone e respeito a `prefers-reduced-motion`.
@@ -263,7 +263,7 @@ erDiagram
 
 | Modelo | Papel |
 |---|---|
-| `User`, `Account`, `Session`, `VerificationToken` | Anfitriões e o vínculo com provedores (Auth.js). |
+| `User`, `Account`, `Session`, `VerificationToken` | Casais e o vínculo com provedores (Auth.js). |
 | `Event` | A lista: dados do evento, Pix, tema, `slug` + `secureToken`, `published`, `rsvpEnabled`. |
 | `Gift` | Item da lista. `kind` = `PRODUCT` (presente), `PIX` (só Pix, sem loja) ou `FUND` (vaquinha, com meta e mínimo). |
 | `Guest` | Convidado (nome, e-mail, telefone). E-mail único. |
@@ -297,11 +297,11 @@ src/
   components/                componentes compartilhados (ui/ = base do design system)
   app/
     page.tsx                 landing
-    login/, cadastro/        autenticação do anfitrião
+    login/, cadastro/        autenticação do casal
     privacidade/             política de privacidade
-    dashboard/               painel do anfitrião (protegido pelo middleware)
+    dashboard/               painel do casal (protegido pelo middleware)
     lista/[eventSlugToken]/  página pública do convidado
-    previa/[id]/             prévia do anfitrião (só o dono)
+    previa/[id]/             prévia do casal (só o dono)
     api/auth/                rotas do Auth.js
   middleware.ts              protege /dashboard/*
 ```
@@ -409,7 +409,7 @@ Detalhes que já estão tratados no projeto para a Vercel: o `postinstall` gera 
 - **Senhas** com hash bcrypt. A chave de serviço do Supabase nunca chega ao navegador.
 - **Cookie de sessão** e cookie do convidado com `httpOnly` e `sameSite=lax` (e `secure` em produção).
 - **Login com Google** só vincula a uma conta existente se o Google confirmar que o e-mail é verificado, e o seletor de contas é sempre exibido.
-- **Privacidade (LGPD):** a política está em [`/privacidade`](src/app/privacidade/page.tsx). Convidados não veem dados uns dos outros; o anfitrião vê apenas quem interagiu com a própria lista.
+- **Privacidade (LGPD):** a política está em [`/privacidade`](src/app/privacidade/page.tsx). Convidados não veem dados uns dos outros; o casal vê apenas quem interagiu com a própria lista.
 
 > **Trade-off assumido:** o convidado não tem senha. Quem souber o e-mail **e** o telefone de outra pessoa pode se passar por ela e mexer na reserva dela. É aceitável para listas fechadas entre amigos. Para abrir ao público geral, o caminho é trocar a identificação por um link mágico enviado por e-mail — o modelo `Guest` continua o mesmo.
 
@@ -417,10 +417,10 @@ Detalhes que já estão tratados no projeto para a Vercel: o `postinstall` gera 
 
 ## 🧱 Limitações conhecidas e próximos passos
 
-- **Confirmação de e-mail no cadastro** do anfitrião ainda não existe, nem redefinição de senha ("Esqueci minha senha").
+- **Confirmação de e-mail no cadastro** do casal ainda não existe, nem redefinição de senha ("Esqueci minha senha").
 - **Sem limite de tentativas** (rate limiting) no login.
 - **Migrations versionadas:** o schema é aplicado com `db push`. Antes de operar com dados de clientes reais, migre para `prisma migrate`.
 - **Mesmo banco em desenvolvimento e produção**, se ambos usarem o mesmo projeto do Supabase; o ideal é ter um projeto separado para cada.
 - **Expiração de reservas** é tratada sob demanda. Um cron (Vercel Cron) para limpeza periódica seria apenas higiene.
-- **Pix é declarativo:** a plataforma não consulta o banco, então o anfitrião confirma o recebimento manualmente.
+- **Pix é declarativo:** a plataforma não consulta o banco, então o casal confirma o recebimento manualmente.
 - **Plano gratuito da Vercel (Hobby)** é só para uso não comercial.

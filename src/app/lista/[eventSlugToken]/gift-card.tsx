@@ -288,7 +288,7 @@ export function GiftCard({ gift, availability, isIdentified, pixOnly = false, my
               <strong className="text-foreground">
                 Atenção: isso não gera estorno automático do Pix já enviado
               </strong>{" "}
-              — se você já pagou, fale diretamente com o anfitrião.
+              — se você já pagou, fale diretamente com o casal.
             </>
           ) : purchaseAlreadyConfirmed ? (
             <>

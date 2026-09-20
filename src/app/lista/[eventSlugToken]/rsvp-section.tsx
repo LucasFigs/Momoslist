@@ -65,7 +65,7 @@ export function RsvpSection({ eventId, isIdentified, mine }: RsvpSectionProps) {
           {!mine ? (
             <>
               <h2 className="text-sm font-semibold text-foreground sm:text-base">Confirme sua presença</h2>
-              <p className="text-sm text-muted-foreground">Conte aos anfitriões se você vai e com quantas pessoas.</p>
+              <p className="text-sm text-muted-foreground">Conte ao casal se você vai e com quantas pessoas.</p>
             </>
           ) : attending ? (
             <>

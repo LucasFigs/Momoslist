@@ -10,7 +10,7 @@ type SignUpResult =
   | { success: false; error: string };
 
 /**
- * Cria um novo usuário (anfitrião ou convidado — mesma entidade User).
+ * Cria um novo usuário (casal ou convidado — mesma entidade User).
  * Toda validação é refeita aqui no servidor, mesmo que o formulário já valide no cliente.
  */
 export async function signUpAction(formData: FormData): Promise<SignUpResult> {

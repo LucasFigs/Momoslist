@@ -3,9 +3,9 @@ import { computeFundProgress, type FundTotals } from "@/lib/fund";
 import { CheckCircle2 } from "lucide-react";
 
 interface FundProgressProps extends FundTotals {
-  /** "sm": card da lista. "lg": diálogo do convidado e painel do anfitrião (com marcos e legenda). */
+  /** "sm": card da lista. "lg": diálogo do convidado e painel do casal (com marcos e legenda). */
   size?: "sm" | "lg";
-  /** Só o anfitrião vê a legenda dos dois tons; o convidado a vê quando há algo aguardando. */
+  /** Só o casal vê a legenda dos dois tons; o convidado a vê quando há algo aguardando. */
   className?: string;
 }
 

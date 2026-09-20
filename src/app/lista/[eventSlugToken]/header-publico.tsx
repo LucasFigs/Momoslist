@@ -115,7 +115,7 @@ export function HeaderPublico({
 
         {description && (
           // A mensagem aparece INTEIRA: são as orientações da lista, e quem tem menos familiaridade com
-          // tecnologia pode não perceber um "Ler mais". Sem moldura: é a voz dos anfitriões, não um aviso do sistema.
+          // tecnologia pode não perceber um "Ler mais". Sem moldura: é a voz do casal, não um aviso do sistema.
           <div className="w-full max-w-xl whitespace-pre-line text-left text-[15px] leading-relaxed text-foreground/90 sm:text-base">
             <FormattedText text={description} />
           </div>

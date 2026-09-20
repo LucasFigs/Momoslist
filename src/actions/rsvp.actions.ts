@@ -27,7 +27,7 @@ export async function saveRsvpAction(eventId: string, input: RsvpInput): Promise
     return { success: false, error: parsed.error.issues[0]?.message ?? "Confira os dados informados." };
   }
 
-  // A regra vale no servidor (não só na tela): lista publicada e confirmações ligadas pelo anfitrião.
+  // A regra vale no servidor (não só na tela): lista publicada e confirmações ligadas pelo casal.
   const event = await prisma.event.findUnique({
     where: { id: eventId },
     select: { published: true, rsvpEnabled: true },
@@ -52,7 +52,7 @@ export async function saveRsvpAction(eventId: string, input: RsvpInput): Promise
 }
 
 // ---------------------------------------------------------------------------
-// Anfitrião
+// Casal
 // ---------------------------------------------------------------------------
 
 async function requireOwnedEvent(eventId: string) {

@@ -38,7 +38,7 @@ async function loadFundForContribution(giftId: string, amountInCents: number) {
     return { ok: false as const, error: "Vaquinha não encontrada." };
   }
   if (!gift.event.pixKey || !gift.event.pixKeyType) {
-    return { ok: false as const, error: "O anfitrião ainda não cadastrou uma chave Pix." };
+    return { ok: false as const, error: "O casal ainda não cadastrou uma chave Pix." };
   }
   if (!Number.isInteger(amountInCents) || amountInCents <= 0) {
     return { ok: false as const, error: "Informe um valor válido." };
@@ -145,7 +145,7 @@ export async function cancelContributionAction(contributionId: string): Promise<
   if (contribution.status !== "DECLARED") {
     return {
       success: false,
-      error: "Essa contribuição já foi confirmada pelo anfitrião. Fale com ele para qualquer ajuste.",
+      error: "Essa contribuição já foi confirmada pelo casal. Fale com o casal para qualquer ajuste.",
     };
   }
 
@@ -172,7 +172,7 @@ async function requireOwnedContribution(contributionId: string) {
   return { ok: true as const, contribution, eventId: contribution.gift.event.id };
 }
 
-/** Anfitrião confirma que o Pix caiu — passa de "aguardando" para "confirmado". */
+/** O casal confirma que o Pix caiu — passa de "aguardando" para "confirmado". */
 export async function confirmContributionAction(contributionId: string): Promise<SimpleResult> {
   const owned = await requireOwnedContribution(contributionId);
   if (!owned.ok) return { success: false, error: owned.error };
@@ -190,7 +190,7 @@ export async function confirmContributionAction(contributionId: string): Promise
   return { success: true };
 }
 
-/** Anfitrião recusa uma contribuição que não recebeu (ou foi declarada por engano). */
+/** O casal recusa uma contribuição que não recebeu (ou foi declarada por engano). */
 export async function rejectContributionAction(contributionId: string): Promise<SimpleResult> {
   const owned = await requireOwnedContribution(contributionId);
   if (!owned.ok) return { success: false, error: owned.error };

@@ -15,7 +15,7 @@ interface MessageFieldProps {
 }
 
 /**
- * Recadinho opcional para os anfitriões. Começa recolhido (um convite discreto) para não competir com o
+ * Recadinho opcional para o casal. Começa recolhido (um convite discreto) para não competir com o
  * QR Code e com o botão principal; ao abrir vira um campo de texto com contador. Se já há texto, abre sozinho.
  */
 export function MessageField({ value, onChange, disabled }: MessageFieldProps) {
@@ -47,7 +47,7 @@ export function MessageField({ value, onChange, disabled }: MessageFieldProps) {
       >
         <MessageCircleHeart className="h-4 w-4 flex-shrink-0 text-primary" aria-hidden="true" />
         <span className="font-medium text-foreground">
-          Deixar um recadinho para os anfitriões{" "}
+          Deixar um recadinho para o casal{" "}
           <span className="font-normal text-muted-foreground">(opcional)</span>
         </span>
       </button>
@@ -61,7 +61,7 @@ export function MessageField({ value, onChange, disabled }: MessageFieldProps) {
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor={id} className="flex min-w-0 items-center gap-1.5">
           <MessageCircleHeart className="h-4 w-4 flex-shrink-0 text-primary" aria-hidden="true" />
-          <span className="truncate">Recadinho para os anfitriões</span>
+          <span className="truncate">Recadinho para o casal</span>
         </Label>
         <button
           type="button"
@@ -88,7 +88,7 @@ export function MessageField({ value, onChange, disabled }: MessageFieldProps) {
         className="min-h-[88px] resize-y"
       />
       <p id={`${id}-hint`} className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-        <span>Só os anfitriões leem. Não aparece na lista pública.</span>
+        <span>Só o casal lê. Não aparece na lista pública.</span>
         <span className={cn("tabular-nums", nearLimit && "font-medium text-foreground")}>
           {value.length}/{MAX_MESSAGE_LENGTH}
         </span>

@@ -9,7 +9,7 @@
   1) MARCA (neutra): fundo off-white quente, superfícies brancas, grafite e cinzas quentes.
      É fixa em todo o produto e nunca muda com a cor da lista.
   2) LISTA (acento): a família --primary*. No painel usa o verde-sálvia da marca; na página
-     pública é sobrescrita por `style` com a cor que o anfitrião escolheu (ver src/lib/theme.ts,
+     pública é sobrescrita por `style` com a cor que o casal escolheu (ver src/lib/theme.ts,
      que deriva hover/active/soft/foreground já com contraste ≥ 4,5:1).
 
   Estados (pendente, sucesso, erro) têm cores próprias e SEMPRE vêm acompanhados de texto/ícone:

@@ -152,7 +152,7 @@ function ContributionRow({ item }: { item: FundContributionItem }) {
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {awaiting && (
           <Button size="sm" onClick={handleConfirm} disabled={isPending}>
             {isPending ? "Confirmando..." : "Confirmar recebimento"}

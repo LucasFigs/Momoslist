@@ -117,9 +117,10 @@ function SelectionRow({ selection }: { selection: GuestSelection }) {
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 p-4">
-      <div>
-        <p className="font-medium text-foreground">{selection.giftName}</p>
+    // No celular empilha (texto → selo → botão de largura total); a partir de sm volta a ficar em linha.
+    <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <p className="break-words font-medium text-foreground">{selection.giftName}</p>
         <p className="text-sm text-muted-foreground">
           {selection.guestName} · {selection.priceLabel} ·{" "}
           {selection.paymentMethod === "PIX" ? "Pix" : "Compra externa"} ·{" "}
@@ -127,10 +128,10 @@ function SelectionRow({ selection }: { selection: GuestSelection }) {
         </p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
         <Badge variant={statusVariant(selection)}>{statusLabel(selection)}</Badge>
         {awaitingConfirmation && (
-          <Button size="sm" onClick={handleConfirm} disabled={isPending}>
+          <Button size="sm" onClick={handleConfirm} disabled={isPending} className="w-full sm:w-auto">
             {isPending ? "Confirmando..." : "Confirmar recebimento"}
           </Button>
         )}

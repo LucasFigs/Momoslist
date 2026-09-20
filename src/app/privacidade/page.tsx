@@ -66,7 +66,8 @@ export default function PrivacyPage() {
             <strong className="text-foreground">Convidados (quem abre o link da lista):</strong> nome, e-mail e
             telefone informados ao escolher um presente, contribuir com uma vaquinha ou confirmar presença, além das
             escolhas feitas (presentes reservados, valores contribuídos e resposta de presença com número de
-            acompanhantes).
+            acompanhantes) e, se quiserem, um recadinho de texto livre para os anfitriões. Evite incluir no recadinho
+            informações sensíveis.
           </p>
           <p>
             <strong className="text-foreground">Dados técnicos:</strong> cookies necessários para manter você
@@ -104,7 +105,8 @@ export default function PrivacyPage() {
         <Section title="Quem vê os dados">
           <p>
             A lista é acessível somente por quem tem o link. O anfitrião vê os dados dos convidados que interagiram com
-            a sua lista. Os convidados não veem os dados uns dos outros. Usamos provedores de infraestrutura (hospedagem,
+            a sua lista, inclusive os recadinhos, que só o dono da lista lê e nunca aparecem na página pública. Os
+            convidados não veem os dados uns dos outros. Usamos provedores de infraestrutura (hospedagem,
             banco de dados e armazenamento de imagens) que tratam os dados em nosso nome para fazer o serviço funcionar.
           </p>
         </Section>

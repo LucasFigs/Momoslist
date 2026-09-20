@@ -1,20 +1,23 @@
 "use server";
 
 import QRCode from "qrcode";
+import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildPixPayload } from "@/lib/pix-payload";
 import { logger } from "@/lib/logger";
 import { getCurrentGuest } from "@/lib/guest-session";
+import { parseMessage } from "@/schemas/message.schema";
 
 type SimpleResult = { success: true } | { success: false; error: string };
 
 export type PaymentDetails =
-  | { kind: "EXTERNAL_PURCHASE"; purchaseUrl: string | null; giftName: string }
+  | { kind: "EXTERNAL_PURCHASE"; purchaseUrl: string | null; giftName: string; message: string | null }
   | {
       kind: "PIX";
       giftName: string;
+      message: string | null;
       amountLabel: string;
       hostName: string;
       pixKey: string;
@@ -57,6 +60,7 @@ export async function getPaymentDetailsAction(
         kind: "EXTERNAL_PURCHASE",
         purchaseUrl: gift.purchaseUrl,
         giftName: gift.name,
+        message: reservation.message,
       },
     };
   }
@@ -93,6 +97,7 @@ export async function getPaymentDetailsAction(
       details: {
         kind: "PIX",
         giftName: gift.name,
+        message: reservation.message,
         amountLabel: (gift.priceInCents / 100).toLocaleString("pt-BR", {
           style: "currency",
           currency: "BRL",
@@ -110,7 +115,10 @@ export async function getPaymentDetailsAction(
 }
 
 /** Convidado informa que comprou o presente na loja externa. */
-export async function confirmExternalPurchaseAction(reservationId: string): Promise<SimpleResult> {
+export async function confirmExternalPurchaseAction(
+  reservationId: string,
+  message?: string
+): Promise<SimpleResult> {
   const guest = await getCurrentGuest();
   if (!guest) return { success: false, error: "Identifique-se novamente para continuar." };
 
@@ -125,16 +133,24 @@ export async function confirmExternalPurchaseAction(reservationId: string): Prom
     return { success: false, error: "Essa reserva não pode mais ser atualizada." };
   }
 
+  const note = parseMessage(message);
+  if (!note.ok) return { success: false, error: note.error };
+
   await prisma.giftReservation.update({
     where: { id: reservationId },
-    data: { status: "COMPLETED", purchaseConfirmedAt: new Date() },
+    data: {
+      status: "COMPLETED",
+      purchaseConfirmedAt: new Date(),
+      // Recadinho em branco não apaga um que já exista: só "salvar recadinho" edita ou remove.
+      ...(note.value && { message: note.value, messageAt: new Date() }),
+    },
   });
 
   return { success: true };
 }
 
 /** Convidado declara que fez o Pix — ainda depende da confirmação manual do anfitrião. */
-export async function declarePixPaymentAction(reservationId: string): Promise<SimpleResult> {
+export async function declarePixPaymentAction(reservationId: string, message?: string): Promise<SimpleResult> {
   const guest = await getCurrentGuest();
   if (!guest) return { success: false, error: "Identifique-se novamente para continuar." };
 
@@ -149,11 +165,49 @@ export async function declarePixPaymentAction(reservationId: string): Promise<Si
     return { success: false, error: "Essa reserva não pode mais ser atualizada." };
   }
 
+  const note = parseMessage(message);
+  if (!note.ok) return { success: false, error: note.error };
+
   await prisma.giftReservation.update({
     where: { id: reservationId },
-    data: { pixStatus: "DECLARED", pixDeclaredAt: new Date() },
+    data: {
+      pixStatus: "DECLARED",
+      pixDeclaredAt: new Date(),
+      ...(note.value && { message: note.value, messageAt: new Date() }),
+    },
   });
 
+  return { success: true };
+}
+
+/**
+ * Adiciona, edita ou remove (texto vazio) o recadinho de uma reserva ativa, mesmo depois de avisar o Pix ou a
+ * compra. Só o próprio convidado pode, e só enquanto a reserva não foi cancelada nem expirou.
+ */
+export async function saveReservationMessageAction(reservationId: string, message: string): Promise<SimpleResult> {
+  const guest = await getCurrentGuest();
+  if (!guest) return { success: false, error: "Identifique-se novamente para continuar." };
+
+  const note = parseMessage(message);
+  if (!note.ok) return { success: false, error: note.error };
+
+  const reservation = await prisma.giftReservation.findUnique({
+    where: { id: reservationId },
+    include: { gift: { select: { eventId: true } } },
+  });
+  if (!reservation || reservation.guestId !== guest.id) {
+    return { success: false, error: "Reserva não encontrada." };
+  }
+  if (!["CONFIRMED", "COMPLETED"].includes(reservation.status)) {
+    return { success: false, error: "Essa reserva não está ativa." };
+  }
+
+  await prisma.giftReservation.update({
+    where: { id: reservationId },
+    data: { message: note.value, messageAt: note.value ? new Date() : null },
+  });
+
+  revalidatePath(`/dashboard/eventos/${reservation.gift.eventId}`);
   return { success: true };
 }
 

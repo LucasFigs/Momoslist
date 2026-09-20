@@ -259,6 +259,10 @@ model GiftReservation {
   pixConfirmedAt      DateTime?
   cancelledAt         DateTime?
 
+  /// Recadinho opcional do convidado para os anfitriões (só o dono da lista lê). Até 500 caracteres.
+  message   String?
+  messageAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -290,6 +294,9 @@ model Contribution {
   declaredAt  DateTime  @default(now())
   confirmedAt DateTime?
   cancelledAt DateTime?
+
+  /// Recadinho opcional do convidado para os anfitriões (só o dono da lista lê). Até 500 caracteres.
+  message String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

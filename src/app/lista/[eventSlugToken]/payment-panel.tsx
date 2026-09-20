@@ -9,10 +9,12 @@ import {
   getPaymentDetailsAction,
   confirmExternalPurchaseAction,
   declarePixPaymentAction,
+  saveReservationMessageAction,
   type PaymentDetails,
 } from "@/actions/payment.actions";
 import { toast } from "@/hooks/use-toast";
-import { Copy, Check, CheckCircle2, Clock, ExternalLink, ImageOff } from "lucide-react";
+import { Copy, Check, CheckCircle2, Clock, ExternalLink, ImageOff, MessageCircleHeart } from "lucide-react";
+import { MessageField } from "./message-field";
 
 const pixKeyTypeLabel: Record<string, string> = {
   CPF: "CPF",
@@ -38,6 +40,82 @@ const cancelLink =
   "w-fit text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50";
 
 /**
+ * Recadinho depois de avisar o pagamento: mostra o que já foi enviado (com opção de editar) ou, se ainda não
+ * há nada, deixa escrever um. Usa a action própria porque aqui não há mais um botão principal para "levá-lo junto".
+ */
+function PostMessage({ reservationId, initial }: { reservationId: string; initial: string | null }) {
+  const [saved, setSaved] = useState(initial ?? "");
+  const [value, setValue] = useState(initial ?? "");
+  const [editing, setEditing] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  function save() {
+    startTransition(async () => {
+      const result = await saveReservationMessageAction(reservationId, value);
+      if (!result.success) {
+        toast({ title: "Não foi possível salvar o recadinho", description: result.error, variant: "destructive" });
+        return;
+      }
+      const next = value.trim();
+      setSaved(next);
+      setValue(next);
+      setEditing(false);
+      toast({ title: next ? "Recadinho enviado" : "Recadinho removido" });
+    });
+  }
+
+  if (saved && !editing) {
+    return (
+      <div className="rounded-lg border border-border bg-muted/40 p-3">
+        <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <MessageCircleHeart className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+          Seu recadinho para os anfitriões
+        </p>
+        <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">{saved}</p>
+        <button
+          type="button"
+          onClick={() => {
+            setValue(saved);
+            setEditing(true);
+          }}
+          className="mt-1 min-h-9 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+        >
+          Editar recadinho
+        </button>
+      </div>
+    );
+  }
+
+  const changed = value.trim() !== saved;
+  const saveLabel = value.trim() ? (saved ? "Salvar recadinho" : "Enviar recadinho") : "Remover recadinho";
+  return (
+    <div className="flex flex-col gap-2">
+      <MessageField value={value} onChange={setValue} disabled={isPending} />
+      {(changed || editing) && (
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" onClick={save} disabled={isPending || !changed}>
+            {isPending ? "Salvando..." : saveLabel}
+          </Button>
+          {editing && (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={isPending}
+              onClick={() => {
+                setValue(saved);
+                setEditing(false);
+              }}
+            >
+              Cancelar
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
  * Passo a passo depois de escolher como presentear. Devolve corpo + rodapé de uma folha (SheetContent):
  * o botão principal fica fixo no rodapé, sempre à vista, e só o corpo rola.
  */
@@ -58,6 +136,8 @@ export function PaymentPanel({
   const [isPending, startTransition] = useTransition();
   const [copied, setCopied] = useState<"key" | "code" | null>(null);
   const [qrFailed, setQrFailed] = useState(false);
+  // Recadinho digitado antes de avisar o pagamento: vai junto com "Já fiz o Pix" / "Já comprei".
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -89,13 +169,20 @@ export function PaymentPanel({
     setTimeout(() => setCopied(null), 2000);
   }
 
+  /** O recadinho enviado junto com o pagamento precisa aparecer já no passo seguinte (os detalhes foram lidos antes). */
+  function keepSentMessage() {
+    const sent = message.trim();
+    if (sent) setDetails((current) => (current ? ({ ...current, message: sent } as PaymentDetails) : current));
+  }
+
   function handleConfirmPurchase() {
     startTransition(async () => {
-      const result = await confirmExternalPurchaseAction(reservationId);
+      const result = await confirmExternalPurchaseAction(reservationId, message);
       if (!result.success) {
         toast({ title: "Não foi possível confirmar a compra", description: result.error, variant: "destructive" });
         return;
       }
+      keepSentMessage();
       toast({ title: "Compra confirmada", description: "Obrigado pelo presente!" });
       router.refresh();
     });
@@ -103,11 +190,12 @@ export function PaymentPanel({
 
   function handleDeclarePix() {
     startTransition(async () => {
-      const result = await declarePixPaymentAction(reservationId);
+      const result = await declarePixPaymentAction(reservationId, message);
       if (!result.success) {
         toast({ title: "Não foi possível informar o Pix", description: result.error, variant: "destructive" });
         return;
       }
+      keepSentMessage();
       toast({ title: "Pix informado", description: "Aguardando a confirmação do anfitrião." });
       router.refresh();
     });
@@ -146,6 +234,7 @@ export function PaymentPanel({
           <p className="text-sm leading-relaxed text-muted-foreground">
             Para qualquer ajuste depois da confirmação, fale diretamente com o anfitrião.
           </p>
+          {details && <PostMessage reservationId={reservationId} initial={details.message} />}
         </SheetBody>
         {closeFooter}
       </>
@@ -162,6 +251,7 @@ export function PaymentPanel({
             <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
             Compra confirmada. Obrigado!
           </p>
+          {details && <PostMessage reservationId={reservationId} initial={details.message} />}
           <div className="rounded-lg bg-muted/60 p-3">
             <p className="text-sm font-medium text-foreground">Confirmou por engano?</p>
             <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
@@ -186,6 +276,7 @@ export function PaymentPanel({
             <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
             Pix informado — aguardando a confirmação do anfitrião.
           </p>
+          <PostMessage reservationId={reservationId} initial={details.message} />
           <button type="button" onClick={onCancel} disabled={isCancelPending} className={cancelLink}>
             Desistir deste presente
           </button>
@@ -210,6 +301,7 @@ export function PaymentPanel({
           {!details.purchaseUrl && (
             <p className="text-sm text-muted-foreground">O anfitrião não cadastrou um link de loja para este presente.</p>
           )}
+          <MessageField value={message} onChange={setMessage} disabled={isPending} />
           <button type="button" onClick={onCancel} disabled={isCancelPending} className={cancelLink}>
             Desistir deste presente
           </button>
@@ -298,6 +390,8 @@ export function PaymentPanel({
               </p>
             </div>
           </div>
+
+          <MessageField value={message} onChange={setMessage} disabled={isPending} />
 
           <button type="button" onClick={onCancel} disabled={isCancelPending} className={cancelLink}>
             Desistir deste presente

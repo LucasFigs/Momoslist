@@ -27,9 +27,14 @@ TabsList.displayName = TabsPrimitive.List.displayName;
 const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, ...props }, ref) => (
+>(({ className, onClick, ...props }, ref) => (
   <TabsPrimitive.Trigger
     ref={ref}
+    onClick={(event) => {
+      onClick?.(event);
+      // Com várias abas a lista rola na horizontal (celular): traz a aba tocada para a área visível.
+      event.currentTarget.scrollIntoView({ inline: "nearest", block: "nearest" });
+    }}
     className={cn(
       "inline-flex h-10 flex-shrink-0 items-center justify-center whitespace-nowrap rounded-sm px-3.5 text-sm font-medium transition-colors sm:h-9",
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",

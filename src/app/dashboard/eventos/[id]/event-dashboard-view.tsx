@@ -17,6 +17,7 @@ import { ProfileImageUploader } from "./profile-image-uploader";
 import { ThemeSelector } from "./theme-selector";
 import { FundsOverview, type FundOverviewItem } from "./funds-overview";
 import { RsvpPanel, type RsvpItem } from "./rsvp-panel";
+import { MessagesPanel, type MessageItem } from "./messages-panel";
 import type { FundTotals } from "@/lib/fund";
 import { resolveThemeColor } from "@/lib/theme";
 
@@ -41,6 +42,8 @@ export interface EventDashboardViewProps {
   pixConfigured: boolean;
   rsvpEnabled: boolean;
   rsvpItems: RsvpItem[];
+  /** Recadinhos que os convidados deixaram ao presentear. */
+  messageItems: MessageItem[];
 }
 
 /** Parte visual da página do evento: recebe tudo pronto, sem acessar banco nem sessão. */
@@ -57,6 +60,7 @@ export function EventDashboardView({
   pixConfigured,
   rsvpEnabled,
   rsvpItems,
+  messageItems,
 }: EventDashboardViewProps) {
   return (
     <div className="flex flex-col gap-6">
@@ -114,6 +118,14 @@ export function EventDashboardView({
           <TabsTrigger value="resumo">Resumo</TabsTrigger>
           <TabsTrigger value="presentes">Presentes</TabsTrigger>
           <TabsTrigger value="confirmacoes">Confirmações</TabsTrigger>
+          <TabsTrigger value="recadinhos">
+            Recadinhos
+            {messageItems.length > 0 && (
+              <span className="ml-1.5 rounded-full bg-primary-soft px-1.5 text-xs font-semibold tabular-nums text-primary">
+                {messageItems.length}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
         </TabsList>
 
@@ -198,6 +210,11 @@ export function EventDashboardView({
         {/* Confirmações de presença */}
         <TabsContent value="confirmacoes">
           <RsvpPanel eventId={event.id} eventSlug={event.slug} enabled={rsvpEnabled} items={rsvpItems} />
+        </TabsContent>
+
+        {/* Recadinhos dos convidados */}
+        <TabsContent value="recadinhos">
+          <MessagesPanel items={messageItems} />
         </TabsContent>
 
         {/* Configurações: informações do evento e aparência da lista, na mesma etapa. Ocupa a largura toda

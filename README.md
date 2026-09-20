@@ -13,7 +13,7 @@ Sem planilha, sem presente repetido e sem o convidado precisar criar conta.
 ![Auth.js](https://img.shields.io/badge/Auth.js-8B5CF6?style=flat&logo=auth0&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?style=flat&logo=vercel&logoColor=white)
 
-[O que é](#-o-que-é) · [Por que existe](#-por-que-existe) · [Como funciona](#-como-funciona) · [Recursos](#-recursos) · [Rodar localmente](#-rodando-localmente) · [Deploy](#-deploy-na-vercel)
+[O que é](#-o-que-é) · [Por que existe](#-por-que-existe) · [Como funciona](#-como-funciona) · [Recursos](#-recursos) · [Telas](#-um-passeio-pelas-telas) · [Rodar localmente](#-rodando-localmente) · [Deploy](#-deploy-na-vercel)
 
 </div>
 
@@ -28,6 +28,14 @@ O **Momoslist** é uma plataforma web para montar **listas de presentes de chá 
 
 > O dinheiro **não passa pela plataforma**: o Pix vai direto do convidado para o anfitrião.
 
+### Destaques
+
+| | | |
+|---|---|---|
+| 🎁 **Presentes, Pix e Vaquinha**<br>Três tipos de item para cada situação, com loja, só Pix ou meta coletiva. | 💌 **Recadinhos**<br>O convidado deixa uma mensagem carinhosa ao presentear; o anfitrião lê tudo numa aba própria. | 🙋 **Confirmação de presença**<br>Quem vai, com quantos acompanhantes, adultos e crianças, com totais e CSV. |
+| ⚡ **Pix na hora**<br>QR Code e Pix Copia e Cola gerados com o valor exato, sem intermediário. | 🎨 **A cara do evento**<br>Capa, foto e cor de destaque por lista, com contraste de acessibilidade garantido. | 🔒 **Privado por link**<br>Só entra quem recebe o link; recados e dados dos convidados só o anfitrião vê. |
+| 📱 **Feito para o celular**<br>O convidado abre pelo WhatsApp e resolve em poucos toques. | 🧭 **Painel organizado**<br>Resumo, presentes, confirmações, recadinhos e configurações em abas. | 🚫 **Sem presente repetido**<br>Reservas protegidas no banco contra escolhas simultâneas. |
+
 ## 🎯 Por que existe
 
 Listas em grupo de WhatsApp e planilhas compartilhadas funcionam até o segundo convidado escolher o mesmo jogo de panelas.
@@ -38,6 +46,7 @@ Listas em grupo de WhatsApp e planilhas compartilhadas funcionam até o segundo 
 | "Já fiz o Pix" perdido numa conversa | O convidado declara o Pix e o anfitrião **confirma o recebimento** num painel |
 | Vaquinha controlada no papel | **Meta, valor mínimo e barra de progresso** em tempo real |
 | Convidado sem saber onde comprar ou pagar | Link da loja **ou** QR Code e Pix Copia e Cola já com o valor certo |
+| Mensagens carinhosas perdidas em conversas soltas | Cada convidado pode deixar um **recadinho** ao presentear, e o anfitrião lê todos numa aba própria |
 | Contagem de quem vai ao evento feita na mão | **Confirmação de presença** com acompanhantes, adultos e crianças, e exportação em CSV |
 | Página genérica e sem identidade | Página pública **com a cor e a capa do evento**, pensada para o celular |
 
@@ -62,6 +71,8 @@ flowchart LR
   D -->|Vaquinha| I[Contribui com o valor que quiser]
   I --> H
   D -->|Presença| J[Confirma presença e acompanhantes]
+  N[Recadinho opcional para os anfitriões] -.-> G
+  N -.-> K
   H --> K[Convidado declara: já fiz o Pix]
   K --> L[Anfitrião confirma o recebimento no painel]
 ```
@@ -77,6 +88,80 @@ flowchart LR
 | **Sinalização para o convidado** | Sem selo | Selo **Pix** | Selo **Vaquinha** e barra de progresso |
 | **Pode mudar de tipo depois?** | ✅ Para Pix | ✅ Para Presente | ❌ Continua vaquinha |
 
+### Jornada de quem presenteia
+
+1. Abre o link recebido no WhatsApp e vê a **capa, o local, a data e a mensagem** dos anfitriões.
+2. Navega pela vitrine (busca e ordenação ficam na URL) e toca em **Presentear** ou **Contribuir**.
+3. Se apresenta uma única vez com nome, e-mail e telefone. Sem senha.
+4. Escolhe **loja** ou **Pix**. Itens só-Pix e vaquinhas já seguem direto para o pagamento.
+5. Paga com o **QR Code** ou o **Copia e Cola** e, se quiser, **deixa um recadinho**.
+6. Toca em **Já fiz o Pix** (ou **Já comprei**). Pode **confirmar presença** e voltar depois para editar o recado ou desistir.
+
+### Jornada de quem recebe
+
+1. Cria a conta (e-mail e senha ou Google), cadastra o evento, o Pix e os itens.
+2. Escolhe a **capa, a foto e a cor**, confere em **Visualizar como convidado** e **publica**.
+3. Compartilha o link. No **Resumo** vê o que já foi escolhido e o que falta confirmar.
+4. **Confirma os Pix** que chegaram, acompanha as **vaquinhas** e as **confirmações de presença**.
+5. Lê os **recadinhos** na aba própria, com busca e ordenação.
+
+## 🎬 Um passeio pelas telas
+
+**Página do convidado (celular)**
+
+```
+┌───────────────────────────────┐
+│  ░░░░░ capa do evento ░░░░░   │
+│           ( foto )            │
+│        CHÁ DE CASA NOVA       │
+│      Ana e Bruno · 4 dez      │
+├───────────────────────────────┤
+│ ✔ Confirme sua presença [Ir]  │
+├───────────────────────────────┤
+│ Lista de presentes            │
+│ [Buscar...]      [Sugeridos ▾]│
+│ ┌─────────┐   ┌─────────┐     │
+│ │ ⚡ Pix   │   │🐷Vaquinha│     │
+│ │  foto   │   │  foto   │     │
+│ │Geladeira│   │Lua de mel│    │
+│ │R$ 3.500 │   │▓▓▓░░ 40% │    │
+│ │[Presentear]  │[Contribuir]   │
+│ └─────────┘   └─────────┘     │
+└───────────────────────────────┘
+```
+
+**Folha de pagamento, com recadinho**
+
+```
+┌─ Seu presente ────────────────┐
+│ Cafeteira            R$ 249,00│
+│        ┌───────────┐          │
+│        │  QR Code  │          │
+│        └───────────┘          │
+│ [Copiar chave] [Copia e cola] │
+│ ✎ Deixar um recadinho para os │
+│   anfitriões (opcional)       │
+├───────────────────────────────┤
+│        [ Já fiz o Pix ]       │
+└───────────────────────────────┘
+```
+
+**Painel do anfitrião (desktop)**
+
+```
+Resumo │ Presentes │ Confirmações │ Recadinhos ⑦ │ Configurações
+────────────────────────────────────────────────────────────────
+ R$ 1.300   1 reservado   1 disponível   R$ 549 pendentes   4 pessoas
+┌─ Vaquinhas ────────────────────────────────────────────────┐
+│ 🐷 Lua de mel  ▓▓▓▓░░░░░  R$ 650 de R$ 5.000   [Revisar ▾] │
+└────────────────────────────────────────────────────────────┘
+┌─ Recadinhos ───────────────────────────────────────────────┐
+│ ( C ) Carla Menezes        │ ( D ) Diego Sampaio           │
+│ ▏Que a casa seja cheia...  │ ▏Parabéns! Muitos churrascos  │
+│ 🎁 Presenteou com Panelas  │ ⚡ Presenteou com Geladeira    │
+└────────────────────────────────────────────────────────────┘
+```
+
 ## 🧩 Recursos
 
 ### 👩‍🍳 Para o anfitrião (painel, feito para desktop e responsivo)
@@ -84,10 +169,11 @@ flowchart LR
 - **Conta** por e-mail e senha ou **login com Google**; as duas se unem quando o e-mail é o mesmo.
 - **Lista completa:** tipo de evento, data e horário, local com link do mapa, endereço de entrega e uma mensagem que preserva parágrafos.
 - **Aparência própria:** capa, foto de perfil e **cor de destaque** por lista. A paleta é derivada da cor escolhida com **contraste de acessibilidade (WCAG AA)** garantido.
-- **Painel em quatro abas:**
+- **Painel em cinco abas:**
   - **Resumo:** total arrecadado, reservados, disponíveis, Pix pendentes, vaquinhas em linhas compactas e últimas reservas.
   - **Presentes:** cadastro, edição e exclusão, com **ordenação** por ordem de cadastro, mais recentes, nome (A–Z e Z–A), menor e maior valor, e tipo de item.
   - **Confirmações:** liga e desliga o RSVP, totais de pessoas, adultos, crianças e recusas, lista de respostas e **exportação em CSV**.
+  - **Recadinhos:** todas as mensagens dos convidados em cartões, com o nome, a data, o presente ou a contribuição, **busca** (ignora acentos) e **ordenação**. Um contador aparece na aba. Recados de reservas canceladas não aparecem.
   - **Configurações:** dados do evento e aparência da lista na mesma tela.
 - **Visualizar como convidado:** prévia que só o dono acessa, com os botões desativados, para nunca gerar reservas de teste.
 - **Confirmação manual do Pix** e das contribuições de vaquinha, com opção de recusar.
@@ -99,6 +185,7 @@ flowchart LR
 - **Vitrine** de 2 colunas no celular, com foto inteira (sem recortes), **busca e ordenação** que ficam na URL (dá para compartilhar o link já filtrado).
 - **Sinalização clara:** itens só-Pix e vaquinhas têm selo próprio na foto, então o convidado sabe de antemão como vai presentear.
 - **Reserva com prazo** e possibilidade de **desistir a qualquer momento**, inclusive depois de confirmar.
+- **Recadinho para os anfitriões:** ao presentear (loja, Pix ou vaquinha) há um convite discreto para deixar uma mensagem de até 500 caracteres. Dá para escrevê-la antes de avisar o pagamento ou **depois**, e editar ou remover quando quiser. Só os anfitriões leem.
 - **Pix com QR Code e Copia e Cola** gerados na hora, com o valor exato.
 - **Vaquinha** com progresso, quanto falta e contribuição a partir do mínimo.
 - **Confirmação de presença:** vai ou não vai, com quantos acompanhantes, adultos e crianças.
@@ -119,6 +206,7 @@ flowchart LR
 | **Vaquinha** | Valor mínimo por pessoa; a meta pode ser ultrapassada (o excedente aparece à parte). O total arrecadado soma o **confirmado** e o **aguardando confirmação**, e a barra mostra os dois trechos separados. O anfitrião pode confirmar ou recusar cada contribuição. |
 | **Identidade do convidado** | Nome + e-mail + telefone, sem senha. Um cookie `httpOnly` lembra a pessoa por 180 dias. Se o e-mail já existe com outro telefone, o cadastro é recusado. |
 | **Confirmação de presença** | Uma resposta por convidado (pode ser alterada). Conta como 1 adulto + acompanhantes. Só funciona se a lista estiver publicada e o RSVP ligado. |
+| **Recadinhos** | Opcionais, com até **500 caracteres**, validados no servidor e exibidos sempre como texto puro. Ficam presos à reserva ou à contribuição: só o anfitrião dono da lista os lê, nunca aparecem na página pública, e somem se a reserva for cancelada ou a contribuição recusada. O convidado pode adicionar, editar ou remover o seu enquanto a reserva estiver ativa. |
 | **Prévia do anfitrião** | Somente o dono acessa; a página fica `inert`, para que nunca gere reserva de teste. |
 | **Ordem dos itens** | A ordenação do painel é só uma visão do anfitrião. Os convidados veem os itens na ordem de cadastro. |
 
@@ -179,8 +267,8 @@ erDiagram
 | `Event` | A lista: dados do evento, Pix, tema, `slug` + `secureToken`, `published`, `rsvpEnabled`. |
 | `Gift` | Item da lista. `kind` = `PRODUCT` (presente), `PIX` (só Pix, sem loja) ou `FUND` (vaquinha, com meta e mínimo). |
 | `Guest` | Convidado (nome, e-mail, telefone). E-mail único. |
-| `GiftReservation` | Reserva de um produto: `status`, `paymentMethod` e `pixStatus`. |
-| `Contribution` | Contribuição a uma vaquinha, em centavos, com status próprio. |
+| `GiftReservation` | Reserva de um produto: `status`, `paymentMethod`, `pixStatus` e o **recadinho** opcional (`message`). |
+| `Contribution` | Contribuição a uma vaquinha, em centavos, com status próprio e **recadinho** opcional (`message`). |
 | `Rsvp` | Resposta de presença: uma por evento e convidado (`@@unique([eventId, guestId])`). |
 
 Enums principais: `EventType`, `PixKeyType`, `ReservationStatus` (`TEMPORARY → CONFIRMED → COMPLETED`, ou `CANCELLED`/`EXPIRED`), `PaymentMethod`, `PixStatus` (`NOT_DECLARED → DECLARED → CONFIRMED`), `GiftKind` (`PRODUCT`, `PIX`, `FUND`), `ContributionStatus`, `RsvpStatus`.

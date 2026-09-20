@@ -10,6 +10,7 @@ import { logger } from "@/lib/logger";
 import { getCurrentGuest } from "@/lib/guest-session";
 import { formatCentsToBRL } from "@/lib/utils";
 import { MAX_AMOUNT_IN_CENTS } from "@/schemas/gift.schema";
+import { parseMessage } from "@/schemas/message.schema";
 
 type SimpleResult = { success: true } | { success: false; error: string };
 
@@ -97,13 +98,17 @@ export async function getContributionPixAction(
 /** Convidado avisa que fez o Pix. Só aqui a contribuição passa a existir (e a contar na barra). */
 export async function declareContributionAction(
   giftId: string,
-  amountInCents: number
+  amountInCents: number,
+  message?: string
 ): Promise<SimpleResult> {
   const guest = await getCurrentGuest();
   if (!guest) return { success: false, error: "Identifique-se para contribuir." };
 
   const loaded = await loadFundForContribution(giftId, amountInCents);
   if (!loaded.ok) return { success: false, error: loaded.error };
+
+  const note = parseMessage(message);
+  if (!note.ok) return { success: false, error: note.error };
 
   // Duplo clique / reenvio: a mesma contribuição declarada há poucos segundos não vira duas.
   const recentDuplicate = await prisma.contribution.findFirst({
@@ -117,7 +122,7 @@ export async function declareContributionAction(
   });
   if (!recentDuplicate) {
     await prisma.contribution.create({
-      data: { giftId, guestId: guest.id, amountInCents },
+      data: { giftId, guestId: guest.id, amountInCents, message: note.value },
     });
   }
 

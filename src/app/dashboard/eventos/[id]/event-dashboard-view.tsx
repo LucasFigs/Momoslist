@@ -36,6 +36,8 @@ export interface EventDashboardViewProps {
   /** Vaquinhas da lista, com as contribuições, para a aba Resumo. */
   funds: FundOverviewItem[];
   fundTotals: Record<string, FundTotals>;
+  /** Unidades já reservadas por presente/item Pix — selo "X reservado(s)"/"Esgotado" na aba Presentes. */
+  reservedUnitsByGiftId: Record<string, number>;
   pixConfigured: boolean;
   rsvpEnabled: boolean;
   rsvpItems: RsvpItem[];
@@ -55,6 +57,7 @@ export function EventDashboardView({
   defaultTab = "resumo",
   funds,
   fundTotals,
+  reservedUnitsByGiftId,
   pixConfigured,
   rsvpEnabled,
   rsvpItems,
@@ -112,10 +115,6 @@ export function EventDashboardView({
         </div>
       </div>
 
-      {/* Sempre visível, em qualquer aba: é a ação mais urgente de todas — dinheiro que já chegou e só falta
-          confirmar. Fica fora das abas para não depender de a pessoa estar na aba certa para ver. */}
-      <PendingApprovalsPanel items={pendingApprovals} />
-
       {/* Abas logo abaixo do título: o conteúdo começa na primeira tela, mesmo no celular. */}
       <Tabs defaultValue={defaultTab}>
         <TabsList>
@@ -140,6 +139,33 @@ export function EventDashboardView({
             <SummaryMetrics groups={metricGroups} />
           </Card>
 
+          {pendingApprovals.length > 0 && (
+            // Logo abaixo das métricas: é a ação mais urgente do Resumo — dinheiro que já chegou e só falta
+            // confirmar. Mesma superfície neutra das demais seções (Card comum), sem virar uma faixa colorida.
+            <Card>
+              <CardHeader className="px-5 pb-3 pt-4">
+                <CardTitle className="text-base">Pix aguardando confirmação</CardTitle>
+                <CardDescription>De presentes, itens Pix e vaquinhas — confirme assim que o dinheiro cair.</CardDescription>
+              </CardHeader>
+              <CardContent className="px-5 pb-4">
+                <PendingApprovalsPanel items={pendingApprovals} />
+              </CardContent>
+            </Card>
+          )}
+
+          <Card>
+            <CardHeader className="px-5 pb-3 pt-4">
+              <CardTitle className="text-base">Presentes reservados</CardTitle>
+              <CardDescription>
+                Da mais recente para a mais antiga. Só você vê os nomes dos convidados — eles não
+                aparecem na lista pública.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="px-5 pb-4">
+              <GuestSelections selections={selections} />
+            </CardContent>
+          </Card>
+
           {funds.length > 0 && (
             // Bloco de apoio: mais leve que as métricas acima (título menor, sem texto longo, linhas compactas).
             <Card>
@@ -152,19 +178,6 @@ export function EventDashboardView({
               </CardContent>
             </Card>
           )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Últimas reservas</CardTitle>
-              <CardDescription>
-                Da mais recente para a mais antiga. Só você vê os nomes dos convidados — eles não
-                aparecem na lista pública.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <GuestSelections selections={selections} />
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* Presentes */}
@@ -184,6 +197,7 @@ export function EventDashboardView({
                 eventId={event.id}
                 gifts={event.gifts}
                 fundTotals={fundTotals}
+                reservedUnitsByGiftId={reservedUnitsByGiftId}
                 pixConfigured={pixConfigured}
               />
             </CardContent>

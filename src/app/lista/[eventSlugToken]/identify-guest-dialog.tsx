@@ -38,17 +38,21 @@ export function IdentifyGuestDialog({ open, onOpenChange, onIdentified }: Identi
             <DialogTitle>Como podemos te chamar?</DialogTitle>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
               Só pedimos seu nome, e-mail e telefone para você conseguir acompanhar ou alterar sua escolha depois.
-              Nada de senha.
+              Nada de senha. Todos os campos abaixo são obrigatórios.
             </p>
           </SheetHeader>
 
           <SheetBody className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="guest-name">Nome</Label>
+              <Label htmlFor="guest-name">
+                Nome <span className="text-destructive" aria-hidden="true">*</span>
+              </Label>
               <Input id="guest-name" name="name" autoComplete="name" placeholder="Seu nome" required minLength={2} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="guest-email">E-mail</Label>
+              <Label htmlFor="guest-email">
+                E-mail <span className="text-destructive" aria-hidden="true">*</span>
+              </Label>
               <Input
                 id="guest-email"
                 name="email"
@@ -60,7 +64,9 @@ export function IdentifyGuestDialog({ open, onOpenChange, onIdentified }: Identi
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="guest-phone">Telefone (com DDD)</Label>
+              <Label htmlFor="guest-phone">
+                Telefone (com DDD) <span className="text-destructive" aria-hidden="true">*</span>
+              </Label>
               <Input
                 id="guest-phone"
                 name="phone"
@@ -71,6 +77,9 @@ export function IdentifyGuestDialog({ open, onOpenChange, onIdentified }: Identi
                 required
               />
             </div>
+            <p className="text-xs text-muted-foreground">
+              <span className="text-destructive" aria-hidden="true">*</span> Campos obrigatórios
+            </p>
 
             {error && (
               <p role="alert" className="text-sm text-destructive">

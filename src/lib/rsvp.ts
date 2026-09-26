@@ -8,8 +8,12 @@
 /** Teto por tipo de acompanhante: evita digitação absurda e mantém o formulário usável. */
 export const MAX_COMPANIONS_PER_KIND = 15;
 
-/** Teto do texto livre com os nomes dos acompanhantes (um por linha). */
-export const MAX_COMPANION_NAMES_LENGTH = 500;
+/** Nome de uma pessoa no formulário: mesmo teto do nome do próprio convidado (guest.schema.ts). */
+export const MAX_COMPANION_NAME_LENGTH = 80;
+
+/** Teto do texto livre com os nomes dos acompanhantes (um por linha) — cobre o pior caso: 2× MAX_COMPANIONS_PER_KIND
+ *  nomes no tamanho máximo, cada um numa linha. */
+export const MAX_COMPANION_NAMES_LENGTH = MAX_COMPANIONS_PER_KIND * 2 * (MAX_COMPANION_NAME_LENGTH + 1);
 
 export type RsvpStatusValue = "ATTENDING" | "NOT_ATTENDING";
 
@@ -17,7 +21,8 @@ export interface RsvpAnswer {
   status: RsvpStatusValue;
   companionAdults: number;
   companionChildren: number;
-  /** Um nome por linha, texto livre. Opcional: respostas antigas (antes deste campo existir) vêm como null. */
+  /** Um nome por linha, texto livre. Obrigatório quando há acompanhantes; respostas antigas (antes deste
+   *  campo existir) vêm como null. */
   companionNames?: string | null;
 }
 

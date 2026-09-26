@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Clock, Gift as GiftIcon, PiggyBank, QrCode } from "lucide-react";
+import { Gift as GiftIcon, PiggyBank, QrCode } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { confirmPixReceivedAction } from "@/actions/payment.actions";
@@ -28,8 +29,9 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: 
 const ICON_BY_KIND = { PRODUCT: GiftIcon, PIX: QrCode, FUND: PiggyBank } as const;
 
 /**
- * Todo Pix aguardando confirmação num só lugar — de presente, item Pix ou vaquinha — logo abaixo do
- * cabeçalho, visível em qualquer aba. É o "o que precisa da minha atenção agora" da lista.
+ * Todo Pix aguardando confirmação num só lugar — de presente, item Pix ou vaquinha. Vive dentro de um Card
+ * comum no Resumo (mesma superfície neutra das outras seções): só a lista em si usa a cor de "pendente", no
+ * selo e no botão — o cartão inteiro não vira uma faixa colorida, para não competir com o resto da tela.
  */
 export function PendingApprovalsPanel({ items }: { items: PendingApprovalItem[] }) {
   const [showAll, setShowAll] = useState(false);
@@ -41,19 +43,8 @@ export function PendingApprovalsPanel({ items }: { items: PendingApprovalItem[] 
   const hiddenCount = ordered.length - visible.length;
 
   return (
-    <section
-      aria-labelledby="pending-approvals-title"
-      className="flex flex-col gap-3 rounded-xl border border-pending/25 bg-pending-soft p-4 sm:p-5"
-    >
-      <div className="flex items-center gap-2">
-        <Clock className="h-4 w-4 flex-shrink-0 text-pending" aria-hidden="true" />
-        <h2 id="pending-approvals-title" className="text-sm font-semibold text-foreground">
-          Pix aguardando confirmação
-          <span className="ml-1.5 tabular-nums text-muted-foreground">({items.length})</span>
-        </h2>
-      </div>
-
-      <ul className="flex flex-col divide-y divide-pending/15 rounded-lg border border-pending/15 bg-card">
+    <div className="flex flex-col gap-3">
+      <ul className="flex flex-col divide-y divide-border rounded-lg border border-border">
         {visible.map((item) => (
           <ApprovalRow key={item.id} item={item} />
         ))}
@@ -64,7 +55,7 @@ export function PendingApprovalsPanel({ items }: { items: PendingApprovalItem[] 
           {showAll ? "Mostrar só os mais recentes" : `Ver todos (${ordered.length})`}
         </Button>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -104,9 +95,14 @@ function ApprovalRow({ item }: { item: PendingApprovalItem }) {
       <div className="flex min-w-0 items-start gap-2.5">
         <Icon className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" aria-hidden="true" />
         <div className="min-w-0">
-          <p className="break-words text-sm font-medium text-foreground">
-            {item.amountLabel} <span className="font-normal text-muted-foreground">· {item.itemName}</span>
-          </p>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <p className="break-words text-sm font-medium text-foreground">
+              {item.amountLabel} <span className="font-normal text-muted-foreground">· {item.itemName}</span>
+            </p>
+            <Badge variant="pending" className="flex-shrink-0">
+              Aguardando
+            </Badge>
+          </div>
           <p className="text-xs text-muted-foreground">
             {item.guestName} · {dateFormatter.format(new Date(item.at))}
           </p>

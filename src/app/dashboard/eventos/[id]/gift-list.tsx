@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { Gift } from "@prisma/client";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -62,10 +63,12 @@ interface GiftListProps {
   gifts: Gift[];
   /** Totais por vaquinha (chave = id do presente). */
   fundTotals: Record<string, FundTotals>;
+  /** Unidades já reservadas por presente/item Pix (chave = id do presente; vaquinha não entra aqui). */
+  reservedUnitsByGiftId: Record<string, number>;
   pixConfigured: boolean;
 }
 
-export function GiftList({ eventId, gifts, fundTotals, pixConfigured }: GiftListProps) {
+export function GiftList({ eventId, gifts, fundTotals, reservedUnitsByGiftId, pixConfigured }: GiftListProps) {
   const [sort, setSort] = useState<SortKey>("created_asc");
   const sorted = useMemo(() => sortGifts(gifts, sort), [gifts, sort]);
 
@@ -123,6 +126,7 @@ export function GiftList({ eventId, gifts, fundTotals, pixConfigured }: GiftList
               eventId={eventId}
               gift={gift}
               fundTotals={fundTotals[gift.id]}
+              reservedUnits={reservedUnitsByGiftId[gift.id] ?? 0}
               pixConfigured={pixConfigured}
             />
           ))}
@@ -136,11 +140,13 @@ function GiftRow({
   eventId,
   gift,
   fundTotals,
+  reservedUnits,
   pixConfigured,
 }: {
   eventId: string;
   gift: Gift;
   fundTotals?: FundTotals;
+  reservedUnits: number;
   pixConfigured: boolean;
 }) {
   const router = useRouter();
@@ -168,6 +174,9 @@ function GiftRow({
   const isFund = gift.kind === "FUND";
   const isPixOnly = gift.kind === "PIX";
   const fund = isFund && fundTotals ? computeFundProgress(fundTotals) : null;
+  // Vaquinha não tem "reservado" (é contribuição livre, sem unidade). Só presentes/itens Pix mostram isso.
+  const soldOut = !isFund && reservedUnits >= gift.quantity;
+  const reservedLabel = soldOut ? "Esgotado" : reservedUnits > 0 ? `${reservedUnits} reservado${reservedUnits > 1 ? "s" : ""}` : null;
 
   return (
     <li className={`${ROW_GRID} px-3 py-3`}>
@@ -190,6 +199,11 @@ function GiftRow({
             </span>
           )}
           {gift.name}
+          {reservedLabel && (
+            <Badge variant="neutral" className="ml-1.5 align-middle">
+              {reservedLabel}
+            </Badge>
+          )}
         </p>
         {/* Só no celular: no desktop esses dados têm coluna própria. */}
         <p className="mt-0.5 text-sm text-muted-foreground md:hidden">

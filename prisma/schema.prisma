@@ -324,6 +324,10 @@ model Rsvp {
   companionAdults   Int        @default(0)
   companionChildren Int        @default(0)
 
+  /// Nomes dos acompanhantes, um por linha (texto livre, opcional). Ajuda a gerar uma lista de convidados
+  /// para recepção/portaria. Respostas antigas (antes deste campo existir) ficam com null — não é erro.
+  companionNames String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

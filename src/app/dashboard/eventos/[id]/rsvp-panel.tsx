@@ -13,8 +13,10 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
+  buildAttendeeChecklistCsv,
   buildRsvpCsv,
   describeCompanions,
+  parseCompanionNames,
   partyOf,
   summarizeRsvps,
   type RsvpStatusValue,
@@ -29,6 +31,8 @@ export interface RsvpItem {
   status: RsvpStatusValue;
   companionAdults: number;
   companionChildren: number;
+  /** Um nome por linha; null nas respostas dadas antes deste campo existir. */
+  companionNames: string | null;
   /** ISO 8601 */
   answeredAt: string;
 }
@@ -223,23 +227,36 @@ function ResponsesCard({
     return items
       .filter((item) => filter === "all" || item.status === filter)
       .filter((item) => !term || normalize(`${item.name} ${item.email} ${item.phone}`).includes(term))
-      // Ordem alfabética: é como se procura um convidado numa lista (portaria, conferência).
-      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+      // Mais recente primeiro: é a resposta que acabou de chegar que se quer achar de cara.
+      .sort((a, b) => b.answeredAt.localeCompare(a.answeredAt));
   }, [items, filter, query]);
 
-  function downloadCsv() {
-    const rows = [...items]
-      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
-      .map((item) => ({ ...item, answeredAt: new Date(item.answeredAt).toLocaleString("pt-BR") }));
-    const blob = new Blob([buildRsvpCsv(rows)], { type: "text/csv;charset=utf-8" });
+  function download(filename: string, content: string) {
+    const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `confirmacoes-${eventSlug}.csv`;
+    link.download = filename;
     document.body.appendChild(link);
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+  }
+
+  function downloadCsv() {
+    // Planilha completa: ordem alfabética, como quem procura um nome numa lista impressa.
+    const rows = [...items]
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+      .map((item) => ({ ...item, answeredAt: new Date(item.answeredAt).toLocaleString("pt-BR") }));
+    download(`confirmacoes-${eventSlug}.csv`, buildRsvpCsv(rows));
+  }
+
+  function downloadChecklist() {
+    // Lista "achatada" (uma pessoa por linha): para conferir na portaria ou na recepção.
+    const rows = [...items]
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+      .map((item) => ({ ...item, answeredAt: new Date(item.answeredAt).toLocaleString("pt-BR") }));
+    download(`lista-de-convidados-${eventSlug}.csv`, buildAttendeeChecklistCsv(rows));
   }
 
   const filters: { value: Filter; label: string; count: number }[] = [
@@ -256,10 +273,18 @@ function ResponsesCard({
           <CardDescription>Só você vê nomes, e-mails e telefones dos convidados.</CardDescription>
         </div>
         {items.length > 0 && (
-          <Button variant="outline" size="sm" onClick={downloadCsv}>
-            <Download className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-            Baixar planilha
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {summary.attendingResponses > 0 && (
+              <Button variant="outline" size="sm" onClick={downloadChecklist}>
+                <Download className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                Lista de convidados
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={downloadCsv}>
+              <Download className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+              Planilha completa
+            </Button>
+          </div>
         )}
       </CardHeader>
 
@@ -339,6 +364,7 @@ function RsvpRow({ item }: { item: RsvpItem }) {
   const attending = item.status === "ATTENDING";
   const party = partyOf(item);
   const companions = describeCompanions(item.companionAdults, item.companionChildren);
+  const companionNamesList = parseCompanionNames(item.companionNames);
 
   function handleRemove() {
     startTransition(async () => {
@@ -372,6 +398,11 @@ function RsvpRow({ item }: { item: RsvpItem }) {
                 {party.people} {party.people === 1 ? "pessoa" : "pessoas"}
               </p>
               <p className="text-xs text-muted-foreground">{companions ? `+ ${companions}` : "sozinho(a)"}</p>
+              {companionNamesList.length > 0 && (
+                <p className="mt-0.5 max-w-[14rem] truncate text-xs text-muted-foreground" title={companionNamesList.join(", ")}>
+                  {companionNamesList.join(", ")}
+                </p>
+              )}
             </>
           ) : (
             <p className="text-xs text-muted-foreground">—</p>

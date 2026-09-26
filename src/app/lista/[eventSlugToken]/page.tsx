@@ -56,7 +56,7 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
     guest && event.rsvpEnabled
       ? await prisma.rsvp.findUnique({
           where: { eventId_guestId: { eventId: event.id, guestId: guest.id } },
-          select: { status: true, companionAdults: true, companionChildren: true },
+          select: { status: true, companionAdults: true, companionChildren: true, companionNames: true },
         })
       : null;
 

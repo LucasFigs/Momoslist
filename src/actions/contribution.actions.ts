@@ -11,6 +11,8 @@ import { getCurrentGuest } from "@/lib/guest-session";
 import { formatCentsToBRL } from "@/lib/utils";
 import { MAX_AMOUNT_IN_CENTS } from "@/schemas/gift.schema";
 import { parseMessage } from "@/schemas/message.schema";
+import { sendEmail } from "@/lib/email";
+import { contributionDeclaredEmail } from "@/lib/email-templates";
 
 type SimpleResult = { success: true } | { success: false; error: string };
 
@@ -123,6 +125,17 @@ export async function declareContributionAction(
   if (!recentDuplicate) {
     await prisma.contribution.create({
       data: { giftId, guestId: guest.id, amountInCents, message: note.value },
+    });
+
+    // E-mail de cortesia: nunca bloqueia o registro da contribuição se falhar (ver lib/email.ts).
+    await sendEmail({
+      to: guest.email,
+      ...contributionDeclaredEmail({
+        guestName: guest.name,
+        event: loaded.event,
+        fundName: loaded.gift.name,
+        amountLabel: formatCentsToBRL(amountInCents),
+      }),
     });
   }
 

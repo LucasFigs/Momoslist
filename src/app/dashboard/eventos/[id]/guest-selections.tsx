@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "@/hooks/use-toast";
 import { confirmPixReceivedAction } from "@/actions/payment.actions";
 import { Inbox } from "lucide-react";
+import { statusLabel, statusVariant } from "./gift-selection-status";
 
 const RECENT_LIMIT = 8;
 
@@ -29,23 +30,6 @@ export interface GuestSelection {
   pixStatus: string;
 }
 
-function statusLabel(selection: GuestSelection): string {
-  if (selection.paymentMethod === "PIX") {
-    if (selection.pixStatus === "CONFIRMED") return "Pix confirmado";
-    if (selection.pixStatus === "DECLARED") return "Aguardando confirmação";
-    return "Aguardando pagamento";
-  }
-  if (selection.status === "COMPLETED") return "Compra confirmada";
-  if (selection.status === "CONFIRMED") return "Selecionado";
-  return "Reserva em andamento";
-}
-
-/** Concluído = verde, precisa de ação/espera = âmbar, o resto = neutro. O texto do selo sempre diz o estado. */
-function statusVariant(selection: GuestSelection): "success" | "pending" | "neutral" {
-  if (selection.pixStatus === "CONFIRMED" || selection.status === "COMPLETED") return "success";
-  if (selection.paymentMethod === "PIX" && selection.pixStatus !== "CONFIRMED") return "pending";
-  return "neutral";
-}
 
 export function GuestSelections({ selections }: { selections: GuestSelection[] }) {
   const [showAll, setShowAll] = useState(false);

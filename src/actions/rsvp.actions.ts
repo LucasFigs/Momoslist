@@ -6,6 +6,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCurrentGuest } from "@/lib/guest-session";
 import { logger } from "@/lib/logger";
+import { sendEmail } from "@/lib/email";
+import { rsvpConfirmationEmail } from "@/lib/email-templates";
 import { rsvpSchema, type RsvpInput } from "@/schemas/rsvp.schema";
 
 type SimpleResult = { success: true } | { success: false; error: string };
@@ -28,9 +30,20 @@ export async function saveRsvpAction(eventId: string, input: RsvpInput): Promise
   }
 
   // A regra vale no servidor (não só na tela): lista publicada e confirmações ligadas pelo casal.
+  // Já carrega tudo que o e-mail de confirmação precisa, para não fazer uma segunda consulta depois.
   const event = await prisma.event.findUnique({
     where: { id: eventId },
-    select: { published: true, rsvpEnabled: true },
+    select: {
+      published: true,
+      rsvpEnabled: true,
+      title: true,
+      slug: true,
+      secureToken: true,
+      themeColor: true,
+      theme: true,
+      eventDate: true,
+      locationName: true,
+    },
   });
   if (!event || !event.published || !event.rsvpEnabled) {
     return { success: false, error: "As confirmações de presença não estão abertas para esta lista." };
@@ -46,6 +59,17 @@ export async function saveRsvpAction(eventId: string, input: RsvpInput): Promise
     logger.error("saveRsvp", error, { eventId, guestId: guest.id });
     return { success: false, error: "Não foi possível salvar agora. Tente novamente." };
   }
+
+  // E-mail de cortesia: nunca bloqueia a resposta do convidado se falhar (ver lib/email.ts).
+  const { email: guestEmail, name: guestName } = guest;
+  await sendEmail({
+    to: guestEmail,
+    ...rsvpConfirmationEmail({
+      guestName,
+      event,
+      answer: { status: parsed.data.status, companionAdults: parsed.data.companionAdults, companionChildren: parsed.data.companionChildren },
+    }),
+  });
 
   revalidatePath(`/dashboard/eventos/${eventId}`);
   return { success: true };

@@ -30,12 +30,14 @@ export interface SummaryMetricGroup {
 }
 
 /**
- * Métricas do Resumo, uma linha de cards em vez de seções empilhadas (ocupava várias fileiras de tela).
- * Um grupo com um só número vira um card simples; um grupo com vários números relacionados (ex.: Presentes:
- * reservados/disponíveis/cadastrados) vira um único card com os números empilhados dentro — em vez de um
- * card por número —, já que espalhar números do mesmo assunto em cards separados é mais difícil de ler.
- * Cada número é clicável: mostra os itens que o compõem (ex.: quais Pix somam o total confirmado), sem
- * sair da tela.
+ * Métricas do Resumo, uma linha de cards — um por informação, em vez de seções empilhadas (ocupava várias
+ * fileiras de tela). O assunto (Presentes, Vaquinhas, Pix...) vira uma legenda pequena dentro do próprio
+ * card, então a categoria não se perde mesmo com tudo num só nível. Cada card é clicável: mostra os itens
+ * que compõem aquele número (ex.: quais Pix somam o total confirmado), sem sair da tela.
+ *
+ * `min-w-0` no card e `break-words` no valor evitam que números grandes (ex.: "R$ 6.200,00") estourem a
+ * borda: o item do grid tem `min-width: auto` por padrão, o que impediria o texto de quebrar dentro do
+ * espaço disponível.
  */
 export function SummaryMetrics({ groups }: { groups: SummaryMetricGroup[] }) {
   const [openMetric, setOpenMetric] = useState<SummaryMetric | null>(null);
@@ -43,42 +45,21 @@ export function SummaryMetrics({ groups }: { groups: SummaryMetricGroup[] }) {
   return (
     <>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]">
-        {groups.map((group) =>
-          group.metrics.length > 1 ? (
-            <div key={group.title} className="flex min-w-0 flex-col gap-1.5 rounded-lg border border-border bg-card p-4">
+        {groups.flatMap((group) =>
+          group.metrics.map((metric) => (
+            <button
+              key={metric.id}
+              type="button"
+              onClick={() => setOpenMetric(metric)}
+              className="flex min-w-0 flex-col items-start gap-1 rounded-lg border border-border bg-card p-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
               <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{group.title}</span>
-              <div className="flex flex-col divide-y divide-border">
-                {group.metrics.map((metric) => (
-                  <button
-                    key={metric.id}
-                    type="button"
-                    onClick={() => setOpenMetric(metric)}
-                    className="flex min-w-0 items-center justify-between gap-3 py-1.5 text-left first:pt-0 last:pb-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  >
-                    <span className="text-sm text-muted-foreground">{metric.label}</span>
-                    <span className="break-words text-right text-base font-semibold tabular-nums text-foreground underline decoration-muted-foreground/30 decoration-dotted underline-offset-4">
-                      {metric.value}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : (
-            group.metrics.map((metric) => (
-              <button
-                key={metric.id}
-                type="button"
-                onClick={() => setOpenMetric(metric)}
-                className="flex min-w-0 flex-col items-start gap-1 rounded-lg border border-border bg-card p-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              >
-                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{group.title}</span>
-                <span className="text-sm text-muted-foreground">{metric.label}</span>
-                <span className="mt-0.5 w-full break-words text-2xl font-semibold tabular-nums text-foreground underline decoration-muted-foreground/30 decoration-dotted underline-offset-4">
-                  {metric.value}
-                </span>
-              </button>
-            ))
-          )
+              <span className="text-sm text-muted-foreground">{metric.label}</span>
+              <span className="mt-0.5 w-full break-words text-xl font-semibold tabular-nums text-foreground underline decoration-muted-foreground/30 decoration-dotted underline-offset-4">
+                {metric.value}
+              </span>
+            </button>
+          ))
         )}
       </div>
 

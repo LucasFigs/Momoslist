@@ -59,6 +59,44 @@
     /* Raios hierárquicos: sm 8 · md 10 (campos/botões) · lg 12 (cards). Selos usam pílula. */
     --radius: 0.75rem;
   }
+
+  /* Modo escuro: mesma família de tons (grafite/creme quentes + sálvia), só invertida — nunca preto/branco
+     puros nem azulado. Primary fica mais claro que no modo claro (senão o texto branco perderia contraste
+     em cima dele); os pares "-soft" viram fundos escuros com tinta da própria cor, não claros. */
+  .dark {
+    --background: 30 8% 8%;
+    --foreground: 36 25% 94%;
+
+    --card: 30 8% 11%;
+    --card-foreground: 36 25% 94%;
+
+    --muted: 30 7% 17%;
+    --muted-foreground: 30 8% 68%;
+
+    --secondary: 30 7% 19%;
+    --secondary-foreground: 36 25% 94%;
+
+    --accent: 30 7% 19%;
+    --accent-foreground: 36 25% 94%;
+
+    --border: 30 7% 22%;
+    --input: 30 8% 48%;
+
+    --primary: 140 20% 48%;
+    --primary-hover: 140 20% 54%;
+    --primary-active: 140 20% 59%;
+    --primary-soft: 140 15% 19%;
+    --primary-subtle: 140 15% 15%;
+    --primary-border: 140 15% 30%;
+    --primary-foreground: 40 30% 98%;
+
+    --destructive: 4 68% 58%;
+    --destructive-foreground: 40 20% 98%;
+    --success: 152 40% 55%;
+    --success-soft: 152 25% 17%;
+    --pending: 34 85% 62%;
+    --pending-soft: 34 55% 16%;
+  }
 }
 
 @layer base {

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { SignOutButton } from "./sign-out-button";
 import { Wordmark } from "@/components/wordmark";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const metadata: Metadata = {
   title: "Painel",
@@ -34,7 +35,8 @@ export default async function DashboardLayout({
           >
             <Wordmark />
           </Link>
-          <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+            <ThemeToggle />
             <span className="hidden truncate text-sm text-muted-foreground sm:inline">
               {session?.user?.name ?? session?.user?.email}
             </span>

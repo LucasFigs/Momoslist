@@ -99,6 +99,9 @@ interface ListPreviewButtonProps {
   label?: string;
   variant?: "default" | "outline" | "secondary" | "ghost" | "soft";
   className?: string;
+  /** Abaixo de sm, vira um botão quadrado só com o ícone (texto continua anunciado para leitor de tela).
+   *  Usado no cabeçalho do dashboard, onde vários botões precisam caber lado a lado no celular. */
+  compact?: boolean;
 }
 
 /** Botão + diálogo. Use onde o casal precisa "ver como fica" sem sair da tela. */
@@ -108,14 +111,28 @@ export function ListPreviewButton({
   label = "Visualizar como convidado",
   variant = "outline",
   className,
+  compact = false,
 }: ListPreviewButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <Button type="button" size="sm" variant={variant} onClick={() => setOpen(true)} className={className}>
-        <Eye className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-        {label}
+      <Button
+        type="button"
+        size="sm"
+        variant={variant}
+        onClick={() => setOpen(true)}
+        className={cn(compact && "w-10 justify-center px-0 sm:w-auto sm:px-3", className)}
+      >
+        <Eye className={cn("h-3.5 w-3.5", compact ? "sm:mr-1.5" : "mr-1.5")} aria-hidden="true" />
+        {compact ? (
+          <>
+            <span className="hidden sm:inline">{label}</span>
+            <span className="sr-only sm:hidden">{label}</span>
+          </>
+        ) : (
+          label
+        )}
       </Button>
       <ListPreviewDialog eventId={eventId} color={color} open={open} onOpenChange={setOpen} />
     </>

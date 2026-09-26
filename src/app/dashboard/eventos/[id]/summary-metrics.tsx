@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogTitle, SheetBody, SheetContent, SheetHeader } from "@/components/ui/dialog";
 
 export interface MetricDetailItem {
   id: string;
@@ -67,14 +67,16 @@ export function SummaryMetrics({ groups }: { groups: SummaryMetricGroup[] }) {
         )}
       </div>
 
+      {/* Sheet: no celular sobe da base da tela (mesmo padrão dos modais da lista pública), no desktop
+          (≥ sm) vira uma caixa centralizada normal. */}
       <Dialog open={openMetric !== null} onOpenChange={(open) => !open && setOpenMetric(null)}>
-        <DialogContent className="flex max-h-[80vh] flex-col overflow-hidden">
+        <SheetContent aria-describedby={undefined}>
           {openMetric && (
             <>
-              <DialogHeader>
+              <SheetHeader>
                 <DialogTitle>{openMetric.label}</DialogTitle>
-              </DialogHeader>
-              <div className="min-h-0 overflow-y-auto">
+              </SheetHeader>
+              <SheetBody>
                 {openMetric.details.length === 0 ? (
                   <p className="py-8 text-center text-sm text-muted-foreground">{openMetric.emptyMessage}</p>
                 ) : (
@@ -95,10 +97,10 @@ export function SummaryMetrics({ groups }: { groups: SummaryMetricGroup[] }) {
                     ))}
                   </ul>
                 )}
-              </div>
+              </SheetBody>
             </>
           )}
-        </DialogContent>
+        </SheetContent>
       </Dialog>
     </>
   );

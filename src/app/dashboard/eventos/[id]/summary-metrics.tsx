@@ -51,11 +51,15 @@ export function SummaryMetrics({ groups }: { groups: SummaryMetricGroup[] }) {
               key={metric.id}
               type="button"
               onClick={() => setOpenMetric(metric)}
-              className="flex min-w-0 flex-col items-start gap-1 rounded-lg border border-border bg-card p-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="flex min-w-0 flex-col items-start justify-between gap-2 rounded-lg border border-border bg-card p-4 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{group.title}</span>
-              <span className="text-sm text-muted-foreground">{metric.label}</span>
-              <span className="mt-0.5 w-full break-words text-xl font-semibold tabular-nums text-foreground underline decoration-muted-foreground/30 decoration-dotted underline-offset-4">
+              <div className="flex flex-col items-start gap-1">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{group.title}</span>
+                <span className="text-sm text-muted-foreground">{metric.label}</span>
+              </div>
+              {/* Todo card alinha o número no canto inferior direito, mesmo com rótulos de tamanhos diferentes
+                  puxando a altura — assim os valores formam uma linha visual reta entre os cards. */}
+              <span className="w-full break-words text-right text-xl font-semibold tabular-nums text-foreground underline decoration-muted-foreground/30 decoration-dotted underline-offset-4">
                 {metric.value}
               </span>
             </button>

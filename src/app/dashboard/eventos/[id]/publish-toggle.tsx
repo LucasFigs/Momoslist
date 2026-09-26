@@ -41,12 +41,22 @@ export function PublishToggle({ eventId, published }: { eventId: string; publish
       variant={published ? "outline" : "default"}
       onClick={handleToggle}
       disabled={isPending}
-      className="gap-1.5"
+      role="switch"
+      aria-checked={published}
+      className="gap-2"
     >
       <span
-        className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${published ? "bg-success" : "bg-muted-foreground"}`}
         aria-hidden="true"
-      />
+        className={`relative inline-flex h-4 w-7 flex-shrink-0 items-center rounded-full transition-colors ${
+          published ? "bg-success" : "bg-muted-foreground/40"
+        }`}
+      >
+        <span
+          className={`inline-block h-3 w-3 transform rounded-full bg-white shadow-sm transition-transform ${
+            published ? "translate-x-3.5" : "translate-x-0.5"
+          }`}
+        />
+      </span>
       {isPending ? "Salvando..." : published ? "Despublicar" : "Publicar lista"}
     </Button>
   );

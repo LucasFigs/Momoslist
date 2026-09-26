@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "@/hooks/use-toast";
-import { confirmPixReceivedAction } from "@/actions/payment.actions";
+import { confirmPixReceivedAction, rejectPixReceivedAction } from "@/actions/payment.actions";
 import { Inbox } from "lucide-react";
 import { statusLabel, statusVariant } from "./gift-selection-status";
 
@@ -122,6 +123,7 @@ export function GuestSelections({ selections }: { selections: GuestSelection[] }
 function SelectionRow({ selection }: { selection: GuestSelection }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [rejectOpen, setRejectOpen] = useState(false);
 
   const awaitingConfirmation = isAwaitingPixConfirmation(selection);
 
@@ -144,6 +146,22 @@ function SelectionRow({ selection }: { selection: GuestSelection }) {
     });
   }
 
+  function handleReject() {
+    startTransition(async () => {
+      const result = await rejectPixReceivedAction(selection.reservationId);
+      setRejectOpen(false);
+      if (!result.success) {
+        toast({ title: "Não foi possível registrar", description: result.error, variant: "destructive" });
+        return;
+      }
+      toast({
+        title: "Marcado como não recebido",
+        description: `“${selection.giftName}” voltou a ficar disponível para outros convidados.`,
+      });
+      router.refresh();
+    });
+  }
+
   return (
     // No celular empilha (texto → selo → botão de largura total); a partir de sm volta a ficar em linha.
     <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -159,11 +177,26 @@ function SelectionRow({ selection }: { selection: GuestSelection }) {
       <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
         <Badge variant={statusVariant(selection)}>{statusLabel(selection)}</Badge>
         {awaitingConfirmation && (
-          <Button size="sm" onClick={handleConfirm} disabled={isPending} className="w-full sm:w-auto">
-            {isPending ? "Confirmando..." : "Confirmar recebimento"}
-          </Button>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <Button size="sm" onClick={handleConfirm} disabled={isPending} className="flex-1 sm:flex-none">
+              {isPending ? "Confirmando..." : "Confirmar recebimento"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setRejectOpen(true)} disabled={isPending}>
+              Não recebi
+            </Button>
+          </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={rejectOpen}
+        onOpenChange={setRejectOpen}
+        title="Marcar como não recebido?"
+        description={`A reserva de ${selection.guestName} para "${selection.giftName}" será cancelada e o item volta a ficar disponível. Use quando o Pix não caiu ou foi declarado por engano.`}
+        confirmLabel="Sim, não recebi"
+        isPending={isPending}
+        onConfirm={handleReject}
+      />
     </div>
   );
 }

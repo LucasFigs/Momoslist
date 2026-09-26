@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { formatCentsToBRL } from "@/lib/utils";
+import { cn, formatCentsToBRL } from "@/lib/utils";
 import { deleteGiftAction } from "@/actions/gift.actions";
 import { GiftFormDialog } from "./gift-form-dialog";
 import { PackageOpen, Pencil, Trash2 } from "lucide-react";
@@ -68,9 +68,25 @@ interface GiftListProps {
   pixConfigured: boolean;
 }
 
+/** Vaquinha que já bateu a meta, ou presente/item Pix sem nenhuma unidade sobrando: não precisa mais de atenção. */
+function isDone(gift: Gift, fundTotals: Record<string, FundTotals>, reservedUnitsByGiftId: Record<string, number>): boolean {
+  if (gift.kind === "FUND") {
+    const totals = fundTotals[gift.id];
+    return totals ? computeFundProgress(totals).reached : false;
+  }
+  return (reservedUnitsByGiftId[gift.id] ?? 0) >= gift.quantity;
+}
+
 export function GiftList({ eventId, gifts, fundTotals, reservedUnitsByGiftId, pixConfigured }: GiftListProps) {
   const [sort, setSort] = useState<SortKey>("created_asc");
-  const sorted = useMemo(() => sortGifts(gifts, sort), [gifts, sort]);
+  const sorted = useMemo(() => {
+    // Depois de aplicar a ordenação escolhida, o que já foi resolvido (esgotado, meta atingida) desce pro
+    // final — não importa o critério, é sempre o que precisa de menos atenção do casal agora.
+    const base = sortGifts(gifts, sort);
+    return [...base].sort(
+      (a, b) => Number(isDone(a, fundTotals, reservedUnitsByGiftId)) - Number(isDone(b, fundTotals, reservedUnitsByGiftId))
+    );
+  }, [gifts, sort, fundTotals, reservedUnitsByGiftId]);
 
   if (gifts.length === 0) {
     return (
@@ -177,15 +193,25 @@ function GiftRow({
   // Vaquinha não tem "reservado" (é contribuição livre, sem unidade). Só presentes/itens Pix mostram isso.
   const soldOut = !isFund && reservedUnits >= gift.quantity;
   const reservedLabel = soldOut ? "Esgotado" : reservedUnits > 0 ? `${reservedUnits} reservado${reservedUnits > 1 ? "s" : ""}` : null;
+  // Esgotado ou meta batida: já foi "resolvido", então a linha fica esmaecida — como um item desabilitado —
+  // pra puxar a atenção do casal para o que ainda precisa dela.
+  const done = soldOut || Boolean(fund?.reached);
 
   return (
-    <li className={`${ROW_GRID} px-3 py-3`}>
+    <li className={cn(ROW_GRID, "px-3 py-3", done && "bg-muted/40")}>
       <div className="relative h-12 w-12 overflow-hidden rounded-md bg-muted">
-        <GiftImage src={gift.imageUrl} alt={gift.name} fill fit="contain" sizes="48px" />
+        <GiftImage
+          src={gift.imageUrl}
+          alt={gift.name}
+          fill
+          fit="contain"
+          sizes="48px"
+          className={cn(done && "opacity-40 grayscale")}
+        />
       </div>
 
       <div className="min-w-0">
-        <p className="line-clamp-2 break-words font-medium text-foreground">
+        <p className={cn("line-clamp-2 break-words font-medium", done ? "text-muted-foreground" : "text-foreground")}>
           {isFund && (
             <span className="mr-1.5 inline-flex items-center gap-1 rounded-full bg-primary-soft px-2 py-0.5 align-middle text-[11px] font-medium text-primary">
               <PiggyBank className="h-3 w-3" aria-hidden="true" />

@@ -6,8 +6,9 @@ import { Gift as GiftIcon, PiggyBank, QrCode } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { toast } from "@/hooks/use-toast";
-import { confirmPixReceivedAction } from "@/actions/payment.actions";
+import { confirmPixReceivedAction, rejectPixReceivedAction } from "@/actions/payment.actions";
 import { confirmContributionAction, rejectContributionAction } from "@/actions/contribution.actions";
 
 export interface PendingApprovalItem {
@@ -62,6 +63,7 @@ export function PendingApprovalsPanel({ items }: { items: PendingApprovalItem[] 
 function ApprovalRow({ item }: { item: PendingApprovalItem }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [rejectOpen, setRejectOpen] = useState(false);
   const isContribution = item.source === "contribution";
   const Icon = ICON_BY_KIND[item.giftKind];
 
@@ -80,12 +82,19 @@ function ApprovalRow({ item }: { item: PendingApprovalItem }) {
 
   function handleReject() {
     startTransition(async () => {
-      const result = await rejectContributionAction(item.id);
+      const action = isContribution ? rejectContributionAction : rejectPixReceivedAction;
+      const result = await action(item.id);
+      setRejectOpen(false);
       if (!result.success) {
-        toast({ title: "Não foi possível recusar", description: result.error, variant: "destructive" });
+        toast({ title: "Não foi possível registrar", description: result.error, variant: "destructive" });
         return;
       }
-      toast({ title: "Contribuição recusada" });
+      toast({
+        title: "Marcado como não recebido",
+        description: isContribution
+          ? "O valor deixou de contar na vaquinha."
+          : `“${item.itemName}” voltou a ficar disponível para outros convidados.`,
+      });
       router.refresh();
     });
   }
@@ -113,12 +122,24 @@ function ApprovalRow({ item }: { item: PendingApprovalItem }) {
         <Button size="sm" onClick={handleConfirm} disabled={isPending} className="flex-1 sm:flex-none">
           {isPending ? "Confirmando..." : "Confirmar"}
         </Button>
-        {isContribution && (
-          <Button size="sm" variant="ghost" onClick={handleReject} disabled={isPending}>
-            Recusar
-          </Button>
-        )}
+        <Button size="sm" variant="ghost" onClick={() => setRejectOpen(true)} disabled={isPending}>
+          Não recebi
+        </Button>
       </div>
+
+      <ConfirmDialog
+        open={rejectOpen}
+        onOpenChange={setRejectOpen}
+        title="Marcar como não recebido?"
+        description={
+          isContribution
+            ? `${item.amountLabel} de ${item.guestName} deixa de contar na vaquinha. Use quando o Pix não caiu ou foi declarado por engano.`
+            : `A reserva de ${item.guestName} para “${item.itemName}” será cancelada e o item volta a ficar disponível. Use quando o Pix não caiu ou foi declarado por engano.`
+        }
+        confirmLabel="Sim, não recebi"
+        isPending={isPending}
+        onConfirm={handleReject}
+      />
     </li>
   );
 }

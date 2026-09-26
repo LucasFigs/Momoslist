@@ -265,20 +265,20 @@ function ContributionRow({ item }: { item: FundContributionItem }) {
           variant="ghost"
           onClick={() => setRemoveOpen(true)}
           disabled={isPending}
-          aria-label={`${awaiting ? "Recusar" : "Remover"} contribuição de ${formatCentsToBRL(item.amountInCents)} de ${item.guestName}`}
+          aria-label={`${awaiting ? "Não recebi a" : "Remover"} contribuição de ${formatCentsToBRL(item.amountInCents)} de ${item.guestName}`}
         >
-          {awaiting ? "Recusar" : "Remover"}
+          {awaiting ? "Não recebi" : "Remover"}
         </Button>
       </div>
 
       <ConfirmDialog
         open={removeOpen}
         onOpenChange={setRemoveOpen}
-        title={awaiting ? "Recusar esta contribuição?" : "Remover esta contribuição?"}
+        title={awaiting ? "Marcar como não recebido?" : "Remover esta contribuição?"}
         description={`${formatCentsToBRL(item.amountInCents)} de ${item.guestName} deixa de contar na vaquinha. ${
-          awaiting ? "Use quando o Pix não chegou ou foi declarado por engano." : "Use só se o valor foi devolvido ou lançado errado."
+          awaiting ? "Use quando o Pix não caiu ou foi declarado por engano." : "Use só se o valor foi devolvido ou lançado errado."
         }`}
-        confirmLabel={awaiting ? "Sim, recusar" : "Sim, remover"}
+        confirmLabel={awaiting ? "Sim, não recebi" : "Sim, remover"}
         isPending={isPending}
         onConfirm={handleRemove}
       />

@@ -239,3 +239,39 @@ export async function confirmPixReceivedAction(reservationId: string): Promise<S
 
   return { success: true };
 }
+
+/**
+ * O casal informa que NÃO recebeu o Pix que o convidado declarou (não caiu, valor errado, engano etc.).
+ * Cancela a reserva — o presente volta a ficar disponível para outra pessoa —, em vez de só "desmarcar"
+ * o Pix, porque manter a reserva travada por um pagamento que nunca chegou deixaria o item preso sem motivo.
+ */
+export async function rejectPixReceivedAction(reservationId: string): Promise<SimpleResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Você precisa estar logado." };
+
+  const reservation = await prisma.giftReservation.findUnique({
+    where: { id: reservationId },
+    include: { gift: { include: { event: true } } },
+  });
+
+  if (!reservation || reservation.gift.event.ownerId !== session.user.id) {
+    return { success: false, error: "Reserva não encontrada." };
+  }
+  if (reservation.paymentMethod !== "PIX") {
+    return { success: false, error: "Essa reserva não é de pagamento via Pix." };
+  }
+  if (reservation.pixStatus !== "DECLARED") {
+    return { success: false, error: "Esse Pix não está aguardando confirmação." };
+  }
+
+  await prisma.giftReservation.update({
+    where: { id: reservationId },
+    data: {
+      status: "CANCELLED",
+      cancelledAt: new Date(),
+      pixStatus: "NOT_DECLARED",
+    },
+  });
+
+  return { success: true };
+}

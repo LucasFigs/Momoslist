@@ -36,7 +36,17 @@ export function PublishToggle({ eventId, published }: { eventId: string; publish
   }
 
   return (
-    <Button size="sm" variant={published ? "outline" : "default"} onClick={handleToggle} disabled={isPending}>
+    <Button
+      size="sm"
+      variant={published ? "outline" : "default"}
+      onClick={handleToggle}
+      disabled={isPending}
+      className="gap-1.5"
+    >
+      <span
+        className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${published ? "bg-success" : "bg-muted-foreground"}`}
+        aria-hidden="true"
+      />
       {isPending ? "Salvando..." : published ? "Despublicar" : "Publicar lista"}
     </Button>
   );

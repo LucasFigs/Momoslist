@@ -241,6 +241,41 @@ export async function confirmPixReceivedAction(reservationId: string): Promise<S
 }
 
 /**
+ * O casal confirma que recebeu (em mãos ou na entrega) um presente comprado em loja — diferente do Pix, essa
+ * confirmação não depende do convidado ter avisado nada antes: o casal pode confirmar assim que o presente
+ * chegar, mesmo que o convidado nunca tenha marcado "já comprei".
+ */
+export async function confirmExternalPurchaseReceivedAction(reservationId: string): Promise<SimpleResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Você precisa estar logado." };
+
+  const reservation = await prisma.giftReservation.findUnique({
+    where: { id: reservationId },
+    include: { gift: { include: { event: true } } },
+  });
+
+  if (!reservation || reservation.gift.event.ownerId !== session.user.id) {
+    return { success: false, error: "Reserva não encontrada." };
+  }
+  if (reservation.paymentMethod !== "EXTERNAL_PURCHASE") {
+    return { success: false, error: "Essa reserva não é de compra em loja." };
+  }
+  if (reservation.status !== "CONFIRMED") {
+    return { success: false, error: "Essa reserva não está aguardando confirmação." };
+  }
+
+  await prisma.giftReservation.update({
+    where: { id: reservationId },
+    data: {
+      status: "COMPLETED",
+      purchaseConfirmedAt: new Date(),
+    },
+  });
+
+  return { success: true };
+}
+
+/**
  * O casal informa que NÃO recebeu o Pix que o convidado declarou (não caiu, valor errado, engano etc.).
  * Cancela a reserva — o presente volta a ficar disponível para outra pessoa —, em vez de só "desmarcar"
  * o Pix, porque manter a reserva travada por um pagamento que nunca chegou deixaria o item preso sem motivo.

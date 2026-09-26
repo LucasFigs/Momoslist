@@ -8,7 +8,11 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { toast } from "@/hooks/use-toast";
-import { confirmPixReceivedAction, rejectPixReceivedAction } from "@/actions/payment.actions";
+import {
+  confirmExternalPurchaseReceivedAction,
+  confirmPixReceivedAction,
+  rejectPixReceivedAction,
+} from "@/actions/payment.actions";
 import { Inbox } from "lucide-react";
 import { statusLabel, statusVariant } from "./gift-selection-status";
 
@@ -18,6 +22,11 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: 
 
 function isAwaitingPixConfirmation(selection: GuestSelection): boolean {
   return selection.paymentMethod === "PIX" && selection.pixStatus === "DECLARED";
+}
+
+/** Compra em loja: pode ser confirmada assim que reservada, sem depender de o convidado avisar nada antes. */
+function isAwaitingExternalConfirmation(selection: GuestSelection): boolean {
+  return selection.paymentMethod === "EXTERNAL_PURCHASE" && selection.status === "CONFIRMED";
 }
 
 export interface GuestSelection {
@@ -125,21 +134,25 @@ function SelectionRow({ selection }: { selection: GuestSelection }) {
   const [isPending, startTransition] = useTransition();
   const [rejectOpen, setRejectOpen] = useState(false);
 
-  const awaitingConfirmation = isAwaitingPixConfirmation(selection);
+  const awaitingPix = isAwaitingPixConfirmation(selection);
+  const awaitingExternal = isAwaitingExternalConfirmation(selection);
+  const awaitingConfirmation = awaitingPix || awaitingExternal;
 
   function handleConfirm() {
     startTransition(async () => {
-      const result = await confirmPixReceivedAction(selection.reservationId);
+      const result = awaitingPix
+        ? await confirmPixReceivedAction(selection.reservationId)
+        : await confirmExternalPurchaseReceivedAction(selection.reservationId);
       if (!result.success) {
         toast({
-          title: "Não foi possível confirmar o Pix",
+          title: awaitingPix ? "Não foi possível confirmar o Pix" : "Não foi possível confirmar o recebimento",
           description: result.error,
           variant: "destructive",
         });
         return;
       }
       toast({
-        title: "Pix confirmado",
+        title: awaitingPix ? "Pix confirmado" : "Recebimento confirmado",
         description: `Recebimento de “${selection.giftName}” registrado.`,
       });
       router.refresh();
@@ -181,9 +194,11 @@ function SelectionRow({ selection }: { selection: GuestSelection }) {
             <Button size="sm" onClick={handleConfirm} disabled={isPending} className="flex-1 sm:flex-none">
               {isPending ? "Confirmando..." : "Confirmar recebimento"}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setRejectOpen(true)} disabled={isPending}>
-              Não recebi
-            </Button>
+            {awaitingPix && (
+              <Button size="sm" variant="ghost" onClick={() => setRejectOpen(true)} disabled={isPending}>
+                Não recebi
+              </Button>
+            )}
           </div>
         )}
       </div>

@@ -99,16 +99,19 @@ export function EventDashboardView({
             <ShareButton url={publicUrl} />
             {/* Com a lista publicada, ver o que os convidados veem é a ação mais útil ao lado de despublicar. */}
             {event.published ? (
-              <Button variant="outline" size="sm" asChild>
+              // Abaixo de sm, vira um botão quadrado só com o ícone — cabe ao lado dos outros no celular.
+              <Button variant="outline" size="sm" asChild className="w-10 justify-center px-0 sm:w-auto sm:px-3">
                 <a href={publicUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-                  Abrir lista pública
-                  <span className="sr-only"> (abre em nova aba)</span>
+                  <ExternalLink className="h-3.5 w-3.5 sm:mr-1.5" aria-hidden="true" />
+                  <span className="hidden sm:inline">Abrir lista pública</span>
+                  <span className="sr-only">
+                    <span className="sm:hidden">Abrir lista pública </span>(abre em nova aba)
+                  </span>
                 </a>
               </Button>
             ) : (
               // Rascunho não tem link público (responde 404): a pré-visualização é a única forma de ver.
-              <ListPreviewButton eventId={event.id} label="Visualizar lista" />
+              <ListPreviewButton eventId={event.id} label="Visualizar lista" compact />
             )}
             <PublishToggle eventId={event.id} published={event.published} />
           </div>

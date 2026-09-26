@@ -15,12 +15,13 @@ interface MessageFieldProps {
 }
 
 /**
- * Recadinho opcional para o casal. Começa recolhido (um convite discreto) para não competir com o
- * QR Code e com o botão principal; ao abrir vira um campo de texto com contador. Se já há texto, abre sozinho.
+ * Recadinho opcional para o casal. Já começa aberto, com o campo à vista — como um convite discreto e
+ * recolhido passava despercebido, quase ninguém escrevia um recadinho. "Não deixar" ainda recolhe pra
+ * quem realmente não quer ver o campo.
  */
 export function MessageField({ value, onChange, disabled }: MessageFieldProps) {
   const id = useId();
-  const [open, setOpen] = useState(value.length > 0);
+  const [open, setOpen] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   // Só foca quando a pessoa abriu o campo por conta própria: foca também rola até ele, que fica no fim da folha,
   // por trás do botão fixo do rodapé. Se já abriu com texto (edição), não rouba o foco.
@@ -61,7 +62,9 @@ export function MessageField({ value, onChange, disabled }: MessageFieldProps) {
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor={id} className="flex min-w-0 items-center gap-1.5">
           <MessageCircleHeart className="h-4 w-4 flex-shrink-0 text-primary" aria-hidden="true" />
-          <span className="truncate">Recadinho para o casal</span>
+          <span className="truncate">
+            Recadinho para o casal <span className="font-normal text-muted-foreground">(opcional)</span>
+          </span>
         </Label>
         <button
           type="button"

@@ -30,9 +30,18 @@ export function ShareButton({ url }: { url: string }) {
   }
 
   return (
-    <Button type="button" variant="outline" size="sm" onClick={handleShare}>
-      <Share2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-      Compartilhar
+    // Abaixo de sm, vira um botão quadrado só com o ícone — cabe ao lado dos outros botões do cabeçalho
+    // sem quebrar linha; o texto continua anunciado para leitor de tela (span sr-only).
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={handleShare}
+      className="w-10 justify-center px-0 sm:w-auto sm:px-3"
+    >
+      <Share2 className="h-3.5 w-3.5 sm:mr-1.5" aria-hidden="true" />
+      <span className="hidden sm:inline">Compartilhar</span>
+      <span className="sr-only sm:hidden">Compartilhar</span>
     </Button>
   );
 }

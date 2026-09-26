@@ -75,7 +75,6 @@ export default async function EventoPage({ params }: { params: { id: string } })
   const availableGiftDetails: MetricDetailItem[] = [];
   // Unidades reservadas por presente (não-vaquinha) — mostrado como selo na aba Presentes.
   const reservedUnitsByGiftId: Record<string, number> = {};
-  const productCatalogDetails: MetricDetailItem[] = [];
   const fundCatalogDetails: MetricDetailItem[] = [];
   const pixConfirmedDetails: MetricDetailItem[] = [];
 
@@ -160,12 +159,6 @@ export default async function EventoPage({ params }: { params: { id: string } })
     availableUnits += availability.availableUnits;
     reservedUnitsByGiftId[gift.id] = active;
 
-    productCatalogDetails.push({
-      id: gift.id,
-      title: gift.name,
-      subtitle: gift.kind === "PIX" ? "Só Pix" : "Presente",
-      value: `${availability.availableUnits} de ${gift.quantity} disponíveis`,
-    });
     if (availability.availableUnits > 0) {
       availableGiftDetails.push({
         id: gift.id,
@@ -273,7 +266,7 @@ export default async function EventoPage({ params }: { params: { id: string } })
       metrics: [
         {
           id: "reserved",
-          label: "Reservados",
+          label: "Selecionados",
           value: String(selectedUnits),
           details: reservedDetails,
           emptyMessage: "Ainda ninguém escolheu um presente.",
@@ -284,13 +277,6 @@ export default async function EventoPage({ params }: { params: { id: string } })
           value: String(availableUnits),
           details: availableGiftDetails,
           emptyMessage: "Nenhum presente disponível no momento — todos foram escolhidos.",
-        },
-        {
-          id: "product-catalog",
-          label: "Cadastrados",
-          value: String(productCatalogDetails.length),
-          details: productCatalogDetails,
-          emptyMessage: "Nenhum presente cadastrado ainda.",
         },
       ],
     },
@@ -315,18 +301,18 @@ export default async function EventoPage({ params }: { params: { id: string } })
       title: "Pix",
       metrics: [
         {
-          id: "pix-confirmed",
-          label: "Confirmado",
-          value: formatCentsToBRL(pixConfirmedCents),
-          details: pixConfirmedDetails,
-          emptyMessage: "Nenhum Pix confirmado ainda.",
-        },
-        {
           id: "pix-pending",
           label: "Aguardando confirmação",
           value: formatCentsToBRL(pixPendingCents),
           details: pixPendingDetails,
           emptyMessage: "Nenhum Pix aguardando confirmação.",
+        },
+        {
+          id: "pix-confirmed",
+          label: "Confirmado",
+          value: formatCentsToBRL(pixConfirmedCents),
+          details: pixConfirmedDetails,
+          emptyMessage: "Nenhum Pix confirmado ainda.",
         },
       ],
     },

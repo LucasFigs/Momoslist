@@ -8,12 +8,26 @@
 /** Teto por tipo de acompanhante: evita digitação absurda e mantém o formulário usável. */
 export const MAX_COMPANIONS_PER_KIND = 15;
 
+/** Teto do texto livre com os nomes dos acompanhantes (um por linha). */
+export const MAX_COMPANION_NAMES_LENGTH = 500;
+
 export type RsvpStatusValue = "ATTENDING" | "NOT_ATTENDING";
 
 export interface RsvpAnswer {
   status: RsvpStatusValue;
   companionAdults: number;
   companionChildren: number;
+  /** Um nome por linha, texto livre. Opcional: respostas antigas (antes deste campo existir) vêm como null. */
+  companionNames?: string | null;
+}
+
+/** "Maria\nJoão" → ["Maria", "João"] — para exibir na lista ou gerar a planilha de recepção/portaria. */
+export function parseCompanionNames(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  return raw
+    .split(/\r?\n|,/)
+    .map((name) => name.trim())
+    .filter(Boolean);
 }
 
 export interface Party {
@@ -116,7 +130,17 @@ function csvCell(value: string): string {
 
 /** Separador ";" e BOM UTF-8: é o que o Excel em português espera para abrir com acentos e colunas certas. */
 export function buildRsvpCsv(rows: RsvpCsvRow[]): string {
-  const header = ["Nome", "E-mail", "Telefone", "Resposta", "Adultos (com o convidado)", "Crianças", "Total de pessoas", "Respondeu em"];
+  const header = [
+    "Nome",
+    "E-mail",
+    "Telefone",
+    "Resposta",
+    "Adultos (com o convidado)",
+    "Crianças",
+    "Total de pessoas",
+    "Nomes dos acompanhantes",
+    "Respondeu em",
+  ];
   const lines = rows.map((row) => {
     const party = partyOf(row);
     return [
@@ -127,10 +151,43 @@ export function buildRsvpCsv(rows: RsvpCsvRow[]): string {
       String(party.adults),
       String(party.children),
       String(party.people),
+      parseCompanionNames(row.companionNames).join("; "),
       row.answeredAt,
     ]
       .map(csvCell)
       .join(";");
   });
+  return "﻿" + [header.map(csvCell).join(";"), ...lines].join("\r\n");
+}
+
+/**
+ * Lista "achatada", uma pessoa por linha (o titular e cada acompanhante nomeado): é o formato que serve para
+ * conferir na portaria ou na recepção, em vez de uma linha por resposta. Acompanhantes contados mas sem nome
+ * informado viram uma única linha de aviso, para o total de pessoas nunca ficar escondido.
+ */
+export function buildAttendeeChecklistCsv(rows: RsvpCsvRow[]): string {
+  const header = ["Nome", "Tipo", "Titular responsável", "Observação"];
+  const lines: string[] = [];
+
+  for (const row of rows) {
+    if (row.status !== "ATTENDING") continue;
+    const party = partyOf(row);
+    const names = parseCompanionNames(row.companionNames);
+
+    lines.push([row.name, "Titular", "", `Grupo de ${plural(party.people, "pessoa", "pessoas")}`].map(csvCell).join(";"));
+    for (const name of names) {
+      lines.push([name, "Acompanhante", row.name, ""].map(csvCell).join(";"));
+    }
+
+    const unnamed = party.people - 1 - names.length;
+    if (unnamed > 0) {
+      lines.push(
+        [`(${unnamed} sem nome informado)`, "Acompanhante", row.name, "Contam no total, mas não foram nomeados"]
+          .map(csvCell)
+          .join(";")
+      );
+    }
+  }
+
   return "﻿" + [header.map(csvCell).join(";"), ...lines].join("\r\n");
 }

@@ -6,9 +6,17 @@ import { Check, Minus, PartyPopper, Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTitle, SheetBody, SheetContent, SheetFooter, SheetHeader } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { describeParty, MAX_COMPANIONS_PER_KIND, type RsvpAnswer, type RsvpStatusValue } from "@/lib/rsvp";
+import {
+  describeParty,
+  MAX_COMPANIONS_PER_KIND,
+  MAX_COMPANION_NAMES_LENGTH,
+  type RsvpAnswer,
+  type RsvpStatusValue,
+} from "@/lib/rsvp";
 import { saveRsvpAction } from "@/actions/rsvp.actions";
 
 interface RsvpDialogProps {
@@ -124,11 +132,15 @@ export function RsvpDialog({ open, onOpenChange, eventId, initial }: RsvpDialogP
   );
   const [adults, setAdults] = useState(initial?.status === "ATTENDING" ? initial.companionAdults : 0);
   const [children, setChildren] = useState(initial?.status === "ATTENDING" ? initial.companionChildren : 0);
+  const [names, setNames] = useState(
+    initial?.status === "ATTENDING" ? (initial.companionNames ?? "") : ""
+  );
   const [saving, setSaving] = useState(false);
 
   const attending = status === "ATTENDING";
   const companionAdults = attending && withCompanions ? adults : 0;
   const companionChildren = attending && withCompanions ? children : 0;
+  const companionNames = attending && withCompanions ? names : "";
   const missingCompanions = attending && withCompanions && adults + children === 0;
   const canSave = status !== null && !missingCompanions && !saving;
 
@@ -142,7 +154,7 @@ export function RsvpDialog({ open, onOpenChange, eventId, initial }: RsvpDialogP
     if (!status || !canSave) return;
     setSaving(true);
     try {
-      const result = await saveRsvpAction(eventId, { status, companionAdults, companionChildren });
+      const result = await saveRsvpAction(eventId, { status, companionAdults, companionChildren, companionNames });
       if (!result.success) {
         toast({ title: "Não foi possível salvar", description: result.error, variant: "destructive" });
         return;
@@ -161,7 +173,7 @@ export function RsvpDialog({ open, onOpenChange, eventId, initial }: RsvpDialogP
     }
   }
 
-  const answer: RsvpAnswer | null = status ? { status, companionAdults, companionChildren } : null;
+  const answer: RsvpAnswer | null = status ? { status, companionAdults, companionChildren, companionNames } : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -218,6 +230,23 @@ export function RsvpDialog({ open, onOpenChange, eventId, initial }: RsvpDialogP
                       Informe pelo menos um acompanhante, ou escolha &quot;Só eu&quot;.
                     </p>
                   )}
+
+                  <div className="flex flex-col gap-1.5 rounded-xl border border-border bg-background p-3">
+                    <Label htmlFor="companion-names" className="text-sm font-medium text-foreground">
+                      Nomes dos acompanhantes <span className="font-normal text-muted-foreground">(opcional)</span>
+                    </Label>
+                    <Textarea
+                      id="companion-names"
+                      value={names}
+                      onChange={(event) => setNames(event.target.value.slice(0, MAX_COMPANION_NAMES_LENGTH))}
+                      placeholder={"Um nome por linha, ex.:\nMaria Silva\nJoão Silva"}
+                      rows={3}
+                      className="min-h-[76px] resize-y bg-card"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Ajuda o casal a montar a lista da recepção ou da portaria.
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

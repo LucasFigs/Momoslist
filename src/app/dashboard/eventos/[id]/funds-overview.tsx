@@ -39,13 +39,63 @@ const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
   minute: "2-digit",
 });
 
+/**
+ * Recolhida por padrão: com várias vaquinhas essa área ocupava boa parte da tela do Resumo. O resumo (total
+ * arrecadado e o que está aguardando) continua visível sem precisar expandir — só o detalhe fica escondido.
+ */
 export function FundsOverview({ funds }: { funds: FundOverviewItem[] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const totalRaised = funds.reduce((sum, fund) => sum + computeFundProgress(fund.totals).raisedInCents, 0);
+  const pendingCount = funds.reduce(
+    (sum, fund) => sum + fund.contributions.filter((item) => item.status === "DECLARED").length,
+    0
+  );
+
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        aria-expanded={false}
+        className="flex w-full items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-background px-4 py-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        <span className="min-w-0 truncate text-sm text-foreground">
+          <span className="font-medium">{funds.length === 1 ? "1 vaquinha" : `${funds.length} vaquinhas`}</span>
+          {" · "}
+          <span className="tabular-nums">{formatCentsToBRL(totalRaised)} arrecadados</span>
+          {pendingCount > 0 && (
+            <>
+              {" · "}
+              <span className="font-medium text-pending">{pendingCount} aguardando confirmação</span>
+            </>
+          )}
+        </span>
+        <span className="flex flex-shrink-0 items-center gap-1 text-sm font-medium text-primary">
+          Ver vaquinhas
+          <ChevronDown className="h-4 w-4" aria-hidden="true" />
+        </span>
+      </button>
+    );
+  }
+
   return (
-    <ul className="flex flex-col divide-y divide-border">
-      {funds.map((fund) => (
-        <FundRow key={fund.giftId} fund={fund} />
-      ))}
-    </ul>
+    <div className="flex flex-col gap-3">
+      <button
+        type="button"
+        onClick={() => setExpanded(false)}
+        aria-expanded={true}
+        className="flex items-center gap-1 self-end text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        Recolher
+        <ChevronDown className="h-4 w-4 rotate-180" aria-hidden="true" />
+      </button>
+      <ul className="flex flex-col divide-y divide-border">
+        {funds.map((fund) => (
+          <FundRow key={fund.giftId} fund={fund} />
+        ))}
+      </ul>
+    </div>
   );
 }
 

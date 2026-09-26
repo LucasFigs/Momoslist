@@ -169,12 +169,14 @@ Resumo │ Presentes │ Confirmações │ Recadinhos ⑦ │ Configurações
 - **Conta** por e-mail e senha ou **login com Google**; as duas se unem quando o e-mail é o mesmo.
 - **Lista completa:** tipo de evento, data e horário, local com link do mapa, endereço de entrega e uma mensagem que preserva parágrafos.
 - **Aparência própria:** capa, foto de perfil e **cor de destaque** por lista. A paleta é derivada da cor escolhida com **contraste de acessibilidade (WCAG AA)** garantido.
+- **Pix pendente sempre à vista:** logo abaixo do cabeçalho, em qualquer aba, uma faixa reúne todo Pix aguardando confirmação — de presente, item Pix ou vaquinha — com um botão para confirmar (ou recusar, no caso de vaquinha) sem precisar caçar em qual aba ele está.
 - **Painel em cinco abas:**
-  - **Resumo:** total arrecadado, reservados, disponíveis, Pix pendentes, vaquinhas em linhas compactas e últimas reservas.
+  - **Resumo:** métricas agrupadas por assunto (Presentes, Vaquinhas, Pix, Confirmação de presença) — **cada número é clicável** e abre a lista de itens que o compõe, para nunca ficar na dúvida do que "disponíveis" ou "confirmado" somam. Vaquinhas aparecem recolhidas num resumo compacto, com botão para expandir só quando quiser o detalhe.
   - **Presentes:** cadastro, edição e exclusão, com **ordenação** por ordem de cadastro, mais recentes, nome (A–Z e Z–A), menor e maior valor, e tipo de item.
-  - **Confirmações:** liga e desliga o RSVP, totais de pessoas, adultos, crianças e recusas, lista de respostas e **exportação em CSV**.
+  - **Confirmações:** liga e desliga o RSVP, totais de pessoas, adultos, crianças e recusas, lista de respostas (mais recente primeiro) e **exportação em CSV** — inclusive uma planilha "achatada" (uma pessoa por linha, com os nomes dos acompanhantes) pronta para a recepção ou a portaria.
   - **Recadinhos:** todas as mensagens dos convidados em cartões, com o nome, a data, o presente ou a contribuição, **busca** (ignora acentos) e **ordenação**. Um contador aparece na aba. Recados de reservas canceladas não aparecem.
   - **Configurações:** dados do evento e aparência da lista na mesma tela.
+- **Compartilhar** ao lado de "Abrir lista pública", no topo — sem repetir o link em outro canto da tela.
 - **Visualizar como convidado:** prévia que só o dono acessa, com os botões desativados, para nunca gerar reservas de teste.
 - **Confirmação manual do Pix** e das contribuições de vaquinha, com opção de recusar.
 - **Publicar e despublicar** a lista quando quiser.
@@ -185,10 +187,12 @@ Resumo │ Presentes │ Confirmações │ Recadinhos ⑦ │ Configurações
 - **Vitrine** de 2 colunas no celular, com foto inteira (sem recortes), **busca e ordenação** que ficam na URL (dá para compartilhar o link já filtrado).
 - **Sinalização clara:** itens só-Pix e vaquinhas têm selo próprio na foto, então o convidado sabe de antemão como vai presentear.
 - **Reserva com prazo** e possibilidade de **desistir a qualquer momento**, inclusive depois de confirmar.
+- **Vitrine organizada por prioridade:** por padrão, o que já foi escolhido ou uma vaquinha que já bateu a meta desce para o fim da lista — quem chega vê primeiro o que ainda precisa de ajuda.
 - **Recadinho para o casal:** ao presentear (loja, Pix ou vaquinha) há um convite discreto para deixar uma mensagem de até 500 caracteres. Dá para escrevê-la antes de avisar o pagamento ou **depois**, e editar ou remover quando quiser. Só o casal lê.
 - **Pix com QR Code e Copia e Cola** gerados na hora, com o valor exato.
-- **Vaquinha** com progresso, quanto falta e contribuição a partir do mínimo.
-- **Confirmação de presença:** vai ou não vai, com quantos acompanhantes, adultos e crianças.
+- **Vaquinha** com progresso, quanto falta e contribuição a partir do mínimo. Ao bater a meta, ela fica sinalizada como "concluída" (a contribuição continua aberta, mas deixa de chamar atenção).
+- **Confirmação de presença:** vai ou não vai, com quantos acompanhantes, adultos, crianças e, opcionalmente, **os nomes de quem vai junto** — útil para o casal montar uma lista de recepção ou de portaria.
+- **E-mail de confirmação** (quando configurado — ver [Configurando os serviços externos](#-configurando-os-serviços-externos)): ao confirmar presença ou escolher um presente, o convidado recebe um e-mail com o resumo e o link para voltar à lista.
 - **Endereço de entrega copiável** para quem prefere enviar o presente.
 
 ## 📏 Regras de negócio importantes
@@ -203,12 +207,13 @@ Resumo │ Presentes │ Confirmações │ Recadinhos ⑦ │ Configurações
 | **Chave Pix** | Só é entregue a quem tem reserva ativa com método Pix; nunca aparece na página pública antes disso. |
 | **Dinheiro** | Sempre em **centavos inteiros** (nunca `float`). Nenhum pagamento passa pela plataforma: o Pix vai direto para o casal. |
 | **Pix Copia e Cola** | Payload EMV / BR Code do BACEN gerado localmente em [`lib/pix-payload.ts`](src/lib/pix-payload.ts). |
-| **Vaquinha** | Valor mínimo por pessoa; a meta pode ser ultrapassada (o excedente aparece à parte). O total arrecadado soma o **confirmado** e o **aguardando confirmação**, e a barra mostra os dois trechos separados. O casal pode confirmar ou recusar cada contribuição. |
+| **Vaquinha** | Valor mínimo por pessoa; a meta pode ser ultrapassada (o excedente aparece à parte) — contribuir depois de atingi-la continua permitido, só a vitrine deixa de destacar a vaquinha. O total arrecadado soma o **confirmado** e o **aguardando confirmação**, e a barra mostra os dois trechos separados. O casal pode confirmar ou recusar cada contribuição. |
 | **Identidade do convidado** | Nome + e-mail + telefone, sem senha. Um cookie `httpOnly` lembra a pessoa por 180 dias. Se o e-mail já existe com outro telefone, o cadastro é recusado. |
-| **Confirmação de presença** | Uma resposta por convidado (pode ser alterada). Conta como 1 adulto + acompanhantes. Só funciona se a lista estiver publicada e o RSVP ligado. |
+| **Confirmação de presença** | Uma resposta por convidado (pode ser alterada). Conta como 1 adulto + acompanhantes. Os nomes dos acompanhantes são texto livre e opcionais — não precisam bater com a contagem. Só funciona se a lista estiver publicada e o RSVP ligado. |
 | **Recadinhos** | Opcionais, com até **500 caracteres**, validados no servidor e exibidos sempre como texto puro. Ficam presos à reserva ou à contribuição: só o casal responsável pela lista os lê, nunca aparecem na página pública, e somem se a reserva for cancelada ou a contribuição recusada. O convidado pode adicionar, editar ou remover o seu enquanto a reserva estiver ativa. |
+| **E-mails de confirmação** | Enviados pelo SMTP do Gmail (sem custo, sem domínio próprio) quando `GMAIL_USER`/`GMAIL_APP_PASSWORD` estão configurados; sem eles, o envio é só ignorado (logado), nunca trava a ação do convidado. Nunca incluem a chave Pix nem dados sensíveis — só um resumo e o link de volta à lista. |
 | **Prévia do casal** | Somente o dono acessa; a página fica `inert`, para que nunca gere reserva de teste. |
-| **Ordem dos itens** | A ordenação do painel é só uma visão do casal. Os convidados veem os itens na ordem de cadastro. |
+| **Ordem dos itens** | No painel, a ordenação é só uma visão do casal. Na vitrine pública, o padrão ("Sugeridos") mantém a ordem de cadastro, mas empurra para o fim o que já foi esgotado ou uma vaquinha que já bateu a meta. |
 
 ## 🏗️ Arquitetura e decisões técnicas
 
@@ -269,7 +274,7 @@ erDiagram
 | `Guest` | Convidado (nome, e-mail, telefone). E-mail único. |
 | `GiftReservation` | Reserva de um produto: `status`, `paymentMethod`, `pixStatus` e o **recadinho** opcional (`message`). |
 | `Contribution` | Contribuição a uma vaquinha, em centavos, com status próprio e **recadinho** opcional (`message`). |
-| `Rsvp` | Resposta de presença: uma por evento e convidado (`@@unique([eventId, guestId])`). |
+| `Rsvp` | Resposta de presença: uma por evento e convidado (`@@unique([eventId, guestId])`), com os nomes dos acompanhantes opcionais (`companionNames`, texto livre). |
 
 Enums principais: `EventType`, `PixKeyType`, `ReservationStatus` (`TEMPORARY → CONFIRMED → COMPLETED`, ou `CANCELLED`/`EXPIRED`), `PaymentMethod`, `PixStatus` (`NOT_DECLARED → DECLARED → CONFIRMED`), `GiftKind` (`PRODUCT`, `PIX`, `FUND`), `ContributionStatus`, `RsvpStatus`.
 
@@ -294,6 +299,7 @@ src/
     gift-availability.ts       disponibilidade = quantidade − reservas ativas
     shrink-image.ts            redução de foto no navegador
     supabase-storage.ts        upload de imagens
+    email.ts, email-templates.ts  e-mails de confirmação (SMTP do Gmail, opcional)
   components/                componentes compartilhados (ui/ = base do design system)
   app/
     page.tsx                 landing
@@ -352,6 +358,8 @@ Copie [`.env.example`](.env.example) para `.env`. O `.env` **nunca deve ir para 
 | `NEXT_PUBLIC_SITE_URL` | sim | URL pública do site, sem barra final. Em produção é embutida no build: se mudar, faça novo deploy. |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | recomendada | E-mail exibido na Política de Privacidade para pedidos sobre dados pessoais. |
 | `RESERVATION_TIMEOUT_MINUTES` | não | Validade da reserva temporária. Padrão: `15`. |
+| `GMAIL_USER` / `GMAIL_APP_PASSWORD` | não | Ativam os e-mails de confirmação (presença e presente escolhido), enviados pelo SMTP do Gmail. Sem elas, o app funciona normalmente e só pula o envio — ver [Configurando os serviços externos](#-configurando-os-serviços-externos). |
+| `EMAIL_FROM_NAME` | não | Nome de exibição do remetente desses e-mails. Padrão: `Momoslist`. |
 
 ---
 
@@ -373,6 +381,19 @@ Copie [`.env.example`](.env.example) para `.env`. O `.env` **nunca deve ir para 
 4. Copie o ID e o segredo para `AUTH_GOOGLE_ID` e `AUTH_GOOGLE_SECRET`.
 
 Enquanto o app estiver em modo **Testando**, só entram os e-mails cadastrados como usuários de teste. Para liberar qualquer pessoa é preciso **publicar o app**, o que exige domínio próprio, página inicial e a política de privacidade em `/privacidade`.
+
+### E-mails de confirmação (opcional — via Gmail SMTP)
+
+Sem essa configuração, tudo continua funcionando normalmente: o app só deixa de mandar o e-mail de cortesia quando alguém confirma presença ou escolhe um presente (ver [`lib/email.ts`](src/lib/email.ts)). Essa opção não exige domínio próprio nem cartão de crédito — só uma conta Gmail.
+
+1. Na conta Gmail que vai enviar os e-mails, ative a **verificação em duas etapas** em [myaccount.google.com/security](https://myaccount.google.com/security) — é pré-requisito para o próximo passo.
+2. Em [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords), crie uma **senha de app** (escolha um nome como "Momoslist"). O Google mostra uma senha de 16 letras — copie-a, ela só aparece uma vez.
+3. Defina `GMAIL_USER` com o endereço completo dessa conta Gmail.
+4. Defina `GMAIL_APP_PASSWORD` com a senha de app gerada (não é a senha normal da conta).
+5. Opcional: `EMAIL_FROM_NAME` para o nome de exibição do remetente (o endereço visível continua sendo o `GMAIL_USER`).
+6. Redeploy (ou reinicie o `npm run dev`) para as variáveis valerem.
+
+**Limite:** contas Gmail comuns enviam até 500 e-mails/dia — bem acima do que uma lista de presentes usa. Se um dia a lista crescer muito ou quiser um remetente com o nome do seu domínio (em vez do seu Gmail pessoal), dá para trocar por um provedor como o [Resend](https://resend.com) (que exige domínio próprio verificado) sem mudar a estrutura do código — só o conteúdo de [`lib/email.ts`](src/lib/email.ts).
 
 ---
 

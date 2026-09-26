@@ -1,6 +1,7 @@
+// "Sugeridos" (padrão) já deixa esgotados/vaquinhas com meta atingida por último — ver gifts-section.tsx.
+// Por isso não existe uma opção "Disponíveis" separada: seria idêntica ao padrão.
 export const SORT_OPTIONS = [
   { value: "", label: "Sugeridos" },
-  { value: "available_first", label: "Disponíveis" },
   { value: "price_asc", label: "Menor preço" },
   { value: "price_desc", label: "Maior preço" },
 ] as const;

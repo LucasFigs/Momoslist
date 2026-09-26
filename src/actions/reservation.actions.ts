@@ -2,9 +2,11 @@
 
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { RESERVATION_TIMEOUT_MINUTES } from "@/lib/utils";
+import { RESERVATION_TIMEOUT_MINUTES, formatCentsToBRL } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 import { getCurrentGuest } from "@/lib/guest-session";
+import { sendEmail } from "@/lib/email";
+import { giftReservedEmail } from "@/lib/email-templates";
 
 type ReservationSummary = {
   id: string;
@@ -113,7 +115,7 @@ export async function confirmReservationMethodAction(
 
   const reservation = await prisma.giftReservation.findUnique({
     where: { id: reservationId },
-    include: { gift: { select: { kind: true } } },
+    include: { gift: { include: { event: true } } },
   });
   if (!reservation || reservation.guestId !== guest.id) {
     return { success: false, error: "Reserva não encontrada." };
@@ -140,6 +142,19 @@ export async function confirmReservationMethodAction(
       paymentMethod,
       pixStatus: paymentMethod === "PIX" ? "NOT_DECLARED" : "NOT_APPLICABLE",
     },
+  });
+
+  // E-mail de cortesia: nunca bloqueia a confirmação da reserva se falhar (ver lib/email.ts).
+  await sendEmail({
+    to: guest.email,
+    ...giftReservedEmail({
+      guestName: guest.name,
+      event: reservation.gift.event,
+      giftName: reservation.gift.name,
+      priceLabel: formatCentsToBRL(reservation.gift.priceInCents),
+      paymentMethod,
+      purchaseUrl: reservation.gift.purchaseUrl,
+    }),
   });
 
   return {

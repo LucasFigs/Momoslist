@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { computeGiftAvailability, ACTIVE_RESERVATION_STATUSES } from "@/lib/gift-availability";
 import { formatCentsToBRL } from "@/lib/utils";
-import type { FundTotals } from "@/lib/fund";
+import { computeFundProgress, type FundTotals } from "@/lib/fund";
 import { GiftCard } from "./gift-card";
 import { FundCard } from "./fund-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -127,19 +127,21 @@ export async function GiftsSection({
   const effectivePrice = (gift: Gift) =>
     gift.kind === "FUND" ? (gift.minContributionInCents ?? gift.priceInCents) : gift.priceInCents;
 
+  // "Fora de jogo": presente/item Pix esgotado, ou vaquinha que já bateu a meta — não precisa mais de atenção.
+  const isOutOfPlay = ({ gift, availability }: (typeof filtered)[number]) =>
+    gift.kind === "FUND"
+      ? computeFundProgress(fundTotalsByGiftId.get(gift.id)!).reached
+      : availability.status === "UNAVAILABLE";
+
   const sorted = [...filtered].sort((a, b) => {
     switch (sort) {
       case "price_asc":
         return effectivePrice(a.gift) - effectivePrice(b.gift);
       case "price_desc":
         return effectivePrice(b.gift) - effectivePrice(a.gift);
-      case "available_first": {
-        const aAvailable = a.availability.status !== "UNAVAILABLE" ? 0 : 1;
-        const bAvailable = b.availability.status !== "UNAVAILABLE" ? 0 : 1;
-        return aAvailable - bAvailable;
-      }
       default:
-        return 0; // mantém a ordem original (recomendados = ordem de cadastro)
+        // Sugeridos: mantém a ordem de cadastro, só empurrando o que não precisa mais de atenção para o fim.
+        return Number(isOutOfPlay(a)) - Number(isOutOfPlay(b));
     }
   });
 
@@ -196,6 +198,7 @@ export async function GiftsSection({
                   minInCents: gift.minContributionInCents ?? 1,
                 }}
                 totals={fundTotalsByGiftId.get(gift.id)!}
+                reached={computeFundProgress(fundTotalsByGiftId.get(gift.id)!).reached}
                 myContributions={myContributionRows
                   .filter((row) => row.giftId === gift.id)
                   .map((row) => ({

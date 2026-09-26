@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventForm } from "./event-form";
 import { PublishToggle } from "./publish-toggle";
-import { ShareLinkButtons } from "./share-link-buttons";
+import { ShareButton } from "./share-button";
 import { ListPreviewButton } from "./list-preview";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,8 @@ import { CoverImageUploader } from "./cover-image-uploader";
 import { ProfileImageUploader } from "./profile-image-uploader";
 import { ThemeSelector } from "./theme-selector";
 import { FundsOverview, type FundOverviewItem } from "./funds-overview";
+import { PendingApprovalsPanel, type PendingApprovalItem } from "./pending-approvals-panel";
+import { SummaryMetrics, type SummaryMetricGroup } from "./summary-metrics";
 import { RsvpPanel, type RsvpItem } from "./rsvp-panel";
 import { MessagesPanel, type MessageItem } from "./messages-panel";
 import type { FundTotals } from "@/lib/fund";
@@ -23,15 +25,10 @@ import { resolveThemeColor } from "@/lib/theme";
 
 type ActionResult = { success: true } | { success: false; error: string };
 
-interface Metric {
-  label: string;
-  value: string;
-}
-
 export interface EventDashboardViewProps {
   event: Event & { gifts: Gift[] };
-  primaryMetrics: Metric[];
-  secondaryMetrics: Metric[];
+  /** Métricas do Resumo, já agrupadas por assunto (Presentes, Vaquinhas, Pix, Presença). */
+  metricGroups: SummaryMetricGroup[];
   selections: GuestSelection[];
   publicUrl: string;
   updateAction: (formData: FormData) => Promise<ActionResult>;
@@ -44,13 +41,14 @@ export interface EventDashboardViewProps {
   rsvpItems: RsvpItem[];
   /** Recadinhos que os convidados deixaram ao presentear. */
   messageItems: MessageItem[];
+  /** Pix (de presente, item Pix ou vaquinha) aguardando confirmação — mostrado logo abaixo do cabeçalho. */
+  pendingApprovals: PendingApprovalItem[];
 }
 
 /** Parte visual da página do evento: recebe tudo pronto, sem acessar banco nem sessão. */
 export function EventDashboardView({
   event,
-  primaryMetrics,
-  secondaryMetrics,
+  metricGroups,
   selections,
   publicUrl,
   updateAction,
@@ -61,6 +59,7 @@ export function EventDashboardView({
   rsvpEnabled,
   rsvpItems,
   messageItems,
+  pendingApprovals,
 }: EventDashboardViewProps) {
   return (
     <div className="flex flex-col gap-6">
@@ -92,8 +91,9 @@ export function EventDashboardView({
               {event.title}
             </h1>
           </div>
-          {/* 2º as ações principais, à mão. */}
+          {/* 2º as ações principais, à mão — compartilhar é a mais usada, então vem primeiro. */}
           <div className="flex flex-wrap items-center gap-2">
+            <ShareButton url={publicUrl} />
             {/* Com a lista publicada, ver o que os convidados veem é a ação mais útil ao lado de despublicar. */}
             {event.published ? (
               <Button variant="outline" size="sm" asChild>
@@ -111,6 +111,10 @@ export function EventDashboardView({
           </div>
         </div>
       </div>
+
+      {/* Sempre visível, em qualquer aba: é a ação mais urgente de todas — dinheiro que já chegou e só falta
+          confirmar. Fica fora das abas para não depender de a pessoa estar na aba certa para ver. */}
+      <PendingApprovalsPanel items={pendingApprovals} />
 
       {/* Abas logo abaixo do título: o conteúdo começa na primeira tela, mesmo no celular. */}
       <Tabs defaultValue={defaultTab}>
@@ -131,16 +135,9 @@ export function EventDashboardView({
 
         {/* Resumo */}
         <TabsContent value="resumo" className="flex flex-col gap-6">
-          {/* Métricas numa superfície só: fáceis de escanear e sem cara de painel financeiro. */}
-          <Card>
-            <dl className={`grid grid-cols-2 gap-x-6 gap-y-5 p-5 md:grid-cols-3 ${primaryMetrics.length + secondaryMetrics.length >= 6 ? "lg:grid-cols-6" : "lg:grid-cols-5"}`}>
-              {[...primaryMetrics, ...secondaryMetrics].map((metric, index) => (
-                <div key={metric.label} className={index === 0 ? "col-span-2 md:col-span-1" : undefined}>
-                  <dt className="text-xs text-muted-foreground">{metric.label}</dt>
-                  <dd className="mt-1 text-2xl font-semibold tabular-nums text-foreground">{metric.value}</dd>
-                </div>
-              ))}
-            </dl>
+          {/* Métricas numa superfície só, agrupadas por assunto: cada número é clicável e mostra o que o compõe. */}
+          <Card className="px-5 py-1">
+            <SummaryMetrics groups={metricGroups} />
           </Card>
 
           {funds.length > 0 && (
@@ -155,20 +152,6 @@ export function EventDashboardView({
               </CardContent>
             </Card>
           )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Link da sua lista</CardTitle>
-              <CardDescription>
-                {event.published
-                  ? "Compartilhe com seus convidados pelo WhatsApp ou redes sociais."
-                  : "Publique a lista para que este link fique acessível aos convidados."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ShareLinkButtons url={publicUrl} published={event.published} />
-            </CardContent>
-          </Card>
 
           <Card>
             <CardHeader>

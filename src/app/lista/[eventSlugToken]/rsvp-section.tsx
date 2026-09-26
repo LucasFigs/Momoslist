@@ -93,7 +93,7 @@ export function RsvpSection({ eventId, isIdentified, mine }: RsvpSectionProps) {
       <IdentifyGuestDialog open={identifyOpen} onOpenChange={setIdentifyOpen} onIdentified={handleIdentified} />
       {/* key: ao reabrir depois de salvar, o formulário parte da resposta mais recente vinda do servidor. */}
       <RsvpDialog
-        key={mine ? `${mine.status}-${mine.companionAdults}-${mine.companionChildren}` : "novo"}
+        key={mine ? `${mine.status}-${mine.companionAdults}-${mine.companionChildren}-${mine.companionNames ?? ""}` : "novo"}
         open={rsvpOpen}
         onOpenChange={setRsvpOpen}
         eventId={eventId}

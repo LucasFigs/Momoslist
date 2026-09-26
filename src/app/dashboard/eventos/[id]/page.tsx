@@ -73,6 +73,8 @@ export default async function EventoPage({ params }: { params: { id: string } })
   const pendingApprovals: PendingApprovalItem[] = [];
   // O que compõe cada número do Resumo — clicar no valor mostra esta lista (ver summary-metrics.tsx).
   const availableGiftDetails: MetricDetailItem[] = [];
+  // Unidades reservadas por presente (não-vaquinha) — mostrado como selo na aba Presentes.
+  const reservedUnitsByGiftId: Record<string, number> = {};
   const productCatalogDetails: MetricDetailItem[] = [];
   const fundCatalogDetails: MetricDetailItem[] = [];
   const pixConfirmedDetails: MetricDetailItem[] = [];
@@ -156,6 +158,7 @@ export default async function EventoPage({ params }: { params: { id: string } })
     const availability = computeGiftAvailability(gift.quantity, active);
     selectedUnits += active;
     availableUnits += availability.availableUnits;
+    reservedUnitsByGiftId[gift.id] = active;
 
     productCatalogDetails.push({
       id: gift.id,
@@ -362,6 +365,7 @@ export default async function EventoPage({ params }: { params: { id: string } })
       updateAction={boundUpdateAction}
       funds={funds}
       fundTotals={fundTotals}
+      reservedUnitsByGiftId={reservedUnitsByGiftId}
       pixConfigured={Boolean(event.pixKey && event.pixKeyType)}
       rsvpEnabled={event.rsvpEnabled}
       rsvpItems={rsvpItems}

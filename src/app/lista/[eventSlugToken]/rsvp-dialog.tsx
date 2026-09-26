@@ -6,14 +6,15 @@ import { Check, Minus, PartyPopper, Plus, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogTitle, SheetBody, SheetContent, SheetFooter, SheetHeader } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   describeParty,
   MAX_COMPANIONS_PER_KIND,
-  MAX_COMPANION_NAMES_LENGTH,
+  MAX_COMPANION_NAME_LENGTH,
+  parseCompanionNames,
   type RsvpAnswer,
   type RsvpStatusValue,
 } from "@/lib/rsvp";
@@ -124,6 +125,49 @@ function Stepper({
   );
 }
 
+/** Ajusta o tamanho da lista de nomes para acompanhar a contagem do stepper, sem perder o que já foi digitado. */
+function resizeNames(current: string[], length: number): string[] {
+  if (length === current.length) return current;
+  if (length < current.length) return current.slice(0, length);
+  return [...current, ...Array(length - current.length).fill("")];
+}
+
+/** Um campo de nome por pessoa: obrigatório, para a lista de recepção/portaria sair completa. */
+function CompanionNameFields({
+  idPrefix,
+  label,
+  names,
+  onChange,
+}: {
+  idPrefix: string;
+  label: (index: number) => string;
+  names: string[];
+  onChange: (index: number, value: string) => void;
+}) {
+  if (names.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2 pl-1">
+      {names.map((name, index) => (
+        <div key={index} className="flex flex-col gap-1">
+          <Label htmlFor={`${idPrefix}-${index}`} className="text-xs text-muted-foreground">
+            {label(index)}
+          </Label>
+          <Input
+            id={`${idPrefix}-${index}`}
+            value={name}
+            onChange={(event) => onChange(index, event.target.value)}
+            placeholder="Nome completo"
+            maxLength={MAX_COMPANION_NAME_LENGTH}
+            required
+            className="bg-card"
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function RsvpDialog({ open, onOpenChange, eventId, initial }: RsvpDialogProps) {
   const router = useRouter();
   const [status, setStatus] = useState<RsvpStatusValue | null>(initial?.status ?? null);
@@ -132,22 +176,43 @@ export function RsvpDialog({ open, onOpenChange, eventId, initial }: RsvpDialogP
   );
   const [adults, setAdults] = useState(initial?.status === "ATTENDING" ? initial.companionAdults : 0);
   const [children, setChildren] = useState(initial?.status === "ATTENDING" ? initial.companionChildren : 0);
-  const [names, setNames] = useState(
-    initial?.status === "ATTENDING" ? (initial.companionNames ?? "") : ""
-  );
+  // Resposta anterior guarda só uma lista plana (sem saber quem é adulto/criança): distribui na ordem — os
+  // primeiros nomes viram adultos, o resto vira criança. É só um ponto de partida; a pessoa pode ajustar.
+  const [adultNames, setAdultNames] = useState<string[]>(() => {
+    if (initial?.status !== "ATTENDING") return [];
+    const names = parseCompanionNames(initial.companionNames);
+    return resizeNames(names.slice(0, initial.companionAdults), initial.companionAdults);
+  });
+  const [childNames, setChildNames] = useState<string[]>(() => {
+    if (initial?.status !== "ATTENDING") return [];
+    const names = parseCompanionNames(initial.companionNames);
+    return resizeNames(names.slice(initial.companionAdults), initial.companionChildren);
+  });
   const [saving, setSaving] = useState(false);
 
   const attending = status === "ATTENDING";
   const companionAdults = attending && withCompanions ? adults : 0;
   const companionChildren = attending && withCompanions ? children : 0;
-  const companionNames = attending && withCompanions ? names : "";
+  const companionNamesList = attending && withCompanions ? [...adultNames, ...childNames] : [];
+  const companionNames = companionNamesList.map((name) => name.trim()).filter(Boolean).join("\n");
   const missingCompanions = attending && withCompanions && adults + children === 0;
-  const canSave = status !== null && !missingCompanions && !saving;
+  const missingNames = attending && withCompanions && companionNamesList.some((name) => !name.trim());
+  const canSave = status !== null && !missingCompanions && !missingNames && !saving;
+
+  function handleAdultsChange(next: number) {
+    setAdults(next);
+    setAdultNames((current) => resizeNames(current, next));
+  }
+
+  function handleChildrenChange(next: number) {
+    setChildren(next);
+    setChildNames((current) => resizeNames(current, next));
+  }
 
   function chooseCompanions(next: boolean) {
     setWithCompanions(next);
     // Ao escolher "com acompanhantes" já começa em 1 adulto (o caso mais comum), em vez de exigir dois toques.
-    if (next && adults + children === 0) setAdults(1);
+    if (next && adults + children === 0) handleAdultsChange(1);
   }
 
   async function handleSave() {
@@ -223,36 +288,50 @@ export function RsvpDialog({ open, onOpenChange, eventId, initial }: RsvpDialogP
 
               {withCompanions && (
                 <div className="flex flex-col gap-2">
-                  <Stepper label="Adultos" hint="além de você" value={adults} onChange={setAdults} />
-                  <Stepper label="Crianças" hint="que vão com você" value={children} onChange={setChildren} />
+                  <p className="text-xs text-muted-foreground">
+                    Pedimos o nome de cada acompanhante para o casal montar a lista de recepção ou da portaria.
+                  </p>
+
+                  <div className="flex flex-col gap-2">
+                    <Stepper label="Adultos" hint="além de você" value={adults} onChange={handleAdultsChange} />
+                    <CompanionNameFields
+                      idPrefix="adult-name"
+                      label={(index) => `Nome do adulto ${index + 1}`}
+                      names={adultNames}
+                      onChange={(index, value) =>
+                        setAdultNames((current) => current.map((name, i) => (i === index ? value : name)))
+                      }
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Stepper label="Crianças" hint="que vão com você" value={children} onChange={handleChildrenChange} />
+                    <CompanionNameFields
+                      idPrefix="child-name"
+                      label={(index) => `Nome da criança ${index + 1}`}
+                      names={childNames}
+                      onChange={(index, value) =>
+                        setChildNames((current) => current.map((name, i) => (i === index ? value : name)))
+                      }
+                    />
+                  </div>
+
                   {missingCompanions && (
                     <p role="alert" className="text-sm text-destructive">
                       Informe pelo menos um acompanhante, ou escolha &quot;Só eu&quot;.
                     </p>
                   )}
-
-                  <div className="flex flex-col gap-1.5 rounded-xl border border-border bg-background p-3">
-                    <Label htmlFor="companion-names" className="text-sm font-medium text-foreground">
-                      Nomes dos acompanhantes <span className="font-normal text-muted-foreground">(opcional)</span>
-                    </Label>
-                    <Textarea
-                      id="companion-names"
-                      value={names}
-                      onChange={(event) => setNames(event.target.value.slice(0, MAX_COMPANION_NAMES_LENGTH))}
-                      placeholder={"Um nome por linha, ex.:\nMaria Silva\nJoão Silva"}
-                      rows={3}
-                      className="min-h-[76px] resize-y bg-card"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Ajuda o casal a montar a lista da recepção ou da portaria.
+                  {!missingCompanions && missingNames && (
+                    <p role="alert" className="text-sm text-destructive">
+                      Informe o nome de todos os acompanhantes.
                     </p>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
           )}
 
-          {answer && !missingCompanions && (
+          {answer && !missingCompanions && !missingNames && (
             <p role="status" className="rounded-lg bg-primary-subtle p-3 text-sm font-medium text-foreground ring-1 ring-primary-border">
               {describeParty(answer)}
             </p>

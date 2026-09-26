@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -31,7 +32,12 @@ export interface GuestSelection {
 }
 
 
+/**
+ * Recolhida por padrão, no mesmo padrão das vaquinhas: com muitas reservas essa área tomava a tela toda do
+ * Resumo. O resumo (quantos e quantos aguardando) continua visível sem precisar expandir.
+ */
 export function GuestSelections({ selections }: { selections: GuestSelection[] }) {
+  const [expanded, setExpanded] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
   if (selections.length === 0) {
@@ -42,6 +48,35 @@ export function GuestSelections({ selections }: { selections: GuestSelection[] }
         description="Assim que seus convidados escolherem, eles aparecem aqui com o método e o status."
         className="py-10"
       />
+    );
+  }
+
+  const pendingCount = selections.filter(isAwaitingPixConfirmation).length;
+
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        onClick={() => setExpanded(true)}
+        aria-expanded={false}
+        className="flex w-full items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-background px-4 py-3 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        <span className="min-w-0 truncate text-sm text-foreground">
+          <span className="font-medium">
+            {selections.length === 1 ? "1 presente reservado" : `${selections.length} presentes reservados`}
+          </span>
+          {pendingCount > 0 && (
+            <>
+              {" · "}
+              <span className="font-medium text-pending">{pendingCount} aguardando confirmação</span>
+            </>
+          )}
+        </span>
+        <span className="flex flex-shrink-0 items-center gap-1 text-sm font-medium text-primary">
+          Ver presentes reservados
+          <ChevronDown className="h-4 w-4" aria-hidden="true" />
+        </span>
+      </button>
     );
   }
 
@@ -56,6 +91,15 @@ export function GuestSelections({ selections }: { selections: GuestSelection[] }
 
   return (
     <div className="flex flex-col gap-3">
+      <button
+        type="button"
+        onClick={() => setExpanded(false)}
+        aria-expanded={true}
+        className="flex items-center gap-1 self-end text-sm font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        Recolher
+        <ChevronDown className="h-4 w-4 rotate-180" aria-hidden="true" />
+      </button>
       <div className="flex flex-col divide-y divide-border rounded-lg border border-border">
         {visible.map((selection) => (
           <SelectionRow key={selection.reservationId} selection={selection} />

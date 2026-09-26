@@ -94,8 +94,10 @@ export function EventDashboardView({
               {event.title}
             </h1>
           </div>
-          {/* 2º as ações principais, à mão — compartilhar é a mais usada, então vem primeiro. */}
-          <div className="flex flex-wrap items-center gap-2">
+          {/* 2º as ações principais, à mão — compartilhar é a mais usada, então vem primeiro. Alinhadas à
+              direita mesmo empilhadas no celular (a linha ocupa a largura toda ali, então sem isso ficariam
+              à esquerda, soltas embaixo do título). */}
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <ShareButton url={publicUrl} />
             {/* Com a lista publicada, ver o que os convidados veem é a ação mais útil ao lado de despublicar. */}
             {event.published ? (

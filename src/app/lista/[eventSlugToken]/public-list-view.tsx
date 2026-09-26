@@ -65,7 +65,7 @@ export function PublicListView({
           Pré-visualização — só você vê isto{!event.published && " · lista em rascunho"}. Os botões ficam desativados.
         </div>
       )}
-      <main className="min-h-screen" style={themeStyle} {...inertProps}>
+      <main className="list-theme min-h-screen" style={themeStyle} {...inertProps}>
         <HeaderPublico
           title={event.title}
           type={event.type}

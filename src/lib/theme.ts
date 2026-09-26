@@ -90,8 +90,11 @@ export function contrastRatio(a: Rgb, b: Rgb): number {
 const cssHsl = ([h, s, l]: Hsl) => `${Math.round(h)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
 
 // Superfícies neutras da Momoslist (mesmos valores do globals.css) contra as quais o acento é medido.
-const FOREGROUND_HSL: Hsl = [40, 0.3, 0.98]; // texto sobre botão sólido
-const PAGE_BACKGROUND_HSL: Hsl = [36, 0.38, 0.97];
+const FOREGROUND_HSL: Hsl = [40, 0.3, 0.98]; // texto sobre botão sólido, modo claro
+const PAGE_BACKGROUND_HSL: Hsl = [36, 0.38, 0.97]; // modo claro
+// Modo escuro: um único neutro quase-preto serve tanto de "fundo da página" quanto de "texto sobre o
+// botão" — os dois papéis que, no claro, FOREGROUND_HSL/PAGE_BACKGROUND_HSL cobrem com tons quase-brancos.
+const DARK_NEUTRAL_HSL: Hsl = [30, 0.08, 0.08];
 const MIN_CONTRAST = 4.6; // folga sobre os 4,5 do AA para sobreviver ao arredondamento do CSS
 
 // ---------------------------------------------------------------------------
@@ -112,12 +115,47 @@ export interface ThemeTokens {
   adjustedBy: number;
 }
 
-export function deriveTheme(hex: string): ThemeTokens {
+/**
+ * Deriva os tokens do acento para um modo (claro ou escuro). Mesma ideia dos dois lados: o acento precisa
+ * ter contraste ≥ 4,5:1 contra as superfícies em que aparece como "texto" (o botão sólido, a página, o
+ * próprio selo "soft") — só que no escuro essas superfícies são escuras, então em vez de escurecer a cor
+ * até passar no teste, ela é clareada, e os pares "soft/subtle/border" viram tons escuros da própria cor
+ * em vez de tons claros.
+ */
+export function deriveTheme(hex: string, mode: "light" | "dark" = "light"): ThemeTokens {
   const safeHex = HEX_COLOR_PATTERN.test(hex) ? hex : DEFAULT_THEME_COLOR;
   const [h, sRaw, lRaw] = rgbToHsl(hexToRgb(safeHex));
 
   // Evita cores neon: acento elegante, não "marca-texto".
   const s = Math.min(sRaw, 0.72);
+
+  if (mode === "dark") {
+    const soft: Hsl = [h, Math.min(s, 0.35), 0.19];
+    const neutralRgb = hslToRgb(DARK_NEUTRAL_HSL);
+    const softRgb = hslToRgb(soft);
+
+    // Clareia até: o quase-preto (fundo da página e texto do botão) e o "soft" escuro terem contraste com a cor.
+    let l = lRaw;
+    const passes = (lightness: number) => {
+      const rgb = hslToRgb([h, s, lightness]);
+      return contrastRatio(rgb, neutralRgb) >= MIN_CONTRAST && contrastRatio(rgb, softRgb) >= MIN_CONTRAST;
+    };
+    while (!passes(l) && l < 0.95) l = Math.round((l + 0.01) * 100) / 100;
+
+    // Em cores já bem claras "hover mais claro" não seria perceptível (quase estoura pra branco): escurece.
+    const shift = l < 0.75 ? 0.06 : -0.05;
+
+    return {
+      primary: cssHsl([h, s, l]),
+      primaryHover: cssHsl([h, s, l + shift]),
+      primaryActive: cssHsl([h, s, l + shift * 1.8]),
+      primarySoft: cssHsl(soft),
+      primarySubtle: cssHsl([h, Math.min(s, 0.3), 0.15]),
+      primaryBorder: cssHsl([h, Math.min(s, 0.35), 0.3]),
+      primaryForeground: cssHsl(DARK_NEUTRAL_HSL),
+      adjustedBy: Math.max(0, Math.round((l - lRaw) * 100) / 100),
+    };
+  }
 
   const soft: Hsl = [h, Math.min(s, 0.5), 0.92];
   const foregroundRgb = hslToRgb(FOREGROUND_HSL);
@@ -151,19 +189,39 @@ export function deriveTheme(hex: string): ThemeTokens {
   };
 }
 
-/** Variáveis CSS para aplicar num elemento (`style`) e re-tematizar tudo dentro dele. */
-export function themeToCssVars(tokens: ThemeTokens): Record<string, string> {
-  return {
-    "--primary": tokens.primary,
-    "--primary-hover": tokens.primaryHover,
-    "--primary-active": tokens.primaryActive,
-    "--primary-soft": tokens.primarySoft,
-    "--primary-subtle": tokens.primarySubtle,
-    "--primary-border": tokens.primaryBorder,
-    "--primary-foreground": tokens.primaryForeground,
-  };
+export interface ThemeTokenPair {
+  light: ThemeTokens;
+  dark: ThemeTokens;
+}
+
+export function deriveThemePair(hex: string): ThemeTokenPair {
+  return { light: deriveTheme(hex, "light"), dark: deriveTheme(hex, "dark") };
+}
+
+/**
+ * Variáveis CSS para aplicar num elemento com `style` + a classe `list-theme` (ver globals.css), e
+ * re-tematizar tudo dentro dele. Guarda os dois modos lado a lado (`-light`/`-dark`) em vez de escrever
+ * `--primary` direto: assim o CSS decide qual dos dois usar conforme a classe `dark` do modo escuro, sem
+ * precisar de JS pra reagir quando o convidado alterna o tema.
+ */
+export function themeToCssVars(pair: ThemeTokenPair): Record<string, string> {
+  const entries: [string, ThemeTokens][] = [
+    ["light", pair.light],
+    ["dark", pair.dark],
+  ];
+  return Object.fromEntries(
+    entries.flatMap(([mode, tokens]) => [
+      [`--list-primary-${mode}`, tokens.primary],
+      [`--list-primary-hover-${mode}`, tokens.primaryHover],
+      [`--list-primary-active-${mode}`, tokens.primaryActive],
+      [`--list-primary-soft-${mode}`, tokens.primarySoft],
+      [`--list-primary-subtle-${mode}`, tokens.primarySubtle],
+      [`--list-primary-border-${mode}`, tokens.primaryBorder],
+      [`--list-primary-foreground-${mode}`, tokens.primaryForeground],
+    ])
+  );
 }
 
 export function themeStyleFor(hex: string | null | undefined, legacyTheme?: string | null) {
-  return themeToCssVars(deriveTheme(resolveThemeColor(hex, legacyTheme)));
+  return themeToCssVars(deriveThemePair(resolveThemeColor(hex, legacyTheme)));
 }

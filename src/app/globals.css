@@ -100,6 +100,30 @@
 }
 
 @layer base {
+  /* Cor de acento por lista (ver src/lib/theme.ts): o elemento recebe, via `style`, os dois modos lado a
+     lado (--list-primary-*-light/-dark) em vez de --primary direto — assim o modo escuro do convidado
+     também vale para a cor da lista, sem precisar de JS pra reagir à troca de tema. */
+  .list-theme {
+    --primary: var(--list-primary-light);
+    --primary-hover: var(--list-primary-hover-light);
+    --primary-active: var(--list-primary-active-light);
+    --primary-soft: var(--list-primary-soft-light);
+    --primary-subtle: var(--list-primary-subtle-light);
+    --primary-border: var(--list-primary-border-light);
+    --primary-foreground: var(--list-primary-foreground-light);
+  }
+  .dark .list-theme {
+    --primary: var(--list-primary-dark);
+    --primary-hover: var(--list-primary-hover-dark);
+    --primary-active: var(--list-primary-active-dark);
+    --primary-soft: var(--list-primary-soft-dark);
+    --primary-subtle: var(--list-primary-subtle-dark);
+    --primary-border: var(--list-primary-border-dark);
+    --primary-foreground: var(--list-primary-foreground-dark);
+  }
+}
+
+@layer base {
   * {
     @apply border-border;
   }

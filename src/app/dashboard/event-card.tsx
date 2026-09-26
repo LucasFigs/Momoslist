@@ -30,7 +30,7 @@ export function EventCard({
     <Link
       href={`/dashboard/eventos/${id}`}
       style={themeStyleFor(themeColor, legacyTheme) as React.CSSProperties}
-      className="group block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      className="list-theme group block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
       <Card className="h-full overflow-hidden transition-colors group-hover:border-primary/50">
         <div className="relative aspect-[16/8] w-full bg-gradient-to-br from-primary-soft to-primary-border">

@@ -2,6 +2,7 @@ import { CalendarDays, MapPin } from "lucide-react";
 import { GiftImage } from "@/components/gift-image";
 import { FormattedText } from "@/components/formatted-text";
 import { CopyableAddress } from "@/components/copyable-address";
+import { ThemeToggleIconButton } from "@/components/theme-toggle-icon-button";
 import { SharePublicListButton } from "./share-public-list-button";
 
 const eventTypeLabel: Record<string, string> = {
@@ -52,11 +53,11 @@ export function HeaderPublico({
             )}
           </div>
 
-          <SharePublicListButton
-            url={publicUrl}
-            title={title}
-            className="absolute right-3 top-3 z-20 sm:right-4 sm:top-4"
-          />
+          {/* Cada convidado escolhe o próprio tema (fica salvo só no navegador dele), independente do casal. */}
+          <div className="absolute right-3 top-3 z-20 flex items-center gap-2 sm:right-4 sm:top-4">
+            <ThemeToggleIconButton />
+            <SharePublicListButton url={publicUrl} title={title} />
+          </div>
 
           {/* Avatar centrado na borda inferior da capa: metade sobre a capa, metade no corpo.
               z-10 é obrigatório — a capa é `relative` e, sem isso, seria pintada por cima dele. */}

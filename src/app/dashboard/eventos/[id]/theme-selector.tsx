@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { deriveTheme, themeToCssVars, THEME_PRESETS } from "@/lib/theme";
+import { deriveThemePair, themeToCssVars, THEME_PRESETS } from "@/lib/theme";
 import { updateEventThemeAction } from "@/actions/event.actions";
 import { ListPreviewButton } from "./list-preview";
 
@@ -22,7 +22,7 @@ export function ThemeSelector({ eventId, currentColor }: { eventId: string; curr
   const [isPending, startTransition] = useTransition();
   const [color, setColor] = useState(currentColor.toUpperCase());
 
-  const tokens = deriveTheme(color);
+  const tokens = deriveThemePair(color);
   const activePreset = THEME_PRESETS.find((preset) => preset.hex.toUpperCase() === color);
   const dirty = color !== currentColor.toUpperCase();
 
@@ -113,7 +113,7 @@ export function ThemeSelector({ eventId, currentColor }: { eventId: string; curr
       {/* Pré-visualização: as mesmas variáveis que a página pública recebe, aplicadas só nesta caixa. */}
       <div
         style={themeToCssVars(tokens) as React.CSSProperties}
-        className="rounded-lg border border-border bg-background p-4"
+        className="list-theme rounded-lg border border-border bg-background p-4"
         aria-label="Pré-visualização da cor"
       >
         <p className="mb-3 text-xs font-medium text-muted-foreground">Como fica para os convidados</p>
@@ -138,7 +138,7 @@ export function ThemeSelector({ eventId, currentColor }: { eventId: string; curr
         </div>
       </div>
 
-      {tokens.adjustedBy > 0 && (
+      {tokens.light.adjustedBy > 0 && (
         <p className="flex items-start gap-2 rounded-md bg-muted p-3 text-sm text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
           Essa cor é clara demais para ter texto legível em cima. Vamos usar uma versão um pouco mais escura, no

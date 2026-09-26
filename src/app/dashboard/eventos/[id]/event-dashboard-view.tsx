@@ -134,10 +134,8 @@ export function EventDashboardView({
 
         {/* Resumo */}
         <TabsContent value="resumo" className="flex flex-col gap-6">
-          {/* Métricas numa superfície só, agrupadas por assunto: cada número é clicável e mostra o que o compõe. */}
-          <Card className="px-5 py-1">
-            <SummaryMetrics groups={metricGroups} />
-          </Card>
+          {/* Uma linha de cards, um por informação: cada número é clicável e mostra o que o compõe. */}
+          <SummaryMetrics groups={metricGroups} />
 
           {pendingApprovals.length > 0 && (
             // Logo abaixo das métricas: é a ação mais urgente do Resumo — dinheiro que já chegou e só falta

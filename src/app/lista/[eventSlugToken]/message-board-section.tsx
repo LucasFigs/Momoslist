@@ -65,7 +65,7 @@ export async function MessageBoardSection({ eventId }: { eventId: string }) {
       <EmptyState
         icon={MessageCircleHeart}
         title="O mural ainda tá quietinho por aqui"
-        description="Assim que o primeiro recadinho chegar, ele aparece bem aqui — pra todo mundo ver."
+        description="Assim que o primeiro recadinho chegar, ele aparece bem aqui."
       />
     );
   }

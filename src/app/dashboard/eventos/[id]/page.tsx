@@ -128,6 +128,7 @@ export default async function EventoPage({ params }: { params: { id: string } })
         if (!contribution.message) continue;
         messageItems.push({
           id: `c-${contribution.id}`,
+          guestId: contribution.guestId,
           guestName: contribution.guest.name ?? contribution.guest.email,
           giftName: gift.name,
           kind: "FUND",
@@ -172,6 +173,7 @@ export default async function EventoPage({ params }: { params: { id: string } })
       if (reservation.message) {
         messageItems.push({
           id: `r-${reservation.id}`,
+          guestId: reservation.guestId,
           guestName: reservation.guest.name ?? reservation.guest.email,
           giftName: gift.name,
           kind: gift.kind === "PIX" ? "PIX" : "PRODUCT",

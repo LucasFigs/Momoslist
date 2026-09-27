@@ -144,7 +144,7 @@ export function PublicListView({
                 <div className="mb-5 flex flex-col gap-1">
                   <h2 className="font-serif text-2xl font-medium text-foreground sm:text-3xl">Mural de recadinhos</h2>
                   <p className="max-w-2xl text-sm text-muted-foreground">
-                    Recados de quem já presenteou ou contribuiu — visíveis para todos os convidados.
+                    Dá uma espiadinha nos recadinhos que a galera já deixou pro casal.
                   </p>
                 </div>
 

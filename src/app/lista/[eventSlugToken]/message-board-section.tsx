@@ -64,8 +64,8 @@ export async function MessageBoardSection({ eventId }: { eventId: string }) {
     return (
       <EmptyState
         icon={MessageCircleHeart}
-        title="Ainda não há recadinhos"
-        description="Quando alguém deixar um recado ao presentear ou contribuir, ele aparece aqui para todo mundo ver."
+        title="O mural ainda tá quietinho por aqui"
+        description="Assim que o primeiro recadinho chegar, ele aparece bem aqui — pra todo mundo ver."
       />
     );
   }

@@ -76,16 +76,16 @@ export function MessagesPanel({ items }: { items: MessageItem[] }) {
       <CardHeader className="gap-1">
         <CardTitle>Recadinhos</CardTitle>
         <CardDescription>
-          O que seus convidados escreveram ao presentear. Aparece com o nome de quem escreveu no mural de
-          recadinhos da lista pública — visível para todos os convidados.
+          O que a galera escreveu ao presentear. Também vira recadinho público, com nome e patinho, no mural
+          da lista — pra todo mundo curtir.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {items.length === 0 ? (
           <EmptyState
             icon={MessageCircleHeart}
-            title="Ainda não há recadinhos"
-            description="Quando um convidado deixar um recado ao presentear ou contribuir, ele aparece aqui."
+            title="Ainda tá tudo quietinho por aqui"
+            description="Assim que alguém deixar um recadinho ao presentear ou contribuir, ele aparece bem aqui — e no mural da lista também."
           />
         ) : (
           <>

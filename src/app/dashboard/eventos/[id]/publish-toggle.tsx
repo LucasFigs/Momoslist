@@ -4,11 +4,14 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import { setEventPublishedAction } from "@/actions/event.actions";
 
 /**
- * Só o botão: o estado (Publicada/Rascunho) aparece como selo no cabeçalho da página.
- * Rascunho → ação principal (cor da marca). Publicada → ação secundária, para não convidar a despublicar sem querer.
+ * Só o botão: o estado completo (Publicada/Rascunho) também aparece como selo no cabeçalho da página; aqui
+ * o texto já diz o estado atual ("Publicado"/"Não Publicado"), não a ação de clicar. A cor segue o mesmo
+ * código do selo — verde suave quando está no ar, neutro quando não está — reforçando o mesmo significado
+ * em vez de "ação principal vs. secundária", que estava confundindo.
  */
 export function PublishToggle({ eventId, published }: { eventId: string; published: boolean }) {
   const router = useRouter();
@@ -38,12 +41,17 @@ export function PublishToggle({ eventId, published }: { eventId: string; publish
   return (
     <Button
       size="sm"
-      variant={published ? "outline" : "default"}
+      variant="outline"
       onClick={handleToggle}
       disabled={isPending}
       role="switch"
       aria-checked={published}
-      className="gap-2"
+      className={cn(
+        "gap-2",
+        published
+          ? "border-success/30 bg-success-soft text-success hover:bg-success-soft/70"
+          : "border-border bg-muted text-muted-foreground hover:bg-muted/70"
+      )}
     >
       <span
         aria-hidden="true"
@@ -57,7 +65,7 @@ export function PublishToggle({ eventId, published }: { eventId: string; publish
           }`}
         />
       </span>
-      {isPending ? "Salvando..." : published ? "Despublicar" : "Publicar lista"}
+      {isPending ? "Salvando..." : published ? "Publicado" : "Não Publicado"}
     </Button>
   );
 }

@@ -259,7 +259,7 @@ model GiftReservation {
   pixConfirmedAt      DateTime?
   cancelledAt         DateTime?
 
-  /// Recadinho opcional do convidado para o casal (só o dono da lista lê). Até 500 caracteres.
+  /// Recadinho opcional do convidado para o casal — público no mural de recadinhos da lista. Até 500 caracteres.
   message   String?
   messageAt DateTime?
 
@@ -295,7 +295,7 @@ model Contribution {
   confirmedAt DateTime?
   cancelledAt DateTime?
 
-  /// Recadinho opcional do convidado para o casal (só o dono da lista lê). Até 500 caracteres.
+  /// Recadinho opcional do convidado para o casal — público no mural de recadinhos da lista. Até 500 caracteres.
   message String?
 
   createdAt DateTime @default(now())

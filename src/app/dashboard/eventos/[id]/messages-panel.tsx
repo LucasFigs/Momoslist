@@ -76,8 +76,7 @@ export function MessagesPanel({ items }: { items: MessageItem[] }) {
       <CardHeader className="gap-1">
         <CardTitle>Recadinhos</CardTitle>
         <CardDescription>
-          O que a galera escreveu ao presentear. Também vira recadinho público, com nome e patinho, no mural
-          da lista — pra todo mundo curtir.
+          O que a galera escreveu ao presentear. Também vira recadinho público no mural da lista.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

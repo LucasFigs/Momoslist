@@ -8,9 +8,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { DuckAvatar } from "@/components/duck-avatar";
 
 export interface MessageItem {
   id: string;
+  /** Mesmo id em toda mensagem da mesma pessoa — é o "seed" do avatar de patinho (sempre o mesmo por convidado). */
+  guestId: string;
   guestName: string;
   giftName: string;
   kind: "PRODUCT" | "PIX" | "FUND";
@@ -33,9 +36,6 @@ function normalize(text: string): string {
   return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
-function initialOf(name: string): string {
-  return name.trim().charAt(0).toUpperCase() || "?";
-}
 
 function GiftLine({ item }: { item: MessageItem }) {
   const Icon = item.kind === "FUND" ? PiggyBank : item.kind === "PIX" ? QrCode : GiftIcon;
@@ -147,11 +147,8 @@ export function MessagesPanel({ items }: { items: MessageItem[] }) {
                 {visible.map((item) => (
                   <li key={item.id} className="flex flex-col gap-3 rounded-lg border border-border bg-background p-4">
                     <div className="flex items-center gap-3">
-                      <span
-                        aria-hidden="true"
-                        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary-soft text-sm font-semibold text-primary"
-                      >
-                        {initialOf(item.guestName)}
+                      <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted">
+                        <DuckAvatar seed={item.guestId} className="h-7 w-7" />
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-foreground">{item.guestName}</p>

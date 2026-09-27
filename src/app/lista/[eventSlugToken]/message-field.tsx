@@ -91,7 +91,7 @@ export function MessageField({ value, onChange, disabled }: MessageFieldProps) {
         className="min-h-[88px] resize-y"
       />
       <p id={`${id}-hint`} className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-        <span>Só o casal lê. Não aparece na lista pública.</span>
+        <span>Aparece com seu nome no mural de recadinhos, visível para todos os convidados.</span>
         <span className={cn("tabular-nums", nearLimit && "font-medium text-foreground")}>
           {value.length}/{MAX_MESSAGE_LENGTH}
         </span>

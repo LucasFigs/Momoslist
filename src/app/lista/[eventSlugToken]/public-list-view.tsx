@@ -1,11 +1,13 @@
 import { Suspense } from "react";
 import type { Event, Gift, Guest } from "@prisma/client";
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SwitchGuestButton } from "./switch-guest-button";
 import { HeaderPublico } from "./header-publico";
 import { GiftFilters } from "./gift-filters";
 import { GiftsSection } from "./gifts-section";
 import { GiftCardSkeletonList } from "./gift-card-skeleton";
+import { MessageBoardSection } from "./message-board-section";
 import { RsvpSection } from "./rsvp-section";
 import type { GiftSort } from "./gift-sort";
 import type { RsvpAnswer } from "@/lib/rsvp";
@@ -98,36 +100,67 @@ export function PublicListView({
           </section>
         )}
 
-        {/* Lista de presentes */}
+        {/* Presentes e recadinhos: abas separadas — quem quer só ver os recados dos outros convidados não
+            precisa rolar a grade de presentes toda pra achar o mural. */}
         <section id="presentes" className="scroll-mt-4 border-t border-border">
           <div className="container pb-16 pt-8 sm:pt-12">
-            <div className="mb-5 flex flex-col gap-1">
-              <h2 className="font-serif text-2xl font-medium text-foreground sm:text-3xl">Lista de presentes</h2>
-              {hasExternalPurchaseGift && (
-                <p className="max-w-2xl text-sm text-muted-foreground">
-                  Itens de loja são comprados no site do vendedor, não aqui.
-                </p>
-              )}
-            </div>
+            <Tabs defaultValue="presentes">
+              <TabsList>
+                <TabsTrigger value="presentes">Presentes</TabsTrigger>
+                <TabsTrigger value="recadinhos">Recadinhos</TabsTrigger>
+              </TabsList>
 
-            {event.gifts.length > 0 && (
-              // useSearchParams exige um Suspense próprio, separado do da listagem.
-              <Suspense fallback={<div className="mb-6 h-11" aria-hidden="true" />}>
-                <GiftFilters />
-              </Suspense>
-            )}
+              <TabsContent value="presentes">
+                <div className="mb-5 flex flex-col gap-1">
+                  <h2 className="font-serif text-2xl font-medium text-foreground sm:text-3xl">Lista de presentes</h2>
+                  {hasExternalPurchaseGift && (
+                    <p className="max-w-2xl text-sm text-muted-foreground">
+                      Itens de loja são comprados no site do vendedor, não aqui.
+                    </p>
+                  )}
+                </div>
 
-            <Suspense key={suspenseKey} fallback={<GiftCardSkeletonList />}>
-              <GiftsSection
-                gifts={event.gifts}
-                guest={guest}
-                isIdentified={Boolean(guest)}
-                query={query}
-                sort={sort}
-                clearHref={clearHref}
-                pixConfigured={Boolean(event.pixKey && event.pixKeyType)}
-              />
-            </Suspense>
+                {event.gifts.length > 0 && (
+                  // useSearchParams exige um Suspense próprio, separado do da listagem.
+                  <Suspense fallback={<div className="mb-6 h-11" aria-hidden="true" />}>
+                    <GiftFilters />
+                  </Suspense>
+                )}
+
+                <Suspense key={suspenseKey} fallback={<GiftCardSkeletonList />}>
+                  <GiftsSection
+                    gifts={event.gifts}
+                    guest={guest}
+                    isIdentified={Boolean(guest)}
+                    query={query}
+                    sort={sort}
+                    clearHref={clearHref}
+                    pixConfigured={Boolean(event.pixKey && event.pixKeyType)}
+                  />
+                </Suspense>
+              </TabsContent>
+
+              <TabsContent value="recadinhos">
+                <div className="mb-5 flex flex-col gap-1">
+                  <h2 className="font-serif text-2xl font-medium text-foreground sm:text-3xl">Mural de recadinhos</h2>
+                  <p className="max-w-2xl text-sm text-muted-foreground">
+                    Recados de quem já presenteou ou contribuiu — visíveis para todos os convidados.
+                  </p>
+                </div>
+
+                <Suspense
+                  fallback={
+                    <div className="grid gap-3 sm:grid-cols-2" aria-hidden="true">
+                      {Array.from({ length: 4 }).map((_, index) => (
+                        <div key={index} className="h-28 animate-pulse rounded-lg bg-muted" />
+                      ))}
+                    </div>
+                  }
+                >
+                  <MessageBoardSection eventId={event.id} />
+                </Suspense>
+              </TabsContent>
+            </Tabs>
           </div>
         </section>
       </main>

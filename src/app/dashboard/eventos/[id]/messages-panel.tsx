@@ -76,7 +76,8 @@ export function MessagesPanel({ items }: { items: MessageItem[] }) {
       <CardHeader className="gap-1">
         <CardTitle>Recadinhos</CardTitle>
         <CardDescription>
-          O que seus convidados escreveram ao presentear. Só você lê: nada disso aparece na lista pública.
+          O que seus convidados escreveram ao presentear. Aparece com o nome de quem escreveu no mural de
+          recadinhos da lista pública — visível para todos os convidados.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

@@ -83,6 +83,7 @@ export function ContributeDialog({
   const [qrFailed, setQrFailed] = useState(false);
   const [copied, setCopied] = useState<"key" | "code" | null>(null);
   const [cancelTarget, setCancelTarget] = useState<MyContribution | null>(null);
+  const [requestKey, setRequestKey] = useState<string | undefined>();
   const [message, setMessage] = useState("");
   const [messagePublic, setMessagePublic] = useState(false);
 
@@ -131,6 +132,7 @@ export function ContributeDialog({
         });
         return;
       }
+      setRequestKey(crypto.randomUUID());
       setPix(result.details);
       setQrFailed(false);
       setStep("pix");
@@ -148,6 +150,7 @@ export function ContributeDialog({
         amountInCents,
         message,
         messagePublic,
+        requestKey,
       );
       if (!result.success) {
         toast({

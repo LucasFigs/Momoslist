@@ -1,3 +1,4 @@
+import { expiredReservationWhere } from "@/lib/reservation-policy";
 import { safeStoreUrl } from "@/lib/store-url";
 import { prisma } from "@/lib/prisma";
 import {
@@ -45,64 +46,63 @@ export async function GiftsSection({
 }: GiftsSectionProps) {
   const giftIds = gifts.map((gift) => gift.id);
 
-  // Antes de calcular disponibilidade, trata reservas temporárias vencidas (seção 33).
-  if (giftIds.length) {
-    await prisma.giftReservation.updateMany({
-      where: {
-        giftId: { in: giftIds },
-        status: "TEMPORARY",
-        expiresAt: { lt: new Date() },
-      },
-      data: { status: "EXPIRED" },
-    });
-  }
-
-  const activeCounts = giftIds.length
-    ? await prisma.giftReservation.groupBy({
-        by: ["giftId"],
-        where: {
-          giftId: { in: giftIds },
-          status: { in: [...ACTIVE_RESERVATION_STATUSES] },
-        },
-        _count: { _all: true },
-      })
-    : [];
-  const activeCountByGiftId = new Map(
-    activeCounts.map((row) => [row.giftId, row._count._all]),
-  );
-
-  const myReservations =
-    guest && giftIds.length
-      ? await prisma.giftReservation.findMany({
-          where: {
-            guestId: guest.id,
-            giftId: { in: giftIds },
-            status: { in: ["TEMPORARY", "CONFIRMED", "COMPLETED"] },
-          },
-        })
-      : [];
-  const myReservationByGiftId = new Map(
-    myReservations.map((r) => [r.giftId, r]),
-  );
-
-  // Vaquinhas: total confirmado x aguardando por vaquinha, e o que ESTE convidado já contribuiu.
+  // Rendering never writes. Expired unpaid holds do not consume stock.
+  const expired = expiredReservationWhere();
   const fundIds = gifts
     .filter((gift) => gift.kind === "FUND")
     .map((gift) => gift.id);
   const activeContributionStatuses = ["DECLARED", "CONFIRMED"] as const;
-
-  const contributionSums = fundIds.length
-    ? await prisma.contribution.groupBy({
-        by: ["giftId", "status"],
-        where: {
-          giftId: { in: fundIds },
-          status: { in: [...activeContributionStatuses] },
-        },
-        _sum: { amountInCents: true },
-        _count: { _all: true },
-      })
-    : [];
-
+  const [activeCounts, myReservations, contributionSums, myContributionRows] =
+    await Promise.all([
+      giftIds.length
+        ? prisma.giftReservation.groupBy({
+            by: ["giftId"],
+            where: {
+              giftId: { in: giftIds },
+              status: { in: [...ACTIVE_RESERVATION_STATUSES] },
+              NOT: expired,
+            },
+            _count: { _all: true },
+          })
+        : [],
+      guest && giftIds.length
+        ? prisma.giftReservation.findMany({
+            where: {
+              guestId: guest.id,
+              giftId: { in: giftIds },
+              status: { in: ["TEMPORARY", "CONFIRMED", "COMPLETED"] },
+              NOT: expired,
+            },
+          })
+        : [],
+      fundIds.length
+        ? prisma.contribution.groupBy({
+            by: ["giftId", "status"],
+            where: {
+              giftId: { in: fundIds },
+              status: { in: [...activeContributionStatuses] },
+            },
+            _sum: { amountInCents: true },
+            _count: { _all: true },
+          })
+        : [],
+      guest && fundIds.length
+        ? prisma.contribution.findMany({
+            where: {
+              guestId: guest.id,
+              giftId: { in: fundIds },
+              status: { in: [...activeContributionStatuses] },
+            },
+            orderBy: { declaredAt: "desc" },
+          })
+        : [],
+    ]);
+  const activeCountByGiftId = new Map(
+    activeCounts.map((row) => [row.giftId, row._count._all]),
+  );
+  const myReservationByGiftId = new Map(
+    myReservations.map((row) => [row.giftId, row]),
+  );
   const fundTotalsByGiftId = new Map<string, FundTotals>();
   for (const gift of gifts) {
     if (gift.kind !== "FUND") continue;
@@ -117,18 +117,6 @@ export async function GiftsSection({
         (confirmed?._count._all ?? 0) + (declared?._count._all ?? 0),
     });
   }
-
-  const myContributionRows =
-    guest && fundIds.length
-      ? await prisma.contribution.findMany({
-          where: {
-            guestId: guest.id,
-            giftId: { in: fundIds },
-            status: { in: [...activeContributionStatuses] },
-          },
-          orderBy: { declaredAt: "desc" },
-        })
-      : [];
 
   const withAvailability = gifts.map((gift) => ({
     gift,
@@ -252,7 +240,10 @@ export async function GiftsSection({
                 name: gift.name,
                 description: gift.description,
                 imageUrl: gift.imageUrl,
-                purchaseUrl: gift.kind === "PRODUCT" ? safeStoreUrl(gift.purchaseUrl) : null,
+                purchaseUrl:
+                  gift.kind === "PRODUCT"
+                    ? safeStoreUrl(gift.purchaseUrl)
+                    : null,
                 priceLabel: formatCentsToBRL(
                   mine?.amountInCents ?? gift.priceInCents,
                 ),

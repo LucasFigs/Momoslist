@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 const dbUrl = process.env.TEST_DATABASE_URL;
 if (dbUrl) {
   const u = new URL(dbUrl);
@@ -145,10 +145,14 @@ test.describe("real local journeys", () => {
       await db.$disconnect();
     }
   });
-  test("store link works before identification on mobile and desktop", async ({ page }) => {
-    await page.context().route("https://shop.example.invalid/**", route =>
-      route.fulfill({ body: "Loja de teste" }),
-    );
+  test("store link works before identification on mobile and desktop", async ({
+    page,
+  }) => {
+    await page
+      .context()
+      .route("https://shop.example.invalid/**", (route) =>
+        route.fulfill({ body: "Loja de teste" }),
+      );
     for (const width of [375, 1280]) {
       await page.setViewportSize({ width, height: 850 });
       await page.goto(path);
@@ -161,9 +165,16 @@ test.describe("real local journeys", () => {
       await expect(store).toHaveURL("https://shop.example.invalid/panelas");
       await store.close();
       await expect(page.getByRole("dialog")).toHaveCount(0);
-      await page.getByRole("button", { name: "Ver presente", exact: true }).first().click();
-      await expect(page.getByRole("dialog").getByRole("link", { name: /Ver na loja/ })).toBeVisible();
-      expect(await db.giftReservation.count({ where: { gift: { eventId } } })).toBe(0);
+      await page
+        .getByRole("button", { name: "Ver presente", exact: true })
+        .first()
+        .click();
+      await expect(
+        page.getByRole("dialog").getByRole("link", { name: /Ver na loja/ }),
+      ).toBeVisible();
+      expect(
+        await db.giftReservation.count({ where: { gift: { eventId } } }),
+      ).toBe(0);
       await noOverflow(page);
     }
   });
@@ -226,6 +237,17 @@ test.describe("real local journeys", () => {
     await page.getByRole("button", { name: "Continuar", exact: true }).click();
     await page.getByLabel("Código de 6 dígitos").fill(await otp(guestEmail));
     await page.getByRole("button", { name: "Continuar", exact: true }).click();
+    await page.getByLabel("Sua mensagem").fill("Mensagem privada para o casal");
+    await page
+      .getByRole("button", { name: "Enviar recadinho", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "Editar meu recadinho" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Mensagem privada para o casal", { exact: true }),
+    ).toHaveCount(0);
+    await page.getByRole("button", { name: "Editar meu recadinho" }).click();
     await page.getByLabel("Sua mensagem").fill("Felicidades no novo cantinho!");
     await page.getByLabel("Quem pode ler?").selectOption("public");
     await accessible(page);
@@ -261,29 +283,44 @@ test.describe("real local journeys", () => {
     const storeLink = page.getByRole("link", { name: /Ver na loja/ }).first();
     await expect(storeLink).toHaveAttribute("target", "_blank");
     await expect(storeLink).toHaveAttribute("rel", "noopener noreferrer");
-    await page.context().route("https://shop.example.invalid/**", route => route.fulfill({ body: "Loja de teste" }));
-    const [store] = await Promise.all([page.waitForEvent("popup"), storeLink.click()]);
+    await page
+      .context()
+      .route("https://shop.example.invalid/**", (route) =>
+        route.fulfill({ body: "Loja de teste" }),
+      );
+    const [store] = await Promise.all([
+      page.waitForEvent("popup"),
+      storeLink.click(),
+    ]);
     await expect(store).toHaveURL("https://shop.example.invalid/panelas");
     await store.close();
-    expect(await db.giftReservation.count({ where: { gift: { eventId } } })).toBe(0);
+    expect(
+      await db.giftReservation.count({ where: { gift: { eventId } } }),
+    ).toBe(0);
     await page
       .getByRole("button", { name: "Ver presente", exact: true })
       .first()
       .click();
     await expect(
-      page.getByRole("dialog").getByText(
-        "Uma descrição completa que pode ser lida antes de reservar o presente.",
-        { exact: true },
-      ),
+      page
+        .getByRole("dialog")
+        .getByText(
+          "Uma descrição completa que pode ser lida antes de reservar o presente.",
+          { exact: true },
+        ),
     ).toBeVisible();
     expect(
       await db.giftReservation.count({ where: { gift: { eventId } } }),
     ).toBe(0);
     await page.getByRole("button", { name: "Escolher este presente" }).click();
     const pixMethod = page.getByRole("button", { name: "Presentear com Pix" });
-    const storeMethod = page.getByRole("button", { name: "Comprar em uma loja" });
+    const storeMethod = page.getByRole("button", {
+      name: "Comprar em uma loja",
+    });
     await expect(storeMethod).toBeVisible();
-    expect(await storeMethod.getAttribute("class")).toBe(await pixMethod.getAttribute("class"));
+    expect(await storeMethod.getAttribute("class")).toBe(
+      await pixMethod.getAttribute("class"),
+    );
     await pixMethod.click();
     await expect(page.getByRole("img", { name: "QR Code Pix" })).toBeVisible();
     await expect(
@@ -336,6 +373,8 @@ test.describe("real local journeys", () => {
     await expect(
       page.getByText("Muito amor no novo cantinho!", { exact: true }),
     ).toHaveCount(0);
+    await page.goto(`/previa/${eventId}`);
+    await expect(page.locator("main")).toHaveAttribute("inert", "");
     await page.goto("/dashboard/nova-lista");
     await page.getByLabel("Nome do evento").fill("Outra lista de teste");
     await page.getByLabel("Tipo do evento").selectOption("CHA_CASA_NOVA");
@@ -369,5 +408,210 @@ test.describe("real local journeys", () => {
     await page.getByLabel("Senha", { exact: true }).fill(password);
     await page.getByRole("button", { name: "Entrar", exact: true }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
+  });
+  test("real component previews and local performance observations", async ({
+    page,
+  }, info) => {
+    const before = await db.giftReservation.count({
+      where: { gift: { eventId } },
+    });
+    await page.addInitScript(() => {
+      const measurements = { lcp: null as number | null, cls: 0 };
+      (window as unknown as { localVitals: typeof measurements }).localVitals =
+        measurements;
+      try {
+        new PerformanceObserver((list) => {
+          for (const entry of list.getEntries())
+            measurements.lcp = entry.startTime;
+        }).observe({ type: "largest-contentful-paint", buffered: true });
+      } catch {}
+      try {
+        new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            const shift = entry as PerformanceEntry & {
+              value: number;
+              hadRecentInput: boolean;
+            };
+            if (!shift.hadRecentInput) measurements.cls += shift.value;
+          }
+        }).observe({ type: "layout-shift", buffered: true });
+      } catch {}
+    });
+    const observations = [];
+    await page.setViewportSize({ width: 375, height: 850 });
+    await page.goto("/");
+    await page
+      .getByText(/Veja a mesma interface usada/)
+      .scrollIntoViewIfNeeded();
+    await expect(page.locator("[data-demo=guest]")).toContainText(
+      "Jogo de panelas",
+    );
+    await expect(page.locator("[data-demo=dashboard]")).toContainText(
+      "Selecionados",
+    );
+    await expect(page.locator("[data-demo=guest]")).toHaveAttribute(
+      "inert",
+      "",
+    );
+    await accessible(page);
+    await noOverflow(page);
+    await page.screenshot({
+      path: info.outputPath("landing-real-components.png"),
+      fullPage: true,
+    });
+    for (const route of ["/", path]) {
+      await page.goto(route);
+      await page.waitForLoadState("networkidle");
+      observations.push(
+        await page.evaluate(() => {
+          const navigation = performance.getEntriesByType(
+            "navigation",
+          )[0] as PerformanceNavigationTiming;
+          return {
+            observations: (
+              window as unknown as {
+                localVitals: { lcp: number | null; cls: number };
+              }
+            ).localVitals,
+            ttfbMs: navigation.responseStart - navigation.requestStart,
+            transferBytes: navigation.transferSize,
+          };
+        }),
+      );
+    }
+    await info.attach("local-performance.json", {
+      body: JSON.stringify(
+        {
+          environment:
+            "local Edge, synthetic fixtures, no field data or INP claim",
+          routes: ["home", "public-list"],
+          observations,
+        },
+        null,
+        2,
+      ),
+      contentType: "application/json",
+    });
+    writeFileSync(
+      info.outputPath("local-performance.json"),
+      JSON.stringify(
+        {
+          environment:
+            "local Edge, synthetic fixtures, no field data or INP claim",
+          routes: ["home", "public-list"],
+          observations,
+        },
+        null,
+        2,
+      ),
+    );
+    expect(
+      await db.giftReservation.count({ where: { gift: { eventId } } }),
+    ).toBe(before);
+  });
+  test("external purchase stays unpaid until the guest declares it and the owner receives it", async ({
+    page,
+    context,
+  }) => {
+    const gift = await db.gift.create({
+      data: {
+        eventId,
+        name: "Presente da compra externa",
+        priceInCents: 9900,
+        purchaseUrl: "https://shop.example.invalid/externo",
+      },
+    });
+    await db.event.update({
+      where: { id: eventId },
+      data: { pixKey: null, pixKeyType: null },
+    });
+    await page.goto(path);
+    await page
+      .locator('[data-gift-id="' + gift.id + '"]')
+      .getByRole("button", { name: "Ver presente" })
+      .click();
+    await page.getByRole("button", { name: "Escolher este presente" }).click();
+    await page.getByLabel("Nome", { exact: false }).fill("Visitante da loja");
+    await page.getByLabel("E-mail", { exact: false }).fill(guestEmail);
+    await page.getByLabel("Telefone", { exact: false }).fill("85999999999");
+    // Reuse the verified mailbox; a fresh code is required in this new browser session.
+    let previousCode = "";
+    try {
+      previousCode =
+        JSON.parse(readFileSync(process.env.TEST_MAILBOX_FILE!, "utf8"))[
+          guestEmail
+        ] ?? "";
+    } catch {}
+    await page.getByRole("button", { name: "Continuar", exact: true }).click();
+    await expect.poll(async () => await otp(guestEmail)).not.toBe(previousCode);
+    await page.getByLabel("Código de 6 dígitos").fill(await otp(guestEmail));
+    await page.getByRole("button", { name: "Continuar", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "Comprar em uma loja", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Presentear com Pix", exact: true }),
+    ).toHaveCount(0);
+    await page
+      .getByRole("button", { name: "Comprar em uma loja", exact: true })
+      .click();
+    const store = page.getByRole("link", { name: "Abrir site da loja" });
+    await expect(store).toBeVisible();
+    await context.route("https://shop.example.invalid/**", (route) =>
+      route.fulfill({ body: "Loja de teste" }),
+    );
+    const [popup] = await Promise.all([
+      page.waitForEvent("popup"),
+      store.click(),
+    ]);
+    await popup.close();
+    expect(
+      (
+        await db.giftReservation.findFirstOrThrow({
+          where: { giftId: gift.id },
+        })
+      ).status,
+    ).toBe("CONFIRMED");
+    await page.getByRole("button", { name: "Já comprei", exact: true }).click();
+    await expect
+      .poll(
+        async () =>
+          (
+            await db.giftReservation.findFirstOrThrow({
+              where: { giftId: gift.id },
+            })
+          ).status,
+      )
+      .toBe("COMPLETED");
+    expect(
+      (
+        await db.giftReservation.findFirstOrThrow({
+          where: { giftId: gift.id },
+        })
+      ).receivedAt,
+    ).toBeNull();
+    await page.goto("/login");
+    await page.getByLabel("E-mail", { exact: true }).fill(email);
+    await page.getByLabel("Senha", { exact: true }).fill(password);
+    await page.getByRole("button", { name: "Entrar", exact: true }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await page.goto("/dashboard/eventos/" + eventId);
+    await page
+      .getByRole("button", { name: /Ver presentes reservados/ })
+      .click();
+    await page
+      .getByRole("button", { name: "Confirmar recebimento", exact: true })
+      .click();
+    await expect
+      .poll(async () =>
+        Boolean(
+          (
+            await db.giftReservation.findFirstOrThrow({
+              where: { giftId: gift.id },
+            })
+          ).receivedAt,
+        ),
+      )
+      .toBe(true);
   });
 });

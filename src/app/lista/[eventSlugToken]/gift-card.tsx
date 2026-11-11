@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, QrCode } from "lucide-react";
 
@@ -93,12 +93,22 @@ export function GiftCard({
   myReservation,
 }: GiftCardProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setPending] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [identifyOpen, setIdentifyOpen] = useState(false);
   // Verdadeiro logo após reservar: o diálogo abre sozinho assim que a reserva chega do servidor.
   const [inspectOpen, setInspectOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  useEffect(() => {
+    if (myReservation && window.location.hash === `#reserva-${gift.id}`) {
+      setDetailsOpen(true);
+      window.history.replaceState(
+        null,
+        "",
+        window.location.pathname + window.location.search,
+      );
+    }
+  }, [gift.id, myReservation]);
   const countdown = useCountdown(
     myReservation?.status === "TEMPORARY" ? myReservation.expiresAt : undefined,
   );
@@ -109,8 +119,21 @@ export function GiftCard({
     myReservation?.status === "TEMPORARY" && !myReservation.paymentMethod;
   const dimmed = showSoldOut || Boolean(myReservation);
 
-  function doReserve() {
-    startTransition(async () => {
+  function runMutation(action: () => Promise<void>) {
+    setPending(true);
+    void action()
+      .catch(() => {
+        toast({
+          title: "Não foi possível continuar",
+          description: "Confira sua conexão e tente novamente.",
+          variant: "destructive",
+        });
+      })
+      .finally(() => setPending(false));
+  }
+
+  function doReserve(reloadAfterIdentity = false) {
+    runMutation(async () => {
       const result = await createReservationAction(gift.id);
       if (!result.success) {
         toast({
@@ -123,7 +146,11 @@ export function GiftCard({
         return;
       }
       // Sem loja para escolher: já segue para o Pix, poupando um passo ao convidado.
-      if (pixOnly && pixConfigured && result.reservation.status === "TEMPORARY") {
+      if (
+        pixOnly &&
+        pixConfigured &&
+        result.reservation.status === "TEMPORARY"
+      ) {
         const chosen = await confirmReservationMethodAction(
           result.reservation.id,
           "PIX",
@@ -135,6 +162,13 @@ export function GiftCard({
             variant: "destructive",
           });
         }
+      }
+      if (reloadAfterIdentity) {
+        // A fresh document avoids retaining the pre-verification RSC tree.
+        // The hash only opens an already-owned reservation; it never creates one.
+        window.location.hash = `reserva-${gift.id}`;
+        window.location.reload();
+        return;
       }
       setDetailsOpen(true);
       router.refresh();
@@ -151,12 +185,12 @@ export function GiftCard({
 
   function handleIdentified() {
     setIdentifyOpen(false);
-    doReserve();
+    doReserve(true);
   }
 
   function handleChooseMethod(method: PaymentMethod) {
     if (!myReservation) return;
-    startTransition(async () => {
+    runMutation(async () => {
       const result = await confirmReservationMethodAction(
         myReservation.id,
         method,
@@ -174,7 +208,7 @@ export function GiftCard({
 
   function confirmCancel() {
     if (!myReservation) return;
-    startTransition(async () => {
+    runMutation(async () => {
       const result = await cancelReservationAction(myReservation.id);
       setConfirmOpen(false);
       if (!result.success) {
@@ -204,6 +238,7 @@ export function GiftCard({
 
   return (
     <Card
+      data-gift-id={gift.id}
       className={cn(
         "flex flex-col overflow-hidden",
         // Só o que está DISPONÍVEL tem fundo branco e cores cheias. Selecionado e indisponível ficam "apagados"
@@ -354,7 +389,11 @@ export function GiftCard({
             </p>
             <p className="text-sm text-muted-foreground">
               {availability.availableUnits} unidade(s) disponível(is).{" "}
-              {pixOnly ? "Presente por Pix." : pixConfigured ? "Compre em uma loja ou presenteie com Pix." : "Presente disponível para compra em loja."}
+              {pixOnly
+                ? "Presente por Pix."
+                : pixConfigured
+                  ? "Compre em uma loja ou presenteie com Pix."
+                  : "Presente disponível para compra em loja."}
             </p>
             <p className="text-xs text-muted-foreground">
               A reserva começa somente quando você escolhe presentear. O
@@ -381,7 +420,7 @@ export function GiftCard({
         onIdentified={handleIdentified}
       />
 
-      {myReservation && (
+      {myReservation && detailsOpen && (
         <ReservationDialog
           open={detailsOpen}
           onOpenChange={setDetailsOpen}
@@ -436,7 +475,8 @@ function StoreLink({ url }: { url: string }) {
   return (
     <Button asChild size="sm" variant="outline" className="w-full gap-1.5 px-2">
       <a href={url} target="_blank" rel="noopener noreferrer">
-        Ver na loja <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
+        Ver na loja{" "}
+        <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
         <span className="sr-only"> (abre em nova aba)</span>
       </a>
     </Button>

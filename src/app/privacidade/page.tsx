@@ -80,11 +80,11 @@ export default function PrivacyPage() {
             <strong className="text-foreground">
               Casais (quem cria a lista):
             </strong>{" "}
-            nome, e-mail e senha (armazenada apenas de forma criptografada). Se
-            você entrar com o Google, recebemos do Google apenas seu nome,
-            e-mail e foto de perfil. Também guardamos o que você cadastra na
-            lista: dados do evento, fotos, endereços, presentes e a chave Pix
-            que você escolhe exibir.
+            nome, e-mail e senha (armazenada como hash não reversível). Se você
+            entrar com o Google, recebemos do Google apenas seu nome, e-mail e
+            foto de perfil. Também guardamos o que você cadastra na lista: dados
+            do evento, fotos, endereços, presentes e a chave Pix que você
+            escolhe exibir.
           </p>
           <p>
             <strong className="text-foreground">
@@ -153,11 +153,12 @@ export default function PrivacyPage() {
           <p>
             A lista é acessível somente por quem tem o link. O casal vê os dados
             dos convidados que interagiram com a sua lista. Recadinhos privados
-            são visíveis somente aos organizadores; recadinhos públicos mostram
-            nome, mensagem e data a quem tem o link. Reservas, valores
+            não aparecem no mural público e podem ser consultados pelos
+            organizadores e pelo próprio autor identificado; recadinhos públicos
+            mostram nome, mensagem e data a quem tem o link. Reservas, valores
             individuais, e-mail e telefone não aparecem no mural. Recadinhos
-            anteriores a esta atualização são privados por padrão. A autoria de
-            mensagens independentes pode ser editada ou excluída pelo próprio
+            anteriores a esta atualização são privados por padrão. O conteúdo de
+            mensagens independentes pode ser editado ou excluído pelo próprio
             convidado identificado; organizadores podem ocultar mensagens
             públicas. Usamos provedores de infraestrutura (hospedagem, banco de
             dados e armazenamento de imagens) que tratam os dados em nosso nome
@@ -169,7 +170,10 @@ export default function PrivacyPage() {
           <p>
             Mantemos os dados enquanto a conta ou a lista existirem. Quando um
             evento é excluído, os presentes, reservas, contribuições e
-            confirmações de presença ligados a ele são removidos junto.
+            confirmações de presença e recadinhos independentes ligados a ele
+            são removidos junto. Estados de segurança expirados são removidos
+            pela rotina de manutenção; códigos e sessões vencidos não permitem
+            acesso mesmo antes dessa limpeza.
           </p>
         </Section>
 

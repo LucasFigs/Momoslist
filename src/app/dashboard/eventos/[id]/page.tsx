@@ -1,3 +1,4 @@
+import { expiredReservationWhere } from "@/lib/reservation-policy";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
@@ -54,11 +55,11 @@ export default async function EventoPage({
         orderBy: { createdAt: "asc" },
         include: {
           reservations: {
-            // Só a página pública marca TEMPORARY vencida como EXPIRED; aqui ela
-            // precisa ser ignorada na leitura, senão infla "reservados".
+            // Leituras ignoram apenas temporárias vencidas sem pagamento/compra;
+            // a expiração persistente ocorre nas ações, nunca no render.
             where: {
               status: { in: [...ACTIVE_RESERVATION_STATUSES] },
-              NOT: { status: "TEMPORARY", expiresAt: { lt: now } },
+              NOT: expiredReservationWhere(now),
             },
             include: { guest: { select: { name: true, email: true } } },
           },

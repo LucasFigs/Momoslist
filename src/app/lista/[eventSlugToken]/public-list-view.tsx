@@ -68,7 +68,9 @@ export function PublicListView({
   const suspenseKey = `${query}:${sort}`;
 
   // `inert` desativa cliques, foco e leitores de tela dentro do elemento (o scroll continua funcionando).
-  const inertProps = preview ? ({ inert: "" } as Record<string, string>) : {};
+  const inertProps = preview
+    ? ({ inert: true } as Record<string, boolean>)
+    : {};
 
   return (
     <>

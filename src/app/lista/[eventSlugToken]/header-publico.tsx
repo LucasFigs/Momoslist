@@ -1,3 +1,4 @@
+import { safeStoreUrl } from "@/lib/store-url";
 import { CalendarDays, MapPin } from "lucide-react";
 import { GiftImage } from "@/components/gift-image";
 import { FormattedText } from "@/components/formatted-text";
@@ -49,7 +50,13 @@ export function HeaderPublico({
         <div className="relative">
           <div className="relative aspect-[5/2] max-h-[380px] w-full overflow-hidden bg-gradient-to-br from-primary-soft to-primary-border sm:aspect-[3/1] sm:rounded-2xl">
             {coverImageUrl && (
-              <GiftImage src={coverImageUrl} alt="" fill priority sizes="(min-width: 1200px) 1152px, 100vw" />
+              <GiftImage
+                src={coverImageUrl}
+                alt=""
+                fill
+                priority
+                sizes="(min-width: 1200px) 1152px, 100vw"
+              />
             )}
           </div>
 
@@ -63,7 +70,12 @@ export function HeaderPublico({
               z-10 é obrigatório — a capa é `relative` e, sem isso, seria pintada por cima dele. */}
           <div className="absolute inset-x-0 bottom-0 z-10 flex translate-y-1/2 justify-center">
             <div className="h-24 w-24 overflow-hidden rounded-full border border-border bg-card ring-4 ring-background sm:h-32 sm:w-32">
-              <GiftImage src={profileImageUrl} alt={title} width={128} height={128} />
+              <GiftImage
+                src={profileImageUrl}
+                alt={title}
+                width={128}
+                height={128}
+              />
             </div>
           </div>
         </div>
@@ -84,30 +96,41 @@ export function HeaderPublico({
           <ul className="flex flex-col items-center gap-1.5 text-sm text-foreground">
             {eventDateLabel && (
               <li className="flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
+                <CalendarDays
+                  className="h-4 w-4 flex-shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
                 <span>{eventDateLabel}</span>
               </li>
             )}
             {locationName && (
               <li className="flex flex-col items-center gap-0.5">
                 <span className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <MapPin
+                    className="h-4 w-4 flex-shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                   {locationMapsUrl ? (
                     <a
-                      href={locationMapsUrl}
+                      href={safeStoreUrl(locationMapsUrl) ?? undefined}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-medium underline decoration-border underline-offset-4 hover:decoration-primary"
                     >
                       {locationName}
-                      <span className="sr-only"> (abre o mapa em nova aba)</span>
+                      <span className="sr-only">
+                        {" "}
+                        (abre o mapa em nova aba)
+                      </span>
                     </a>
                   ) : (
                     <span className="font-medium">{locationName}</span>
                   )}
                 </span>
                 {locationAddress && (
-                  <span className="max-w-md text-xs text-muted-foreground">{locationAddress}</span>
+                  <span className="max-w-md text-xs text-muted-foreground">
+                    {locationAddress}
+                  </span>
                 )}
               </li>
             )}
@@ -123,7 +146,11 @@ export function HeaderPublico({
         )}
 
         {/* Texto puro e copiável (o convidado cola no app da loja). Os ** de negrito não fazem sentido aqui. */}
-        {deliveryAddress && <CopyableAddress text={deliveryAddress.replace(/\*\*(.+?)\*\*/gs, "$1")} />}
+        {deliveryAddress && (
+          <CopyableAddress
+            text={deliveryAddress.replace(/\*\*(.+?)\*\*/gs, "$1")}
+          />
+        )}
       </div>
     </header>
   );

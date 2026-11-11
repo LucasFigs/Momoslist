@@ -6,6 +6,8 @@ export function expiredReservationWhere(
   return {
     status: "TEMPORARY",
     expiresAt: { lt: now },
+    purchaseConfirmedAt: null,
+    receivedAt: null,
     pixStatus: { notIn: ["DECLARED", "CONFIRMED"] },
   };
 }

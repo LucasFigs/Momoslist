@@ -1,4 +1,14 @@
 import {
+  setEventPublishedAction,
+  updateEventAction,
+} from "@/actions/event.actions";
+import { issueChallenge, consumeChallenge } from "@/lib/identity-challenge";
+import {
+  createGiftAction,
+  updateGiftAction,
+  deleteGiftAction,
+} from "@/actions/gift.actions";
+import {
   beforeAll,
   afterAll,
   beforeEach,
@@ -54,7 +64,13 @@ vi.mock("next/headers", () => ({
   },
   headers: async () => new Headers(),
 }));
-vi.mock("@/lib/email", () => ({ sendEmail: async () => true }));
+const mail = vi.hoisted(() => ({ code: "", sent: true }));
+vi.mock("@/lib/email", () => ({
+  sendEmail: async (input: { text: string }) => {
+    mail.code = input.text.match(/\b\d{6}\b/)?.[0] ?? "";
+    return mail.sent;
+  },
+}));
 import { prisma } from "@/lib/prisma";
 import {
   createGuestSession,
@@ -358,6 +374,158 @@ describe.runIf(Boolean(process.env.TEST_DATABASE_URL))(
         await prisma.rsvp.count({ where: { eventId, guestId: state.guestId } }),
       ).toBe(1);
     });
+    it("keeps a durable contribution retry key beyond the legacy minute window", async () => {
+      const requestKey = randomUUID();
+      expect(
+        (
+          await declareContributionAction(
+            fundId,
+            3000,
+            undefined,
+            false,
+            requestKey,
+          )
+        ).success,
+      ).toBe(true);
+      await prisma.contribution.updateMany({
+        where: { guestId: state.guestId, requestKey },
+        data: { declaredAt: new Date(Date.now() - 120000) },
+      });
+      expect(
+        (
+          await declareContributionAction(
+            fundId,
+            3000,
+            undefined,
+            false,
+            requestKey,
+          )
+        ).success,
+      ).toBe(true);
+      expect(
+        await prisma.contribution.count({
+          where: { guestId: state.guestId, requestKey },
+        }),
+      ).toBe(1);
+      expect(
+        (
+          await declareContributionAction(
+            fundId,
+            4000,
+            undefined,
+            false,
+            requestKey,
+          )
+        ).success,
+      ).toBe(false);
+    });
+    it("never expires legacy temporary holds with a declared payment", async () => {
+      const special = await prisma.gift.create({
+        data: { eventId, name: "Reserva legada", priceInCents: 1000 },
+      });
+      const protectedHold = await prisma.giftReservation.create({
+        data: {
+          giftId: special.id,
+          guestId: state.guestId,
+          status: "TEMPORARY",
+          paymentMethod: "PIX",
+          pixStatus: "DECLARED",
+          expiresAt: new Date(Date.now() - 1000),
+        },
+      });
+      expect((await createReservationAction(special.id)).success).toBe(true);
+      expect(
+        (
+          await prisma.giftReservation.findUniqueOrThrow({
+            where: { id: protectedHold.id },
+          })
+        ).status,
+      ).toBe("TEMPORARY");
+    });
+    it("denies all gift mutations for another organizer's event", async () => {
+      const owner = await prisma.user.create({
+        data: { email: "other-owner-" + prefix + "@example.invalid" },
+      });
+      try {
+        const foreign = await prisma.event.create({
+          data: {
+            ownerId: owner.id,
+            title: "Outra lista",
+            type: "CHA_CASA_NOVA",
+            slug: "foreign-" + prefix,
+            secureToken: randomUUID(),
+          },
+        });
+        const gift = await prisma.gift.create({
+          data: {
+            eventId: foreign.id,
+            name: "Outro presente",
+            priceInCents: 1000,
+          },
+        });
+        const form = new FormData();
+        form.set("name", "Alterado");
+        form.set("price", "20");
+        form.set("quantity", "1");
+        form.set("kind", "PRODUCT");
+        expect((await createGiftAction(foreign.id, form)).success).toBe(false);
+        expect((await updateGiftAction(gift.id, form)).success).toBe(false);
+        expect((await deleteGiftAction(gift.id)).success).toBe(false);
+        expect(
+          (await prisma.gift.findUniqueOrThrow({ where: { id: gift.id } }))
+            .name,
+        ).toBe("Outro presente");
+      } finally {
+        await prisma.user.delete({ where: { id: owner.id } });
+      }
+    });
+    it("requires a delivered, unexpired, purpose-bound, single-use email code", async () => {
+      expect(
+        await issueChallenge("proof-" + prefix + "@example.invalid", {
+          purpose: "guest",
+          email: "proof@example.invalid",
+        }),
+      ).toBe(true);
+      const code = mail.code;
+      expect(await consumeChallenge(code, "organizer")).toBeNull();
+      expect(await consumeChallenge(code, "guest")).not.toBeNull();
+      expect(await consumeChallenge(code, "guest")).toBeNull();
+      expect(
+        await issueChallenge("expiry-" + prefix + "@example.invalid", {
+          purpose: "guest",
+        }),
+      ).toBe(true);
+      const id = state.cookies.get("momos_identity_challenge")!;
+      await prisma.identityChallenge.update({
+        where: { id },
+        data: { expiresAt: new Date(Date.now() - 1000) },
+      });
+      expect(await consumeChallenge(mail.code, "guest")).toBeNull();
+      mail.sent = false;
+      expect(
+        await issueChallenge("failed-" + prefix + "@example.invalid", {
+          purpose: "guest",
+        }),
+      ).toBe(false);
+      mail.sent = true;
+    });
+    it("limits attempts atomically even with simultaneous wrong codes", async () => {
+      expect(
+        await issueChallenge("attempts-" + prefix + "@example.invalid", {
+          purpose: "guest",
+        }),
+      ).toBe(true);
+      const correct = mail.code;
+      const id = state.cookies.get("momos_identity_challenge")!;
+      await Promise.all(
+        Array.from({ length: 8 }, () => consumeChallenge("000000", "guest")),
+      );
+      expect(
+        (await prisma.identityChallenge.findUniqueOrThrow({ where: { id } }))
+          .attempts,
+      ).toBe(5);
+      expect(await consumeChallenge(correct, "guest")).toBeNull();
+    });
     it("rejects interactions after unpublishing", async () => {
       await prisma.event.update({
         where: { id: eventId },
@@ -381,11 +549,71 @@ describe.runIf(Boolean(process.env.TEST_DATABASE_URL))(
         ).success,
       ).toBe(false);
     });
+    it("allows only the author to withdraw their note after unpublishing", async () => {
+      await prisma.eventMessage.upsert({
+        where: { eventId_guestId: { eventId, guestId: state.guestId } },
+        create: { eventId, guestId: state.guestId, message: "Privado" },
+        update: { message: "Privado" },
+      });
+      expect((await deleteEventMessageAction(eventId)).success).toBe(true);
+      expect(
+        await prisma.eventMessage.count({
+          where: { eventId, guestId: state.guestId },
+        }),
+      ).toBe(0);
+    });
     it("enforces shared rate limits atomically", async () => {
       const results = await Promise.all(
         Array.from({ length: 10 }, () => takeRateLimit("test", prefix, 3, 60)),
       );
       expect(results.filter(Boolean)).toHaveLength(3);
+    });
+    it("keeps published Pix configuration valid and checks readiness transactionally", async () => {
+      await prisma.event.update({
+        where: { id: eventId },
+        data: { published: true },
+      });
+      const form = new FormData();
+      form.set("title", "Nosso cantinho");
+      form.set("type", "CHA_CASA_NOVA");
+      form.set("pixKey", "");
+      form.set("pixKeyType", "");
+      expect((await updateEventAction(eventId, form)).success).toBe(false);
+      expect(
+        (await prisma.event.findUniqueOrThrow({ where: { id: eventId } }))
+          .pixKey,
+      ).toBeTruthy();
+      await prisma.event.update({
+        where: { id: eventId },
+        data: { published: false, pixKey: null, pixKeyType: null },
+      });
+      expect((await setEventPublishedAction(eventId, true)).success).toBe(
+        false,
+      );
+      await prisma.event.update({
+        where: { id: eventId },
+        data: { published: true },
+      });
+      const giftForm = new FormData();
+      giftForm.set("name", "Pix indisponível");
+      giftForm.set("kind", "PIX");
+      giftForm.set("price", "20,00");
+      giftForm.set("quantity", "1");
+      expect((await createGiftAction(eventId, giftForm)).success).toBe(false);
+    });
+    it("limits repeated RSVP updates without creating duplicate responses", async () => {
+      const input = {
+        status: "ATTENDING" as const,
+        companionAdults: 0,
+        companionChildren: 0,
+        companionNames: "",
+      };
+      for (let index = 0; index < 12; index++)
+        await saveRsvpAction(eventId, input);
+      expect((await saveRsvpAction(eventId, input)).success).toBe(false);
+      expect(
+        await prisma.rsvp.count({ where: { eventId, guestId: state.guestId } }),
+      ).toBe(1);
     });
   },
 );

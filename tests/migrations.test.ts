@@ -41,6 +41,7 @@ INSERT INTO contributions (id,"giftId","guestId","amountInCents",message,"update
 INSERT INTO rsvps (id,"eventId","guestId",status,"updatedAt") VALUES ('rsvp','event','guest','ATTENDING',now());
 ${expansion}
 ${policies}
+${readFileSync("prisma/migrations/20261110020000_contribution_idempotency/migration.sql", "utf8")}
 DO $$ BEGIN
  IF (SELECT count(*) FROM users) <> 1 OR (SELECT count(*) FROM guests) <> 1 OR (SELECT count(*) FROM events) <> 1 OR (SELECT count(*) FROM rsvps) <> 1 THEN RAISE EXCEPTION 'Legacy data lost'; END IF;
  IF NOT EXISTS (SELECT 1 FROM gift_reservations WHERE id='reservation' AND "amountInCents"=12000 AND message='Recado antigo' AND "messagePublic"=false) THEN RAISE EXCEPTION 'Reservation migration failed'; END IF;

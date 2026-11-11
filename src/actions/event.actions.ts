@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -148,21 +149,46 @@ async function updateEventActionImpl(
     locationMapsUrl,
   } = parsed.data;
 
-  await prisma.event.update({
-    where: { id: eventId },
-    data: {
-      title,
-      type,
-      description: description || null,
-      eventDate: eventDate ?? null,
-      pixKey: pixKey || null,
-      pixKeyType: pixKeyType || null,
-      deliveryAddress: deliveryAddress || null,
-      locationName: locationName || null,
-      locationAddress: locationAddress || null,
-      locationMapsUrl: locationMapsUrl || null,
-    },
-  });
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        const current = await tx.event.findFirst({
+          where: { id: eventId, ownerId: session.user!.id },
+        });
+        if (!current) throw new Error("EventUnavailable");
+        if (
+          current.published &&
+          (!pixKey || !pixKeyType) &&
+          (await tx.gift.count({
+            where: { eventId, kind: { in: ["PIX", "FUND"] } },
+          }))
+        )
+          throw new Error("PixRequired");
+        await tx.event.update({
+          where: { id: eventId },
+          data: {
+            title,
+            type,
+            description: description || null,
+            eventDate: eventDate ?? null,
+            pixKey: pixKey || null,
+            pixKeyType: pixKeyType || null,
+            deliveryAddress: deliveryAddress || null,
+            locationName: locationName || null,
+            locationAddress: locationAddress || null,
+            locationMapsUrl: locationMapsUrl || null,
+          },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  } catch {
+    return {
+      success: false,
+      error:
+        "Não foi possível salvar. Listas publicadas com itens Pix ou vaquinhas precisam manter a chave Pix; despublique antes de removê-la.",
+    };
+  }
 
   revalidatePath(`/dashboard/eventos/${eventId}`);
   return { success: true };
@@ -184,26 +210,35 @@ async function setEventPublishedActionImpl(
 
   if (typeof published !== "boolean")
     return { success: false, error: "Status inválido." };
-  if (published) {
-    const needsPix = await prisma.gift.count({
-      where: { eventId, kind: { in: ["PIX", "FUND"] } },
-    });
-    if (needsPix && (!owned.pixKey || !owned.pixKeyType))
-      return {
-        success: false,
-        error:
-          "Configure a chave Pix antes de publicar itens Pix ou vaquinhas.",
-      };
-    const giftCount = await prisma.gift.count({ where: { eventId } });
-    if (giftCount === 0) {
-      return {
-        success: false,
-        error: "Adicione ao menos um presente antes de publicar.",
-      };
-    }
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        const current = await tx.event.findFirst({
+          where: { id: eventId, ownerId: session.user!.id },
+        });
+        if (!current) throw new Error("EventUnavailable");
+        if (published) {
+          const giftCount = await tx.gift.count({ where: { eventId } });
+          const needsPix = await tx.gift.count({
+            where: { eventId, kind: { in: ["PIX", "FUND"] } },
+          });
+          if (
+            !giftCount ||
+            (needsPix && (!current.pixKey || !current.pixKeyType))
+          )
+            throw new Error("NotReady");
+        }
+        await tx.event.update({ where: { id: eventId }, data: { published } });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  } catch {
+    return {
+      success: false,
+      error:
+        "Adicione um presente e configure a chave Pix para itens Pix ou vaquinhas antes de publicar. Se a lista mudou, tente novamente.",
+    };
   }
-
-  await prisma.event.update({ where: { id: eventId }, data: { published } });
 
   revalidatePath(`/dashboard/eventos/${eventId}`);
   revalidatePath("/dashboard");

@@ -1,4 +1,5 @@
 "use server";
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
@@ -40,28 +41,38 @@ export async function saveEventMessageAction(
         success: false as const,
         error: "Aguarde alguns minutos antes de enviar novamente.",
       };
-    const event = await prisma.event.findFirst({
-      where: { id: eventId, published: true },
-      select: { id: true },
-    });
-    if (!event)
-      return {
-        success: false as const,
-        error: "Esta lista não está recebendo recadinhos.",
-      };
-    await prisma.eventMessage.upsert({
-      where: { eventId_guestId: { eventId, guestId: guest.id } },
-      create: {
-        eventId,
-        guestId: guest.id,
-        message: note.value,
-        public: isPublic,
-      },
-      // An edit cannot undo organizer moderation.
-      update: { message: note.value, public: isPublic },
-    });
-    await refresh(eventId);
-    return { success: true as const };
+    const messageText = note.value;
+    return await prisma
+      .$transaction(
+        async (tx) => {
+          const event = await tx.event.findFirst({
+            where: { id: eventId, published: true },
+            select: { id: true },
+          });
+          if (!event)
+            return {
+              success: false as const,
+              error: "Esta lista não está recebendo recadinhos.",
+            };
+          await tx.eventMessage.upsert({
+            where: { eventId_guestId: { eventId, guestId: guest.id } },
+            create: {
+              eventId,
+              guestId: guest.id,
+              message: messageText,
+              public: isPublic,
+            },
+            // An edit cannot undo organizer moderation.
+            update: { message: messageText, public: isPublic },
+          });
+          return { success: true as const };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      )
+      .then(async (result) => {
+        if (result.success) await refresh(eventId);
+        return result;
+      });
   });
 }
 export async function deleteEventMessageAction(
@@ -72,7 +83,7 @@ export async function deleteEventMessageAction(
     if (!guest)
       return { success: false as const, error: "Identifique-se novamente." };
     await prisma.eventMessage.deleteMany({
-      where: { eventId, guestId: guest.id, event: { published: true } },
+      where: { eventId, guestId: guest.id },
     });
     await refresh(eventId);
     return { success: true as const };

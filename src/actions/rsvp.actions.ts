@@ -1,5 +1,7 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
+import { takeRateLimit } from "@/lib/rate-limit";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
@@ -39,6 +41,12 @@ async function saveRsvpActionImpl(
     };
   }
 
+  if (!(await takeRateLimit("rsvp", guest.id, 10, 900)))
+    return {
+      success: false,
+      error: "Aguarde alguns minutos antes de alterar sua presença novamente.",
+    };
+
   // A regra vale no servidor (não só na tela): lista publicada e confirmações ligadas pelo casal.
   // Já carrega tudo que o e-mail de confirmação precisa, para não fazer uma segunda consulta depois.
   const event = await prisma.event.findUnique({
@@ -63,11 +71,21 @@ async function saveRsvpActionImpl(
   }
 
   try {
-    await prisma.rsvp.upsert({
-      where: { eventId_guestId: { eventId, guestId: guest.id } },
-      create: { eventId, guestId: guest.id, ...parsed.data },
-      update: parsed.data,
-    });
+    await prisma.$transaction(
+      async (tx) => {
+        const open = await tx.event.findFirst({
+          where: { id: eventId, published: true, rsvpEnabled: true },
+          select: { id: true },
+        });
+        if (!open) throw new Error("RsvpClosed");
+        await tx.rsvp.upsert({
+          where: { eventId_guestId: { eventId, guestId: guest.id } },
+          create: { eventId, guestId: guest.id, ...parsed.data },
+          update: parsed.data,
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
   } catch (error) {
     logger.error("saveRsvp", error, { eventId, guestId: guest.id });
     return {

@@ -282,6 +282,7 @@ model GiftReservation {
 // conflito entre convidados que contribuem ao mesmo tempo). O progresso separa o
 // que o casal já confirmou (CONFIRMED) do que só foi declarado (DECLARED).
 model Contribution {
+  requestKey String?
   id      String @id @default(cuid())
   giftId  String
   guestId String
@@ -307,6 +308,7 @@ model Contribution {
 
   @@index([giftId, status])
   @@index([guestId])
+  @@unique([guestId, requestKey])
   @@map("contributions")
 }
 

@@ -12,15 +12,16 @@ Esta documentação descreve a operação do produto. Planejamento e resultados 
 
 ## Migrations
 
-O projeto anterior não possuía histórico de migrations. Há uma baseline do schema anterior e duas migrations aditivas:
+O projeto anterior não possuía histórico de migrations. Há uma baseline do schema anterior e três migrations aditivas:
 
 - `00000000000000_baseline`: schema anterior, para bancos novos.
 - `20261110000000_security_messages`: sessões opacas, desafios de identidade, limites persistentes, mural independente, visibilidade/moderação e snapshot de valores; sem exclusões.
 - `20261110010000_domain_rls`: RLS nas tabelas de domínio/autenticação e revogação do acesso direto por papéis de API públicos. Nenhum registro é apagado.
+- `20261110020000_contribution_idempotency`: chave opcional por tentativa de contribuição, com índice único por convidado. Registros antigos continuam válidos sem a chave; a interface nova a reutiliza ao repetir uma tentativa.
 
 **Banco existente:** compare seu schema real com a baseline antes de qualquer comando. Se ele corresponder integralmente e ainda não houver histórico, marque apenas a baseline como já aplicada com `npx prisma migrate resolve --applied 00000000000000_baseline`. Isso não cria tabelas. Havendo divergências ou migrations já existentes, reconcilie o histórico em staging; não marque uma baseline por suposição.
 
-Depois da conferência, execute `npm run db:deploy` no ambiente correto. Banco novo aplica as três migrations normalmente. Não copie as URLs locais de testes para produção.
+Depois da conferência, execute `npm run db:deploy` no ambiente correto. Banco novo aplica as quatro migrations normalmente. Não copie as URLs locais de testes para produção. Em tabelas grandes, ensaie o tempo de criação do índice e os bloqueios em staging antes de abrir a janela de atualização.
 
 O backfill de `amountInCents` usa o preço atual do catálogo para reservas antigas: o sistema anterior não guardava valores históricos e eles não podem ser reconstruídos com certeza. Confira reservas/Pix pendentes com o extrato antes de liberar a versão. Novas reservas congelam o valor ao reservar; um trigger também protege inserções de instâncias antigas durante uma atualização gradual.
 

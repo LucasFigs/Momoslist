@@ -95,23 +95,45 @@ async function createGiftActionImpl(
     imageUrl = uploadResult.url;
   }
 
-  await prisma.gift.create({
-    data: {
-      eventId,
-      kind,
-      name,
-      description: description || null,
-      purchaseUrl: purchaseUrl || null,
-      priceInCents,
-      minContributionInCents:
-        kind === "FUND" && minContribution
-          ? parsePriceToCents(minContribution)
-          : null,
-      quantity,
-      imageUrl,
-    },
-  });
-
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        const currentEvent = await tx.event.findFirst({
+          where: { id: eventId, ownerId: session.user!.id },
+        });
+        if (
+          !currentEvent ||
+          (currentEvent.published &&
+            kind !== "PRODUCT" &&
+            (!currentEvent.pixKey || !currentEvent.pixKeyType))
+        )
+          throw new Error("UnavailablePayment");
+        await tx.gift.create({
+          data: {
+            eventId,
+            kind,
+            name,
+            description: description || null,
+            purchaseUrl: purchaseUrl || null,
+            priceInCents,
+            minContributionInCents:
+              kind === "FUND" && minContribution
+                ? parsePriceToCents(minContribution)
+                : null,
+            quantity,
+            imageUrl,
+          },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  } catch {
+    return {
+      success: false,
+      error:
+        "Confira a chave Pix e a publicação da lista antes de adicionar este presente.",
+    };
+  }
   revalidatePath(`/dashboard/eventos/${eventId}`);
   return { success: true };
 }
@@ -177,6 +199,16 @@ async function updateGiftActionImpl(
           where: { id: giftId, event: { ownerId } },
         });
         if (!current) throw new Error("GiftUnavailable");
+        const currentEvent = await tx.event.findUnique({
+          where: { id: current.eventId },
+        });
+        if (
+          !currentEvent ||
+          (currentEvent.published &&
+            kind !== "PRODUCT" &&
+            (!currentEvent.pixKey || !currentEvent.pixKeyType))
+        )
+          throw new Error("UnavailablePayment");
         const count = await tx.giftReservation.count({
           where: { giftId, status: { in: [...ACTIVE_RESERVATION_STATUSES] } },
         });

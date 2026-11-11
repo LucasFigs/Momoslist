@@ -1,7 +1,11 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { takeRateLimit } from "@/lib/rate-limit";
-import { isValidPaymentMethod } from "@/lib/reservation-policy";
+import {
+  isValidPaymentMethod,
+  expiredReservationWhere,
+} from "@/lib/reservation-policy";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { RESERVATION_TIMEOUT_MINUTES } from "@/lib/utils";
@@ -56,7 +60,7 @@ async function createReservationActionImpl(
 
         // 1. Expira reservas temporárias vencidas antes de contar disponibilidade.
         await tx.giftReservation.updateMany({
-          where: { giftId, status: "TEMPORARY", expiresAt: { lt: now } },
+          where: { giftId, ...expiredReservationWhere(now) },
           data: { status: "EXPIRED" },
         });
 
@@ -100,6 +104,8 @@ async function createReservationActionImpl(
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
 
+    revalidatePath("/lista/[eventSlugToken]", "page");
+    revalidatePath("/dashboard", "layout");
     return {
       success: true,
       reservation: {
@@ -181,8 +187,7 @@ async function confirmReservationMethodActionImpl(
     await prisma.giftReservation.updateMany({
       where: {
         id: reservationId,
-        status: "TEMPORARY",
-        expiresAt: { lt: new Date() },
+        ...expiredReservationWhere(),
       },
       data: { status: "EXPIRED" },
     });
@@ -273,7 +278,7 @@ async function cancelReservationActionImpl(
     return {
       success: false,
       error:
-        "O casal já confirmou o recebimento do seu Pix. Fale com o casal para qualquer ajuste.",
+        "Seu Pix já foi informado ou confirmado. Fale com o casal para qualquer ajuste.",
     };
   }
 
@@ -294,6 +299,8 @@ async function cancelReservationActionImpl(
       error: "A reserva mudou. Atualize a página ou fale com o casal.",
     };
 
+  revalidatePath("/lista/[eventSlugToken]", "page");
+  revalidatePath("/dashboard", "layout");
   return { success: true };
 }
 

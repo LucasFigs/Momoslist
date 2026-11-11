@@ -121,11 +121,22 @@ async function declareContributionActionImpl(
   amountInCents: number,
   message?: string,
   messagePublic = false,
+  requestKey?: string,
 ): Promise<SimpleResult> {
   const guest = await getCurrentGuest();
   if (!guest)
     return { success: false, error: "Identifique-se para contribuir." };
 
+  if (
+    requestKey !== undefined &&
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      requestKey,
+    )
+  )
+    return {
+      success: false,
+      error: "Identificador de contribuição inválido. Reabra o formulário.",
+    };
   const loaded = await loadFundForContribution(giftId, amountInCents);
   if (!loaded.ok) return { success: false, error: loaded.error };
 
@@ -147,22 +158,30 @@ async function declareContributionActionImpl(
         const fund = await tx.gift.findFirst({
           where: { id: giftId, kind: "FUND", event: { published: true } },
         });
-        if (!fund) throw new Error("FundUnavailable");
+        if (!fund || amountInCents < (fund.minContributionInCents ?? 1))
+          throw new Error("FundUnavailable");
         const duplicate = await tx.contribution.findFirst({
           where: {
             giftId,
             guestId: guest.id,
             amountInCents,
             status: { in: ["DECLARED", "CONFIRMED"] },
-            declaredAt: { gt: new Date(Date.now() - 60_000) },
+            ...(requestKey
+              ? { requestKey }
+              : { declaredAt: { gt: new Date(Date.now() - 60_000) } }),
           },
         });
-        if (duplicate) return false;
+        if (duplicate) {
+          if (duplicate.amountInCents !== amountInCents)
+            throw new Error("ContributionChanged");
+          return false;
+        }
         await tx.contribution.create({
           data: {
             giftId,
             guestId: guest.id,
             amountInCents,
+            requestKey,
             message: note.value,
             messagePublic,
           },
@@ -334,6 +353,7 @@ export async function declareContributionAction(
   amountInCents: number,
   message?: string,
   messagePublic = false,
+  requestKey?: string,
 ): Promise<SimpleResult> {
   return withErrorHandling("declareContributionAction", () =>
     declareContributionActionImpl(
@@ -341,6 +361,7 @@ export async function declareContributionAction(
       amountInCents,
       message,
       messagePublic,
+      requestKey,
     ),
   );
 }

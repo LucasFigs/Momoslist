@@ -73,6 +73,16 @@ async function getPaymentDetailsActionImpl(
   }
 
   if (
+    reservation.paymentMethod === "PIX" &&
+    (!reservation.gift.event.pixKey || !reservation.gift.event.pixKeyType)
+  ) {
+    return {
+      success: false,
+      error: "A chave Pix não está disponível. Avise os organizadores.",
+    };
+  }
+
+  if (
     reservation.status === "TEMPORARY" &&
     reservation.paymentMethod &&
     reservation.expiresAt > new Date()
@@ -655,7 +665,7 @@ export async function releaseUnpaidReservationAction(
         error:
           "A reserva mudou ou já tem pagamento/compra informado. Confira antes de ajustar.",
       };
-    revalidatePath("/dashboard");
+    revalidatePath("/dashboard", "layout");
     return { success: true as const };
   });
 }

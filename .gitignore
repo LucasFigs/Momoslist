@@ -2,12 +2,26 @@ node_modules
 .next
 .env
 .env.local
+.env*
+!.env.example
+.local/
+.agents/
+.codex/
+coverage/
+test-results/
+playwright-report/
+artifacts/
+*.dump
+*.sql.gz
+*.key
+*.pem
 *.log
 .DS_Store
 
 # Vercel / TypeScript / geração local
 .vercel
 *.tsbuildinfo
+next-env.d.ts
 .env*.local
 
 # Configuração local do Claude Code

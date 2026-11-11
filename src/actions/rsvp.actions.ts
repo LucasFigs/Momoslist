@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getCurrentGuest } from "@/lib/guest-session";
-import { logger } from "@/lib/logger";
+import { logger, withErrorHandling } from "@/lib/logger";
 import { sendEmail } from "@/lib/email";
 import { rsvpConfirmationEmail } from "@/lib/email-templates";
 import { rsvpSchema, type RsvpInput } from "@/schemas/rsvp.schema";
@@ -20,13 +20,23 @@ type SimpleResult = { success: true } | { success: false; error: string };
  * Registra (ou atualiza) a confirmação de presença do convidado identificado. Uma resposta por lista:
  * responder de novo troca a anterior — é assim que a pessoa "altera" ou muda para "não vou".
  */
-export async function saveRsvpAction(eventId: string, input: RsvpInput): Promise<SimpleResult> {
+async function saveRsvpActionImpl(
+  eventId: string,
+  input: RsvpInput,
+): Promise<SimpleResult> {
   const guest = await getCurrentGuest();
-  if (!guest) return { success: false, error: "Identifique-se para confirmar sua presença." };
+  if (!guest)
+    return {
+      success: false,
+      error: "Identifique-se para confirmar sua presença.",
+    };
 
   const parsed = rsvpSchema.safeParse(input);
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Confira os dados informados." };
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Confira os dados informados.",
+    };
   }
 
   // A regra vale no servidor (não só na tela): lista publicada e confirmações ligadas pelo casal.
@@ -46,7 +56,10 @@ export async function saveRsvpAction(eventId: string, input: RsvpInput): Promise
     },
   });
   if (!event || !event.published || !event.rsvpEnabled) {
-    return { success: false, error: "As confirmações de presença não estão abertas para esta lista." };
+    return {
+      success: false,
+      error: "As confirmações de presença não estão abertas para esta lista.",
+    };
   }
 
   try {
@@ -57,7 +70,10 @@ export async function saveRsvpAction(eventId: string, input: RsvpInput): Promise
     });
   } catch (error) {
     logger.error("saveRsvp", error, { eventId, guestId: guest.id });
-    return { success: false, error: "Não foi possível salvar agora. Tente novamente." };
+    return {
+      success: false,
+      error: "Não foi possível salvar agora. Tente novamente.",
+    };
   }
 
   // E-mail de cortesia: nunca bloqueia a resposta do convidado se falhar (ver lib/email.ts).
@@ -67,7 +83,11 @@ export async function saveRsvpAction(eventId: string, input: RsvpInput): Promise
     ...rsvpConfirmationEmail({
       guestName,
       event,
-      answer: { status: parsed.data.status, companionAdults: parsed.data.companionAdults, companionChildren: parsed.data.companionChildren },
+      answer: {
+        status: parsed.data.status,
+        companionAdults: parsed.data.companionAdults,
+        companionChildren: parsed.data.companionChildren,
+      },
     }),
   });
 
@@ -81,37 +101,76 @@ export async function saveRsvpAction(eventId: string, input: RsvpInput): Promise
 
 async function requireOwnedEvent(eventId: string) {
   const session = await auth();
-  if (!session?.user?.id) return { ok: false as const, error: "Você precisa estar logado." };
+  if (!session?.user?.id)
+    return { ok: false as const, error: "Você precisa estar logado." };
 
-  const event = await prisma.event.findUnique({ where: { id: eventId }, select: { ownerId: true } });
-  if (!event || event.ownerId !== session.user.id) return { ok: false as const, error: "Lista não encontrada." };
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { ownerId: true },
+  });
+  if (!event || event.ownerId !== session.user.id)
+    return { ok: false as const, error: "Lista não encontrada." };
   return { ok: true as const };
 }
 
 /** Liga/desliga o recebimento de confirmações. Desligar NÃO apaga as respostas já recebidas. */
-export async function setRsvpEnabledAction(eventId: string, enabled: boolean): Promise<SimpleResult> {
+async function setRsvpEnabledActionImpl(
+  eventId: string,
+  enabled: boolean,
+): Promise<SimpleResult> {
+  if (typeof enabled !== "boolean")
+    return { success: false, error: "Opção inválida." };
   const owned = await requireOwnedEvent(eventId);
   if (!owned.ok) return { success: false, error: owned.error };
 
-  await prisma.event.update({ where: { id: eventId }, data: { rsvpEnabled: enabled } });
+  await prisma.event.update({
+    where: { id: eventId },
+    data: { rsvpEnabled: enabled },
+  });
 
   revalidatePath(`/dashboard/eventos/${eventId}`);
   return { success: true };
 }
 
 /** Remove uma resposta (ex.: duplicada ou de alguém que pediu para sair da contagem). */
-export async function deleteRsvpAction(rsvpId: string): Promise<SimpleResult> {
+async function deleteRsvpActionImpl(rsvpId: string): Promise<SimpleResult> {
   const session = await auth();
-  if (!session?.user?.id) return { success: false, error: "Você precisa estar logado." };
+  if (!session?.user?.id)
+    return { success: false, error: "Você precisa estar logado." };
 
   const rsvp = await prisma.rsvp.findUnique({
     where: { id: rsvpId },
     select: { eventId: true, event: { select: { ownerId: true } } },
   });
-  if (!rsvp || rsvp.event.ownerId !== session.user.id) return { success: false, error: "Resposta não encontrada." };
+  if (!rsvp || rsvp.event.ownerId !== session.user.id)
+    return { success: false, error: "Resposta não encontrada." };
 
   await prisma.rsvp.delete({ where: { id: rsvpId } });
 
   revalidatePath(`/dashboard/eventos/${rsvp.eventId}`);
   return { success: true };
+}
+
+export async function saveRsvpAction(
+  eventId: string,
+  input: RsvpInput,
+): Promise<SimpleResult> {
+  return withErrorHandling("saveRsvpAction", () =>
+    saveRsvpActionImpl(eventId, input),
+  );
+}
+
+export async function setRsvpEnabledAction(
+  eventId: string,
+  enabled: boolean,
+): Promise<SimpleResult> {
+  return withErrorHandling("setRsvpEnabledAction", () =>
+    setRsvpEnabledActionImpl(eventId, enabled),
+  );
+}
+
+export async function deleteRsvpAction(rsvpId: string): Promise<SimpleResult> {
+  return withErrorHandling("deleteRsvpAction", () =>
+    deleteRsvpActionImpl(rsvpId),
+  );
 }

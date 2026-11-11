@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { safeRedirect } from "@/lib/safe-redirect";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +12,7 @@ import { PasswordInput } from "@/components/ui/password-input";
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/dashboard";
+  const callbackUrl = safeRedirect(searchParams.get("callbackUrl"));
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +26,9 @@ export function LoginForm() {
       });
 
       if (result?.error) {
-        setError("E-mail ou senha incorretos. Se sua conta foi criada com o Google, use o botão “Entrar com Google”.");
+        setError(
+          "E-mail ou senha incorretos. Se sua conta foi criada com o Google, use o botão “Entrar com Google”.",
+        );
         return;
       }
 
@@ -37,6 +40,19 @@ export function LoginForm() {
 
   return (
     <div className="flex flex-col gap-5">
+      <p className="text-sm text-muted-foreground">
+        Se você criou sua conta com senha antes desta atualização,{" "}
+        <a className="underline" href="/cadastro">
+          confirme seu e-mail e defina uma nova senha
+        </a>{" "}
+        para continuar.
+      </p>
+      {searchParams.get("error") && (
+        <p role="alert" className="text-sm text-destructive">
+          Não foi possível entrar com esse método. Use o método original da
+          conta. Contas Google e senha não são vinculadas automaticamente.
+        </p>
+      )}
       {justSignedUp && (
         <p
           role="status"

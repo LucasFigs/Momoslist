@@ -17,13 +17,20 @@ interface SendEmailInput {
  * função nunca lança — o convidado não pode ficar sem resposta (reserva, confirmação de presença) só porque
  * um e-mail de cortesia não saiu.
  */
-export async function sendEmail({ to, subject, html, text }: SendEmailInput): Promise<void> {
+export async function sendEmail(
+  { to, subject, html, text }: SendEmailInput,
+  required = false,
+): Promise<boolean> {
   const user = process.env.GMAIL_USER;
   const pass = process.env.GMAIL_APP_PASSWORD;
 
-  if (!user || !pass) {
-    logger.info("email", "Envio pulado: GMAIL_USER/GMAIL_APP_PASSWORD não configurados.", { to, subject });
-    return;
+  const smtpHost = process.env.SMTP_HOST;
+  const sender =
+    process.env.EMAIL_FROM_ADDRESS || process.env.SMTP_USER || user;
+  if ((!smtpHost && (!user || !pass)) || !sender) {
+    if (required)
+      logger.info("email", "Verificação indisponível: SMTP não configurado.");
+    return false;
   }
 
   const fromName = process.env.EMAIL_FROM_NAME?.trim() || "Momoslist";
@@ -31,9 +38,38 @@ export async function sendEmail({ to, subject, html, text }: SendEmailInput): Pr
   try {
     // Sem cache entre chamadas: cada função serverless pode rodar num processo novo, e criar o transporte
     // é só configuração local — a conexão de verdade com o Gmail só abre dentro de sendMail.
-    const transporter = nodemailer.createTransport({ service: "gmail", auth: { user, pass } });
-    await transporter.sendMail({ from: `"${fromName}" <${user}>`, to, subject, html, text });
+    const transporter = nodemailer.createTransport(
+      smtpHost
+        ? {
+            host: smtpHost,
+            port: Number(process.env.SMTP_PORT || 587),
+            secure: process.env.SMTP_SECURE === "true",
+            ...(process.env.SMTP_USER && {
+              auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASSWORD,
+              },
+            }),
+            connectionTimeout: 10000,
+            socketTimeout: 15000,
+          }
+        : {
+            service: "gmail",
+            auth: { user, pass },
+            connectionTimeout: 10000,
+            socketTimeout: 15000,
+          },
+    );
+    await transporter.sendMail({
+      from: `"${fromName}" <${sender}>`,
+      to,
+      subject,
+      html,
+      text,
+    });
+    return true;
   } catch (error) {
-    logger.error("email", error, { to, subject });
+    logger.error("email", error);
+    return false;
   }
 }

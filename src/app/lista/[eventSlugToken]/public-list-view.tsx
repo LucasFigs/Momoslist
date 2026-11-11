@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { Wordmark } from "@/components/wordmark";
 import { Suspense } from "react";
 import type { Event, Gift, Guest } from "@prisma/client";
 
@@ -46,12 +48,20 @@ export function PublicListView({
   preview = false,
 }: PublicListViewProps) {
   const eventDateLabel = event.eventDate
-    ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeStyle: "short" }).format(new Date(event.eventDate))
+    ? new Intl.DateTimeFormat("pt-BR", {
+        dateStyle: "long",
+        timeStyle: "short",
+      }).format(new Date(event.eventDate))
     : null;
 
-  const hasExternalPurchaseGift = event.gifts.some((gift) => Boolean(gift.purchaseUrl));
+  const hasExternalPurchaseGift = event.gifts.some((gift) =>
+    Boolean(gift.purchaseUrl),
+  );
   // Só o acento muda por lista; a base neutra da marca é fixa. Contraste garantido em lib/theme.
-  const themeStyle = themeStyleFor(themeColorOverride ?? event.themeColor, event.theme) as React.CSSProperties;
+  const themeStyle = themeStyleFor(
+    themeColorOverride ?? event.themeColor,
+    event.theme,
+  ) as React.CSSProperties;
 
   // Uma combinação de filtros por requisição basta para dar ao React um key
   // novo e reiniciar o Suspense (mostrando o skeleton) a cada busca/ordenação.
@@ -64,10 +74,16 @@ export function PublicListView({
     <>
       {preview && (
         <div className="sticky top-0 z-40 bg-foreground px-4 py-1.5 text-center text-xs text-background">
-          Pré-visualização — só você vê isto{!event.published && " · lista em rascunho"}. Os botões ficam desativados.
+          Pré-visualização — só você vê isto
+          {!event.published && " · lista em rascunho"}. Os botões ficam
+          desativados.
         </div>
       )}
-      <main className="list-theme min-h-screen" style={themeStyle} {...inertProps}>
+      <main
+        className="list-theme min-h-screen"
+        style={themeStyle}
+        {...inertProps}
+      >
         <HeaderPublico
           title={event.title}
           type={event.type}
@@ -86,7 +102,8 @@ export function PublicListView({
           <div className="border-b border-border bg-card">
             <div className="container flex items-center justify-between py-2 text-xs text-muted-foreground">
               <span>
-                Identificado(a) como <strong className="text-foreground">{guest.name}</strong>
+                Identificado(a) como{" "}
+                <strong className="text-foreground">{guest.name}</strong>
               </span>
               <SwitchGuestButton />
             </div>
@@ -95,8 +112,15 @@ export function PublicListView({
 
         {/* Confirmação de presença: só aparece se o casal ligou (Configurações → Confirmações). */}
         {event.rsvpEnabled && (
-          <section aria-label="Confirmação de presença" className="container pb-6 pt-5 sm:pb-8 sm:pt-6">
-            <RsvpSection eventId={event.id} isIdentified={Boolean(guest)} mine={myRsvp} />
+          <section
+            aria-label="Confirmação de presença"
+            className="container pb-6 pt-5 sm:pb-8 sm:pt-6"
+          >
+            <RsvpSection
+              eventId={event.id}
+              isIdentified={Boolean(guest)}
+              mine={myRsvp}
+            />
           </section>
         )}
 
@@ -112,7 +136,9 @@ export function PublicListView({
 
               <TabsContent value="presentes">
                 <div className="mb-5 flex flex-col gap-1">
-                  <h2 className="font-serif text-2xl font-medium text-foreground sm:text-3xl">Lista de presentes</h2>
+                  <h2 className="font-serif text-2xl font-medium text-foreground sm:text-3xl">
+                    Lista de presentes
+                  </h2>
                   {hasExternalPurchaseGift && (
                     <p className="max-w-2xl text-sm text-muted-foreground">
                       Itens de loja são comprados no site do vendedor, não aqui.
@@ -122,7 +148,9 @@ export function PublicListView({
 
                 {event.gifts.length > 0 && (
                   // useSearchParams exige um Suspense próprio, separado do da listagem.
-                  <Suspense fallback={<div className="mb-6 h-11" aria-hidden="true" />}>
+                  <Suspense
+                    fallback={<div className="mb-6 h-11" aria-hidden="true" />}
+                  >
                     <GiftFilters />
                   </Suspense>
                 )}
@@ -142,17 +170,26 @@ export function PublicListView({
 
               <TabsContent value="recadinhos">
                 <div className="mb-5 flex flex-col gap-1">
-                  <h2 className="font-serif text-2xl font-medium text-foreground sm:text-3xl">Mural de recadinhos</h2>
+                  <h2 className="font-serif text-2xl font-medium text-foreground sm:text-3xl">
+                    Mural de recadinhos
+                  </h2>
                   <p className="max-w-2xl text-sm text-muted-foreground">
-                    Dá uma espiadinha nos recadinhos que a galera já deixou pro casal.
+                    Dá uma espiadinha nos recadinhos que a galera já deixou pro
+                    casal.
                   </p>
                 </div>
 
                 <Suspense
                   fallback={
-                    <div className="grid gap-3 sm:grid-cols-2" aria-hidden="true">
+                    <div
+                      className="grid gap-3 sm:grid-cols-2"
+                      aria-hidden="true"
+                    >
                       {Array.from({ length: 4 }).map((_, index) => (
-                        <div key={index} className="h-28 animate-pulse rounded-lg bg-muted" />
+                        <div
+                          key={index}
+                          className="h-28 animate-pulse rounded-lg bg-muted"
+                        />
                       ))}
                     </div>
                   }
@@ -163,6 +200,15 @@ export function PublicListView({
             </Tabs>
           </div>
         </section>
+        <footer className="border-t border-border py-6 text-center">
+          <Link
+            href="/"
+            className="inline-flex min-h-11 flex-col items-center justify-center gap-1 rounded-md px-4 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <span>Feito com carinho no</span>
+            <Wordmark />
+          </Link>
+        </footer>
       </main>
     </>
   );

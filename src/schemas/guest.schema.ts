@@ -11,6 +11,7 @@ export const guestIdentifySchema = z.object({
     .string()
     .trim()
     .min(8, "Informe um telefone com DDD")
+    .max(30)
     .transform((value) => value.replace(/\D/g, ""))
     .refine((value) => value.length >= 10 && value.length <= 13, {
       message: "Informe um telefone válido com DDD",

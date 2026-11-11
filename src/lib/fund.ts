@@ -32,10 +32,16 @@ export function computeFundProgress(totals: FundTotals): FundProgress {
   const raisedInCents = confirmedInCents + pendingInCents;
   const safeGoal = Math.max(goalInCents, 1);
 
-  const percent = Math.round((raisedInCents / safeGoal) * 100);
-  const confirmedBarPercent = Math.min((confirmedInCents / safeGoal) * 100, 100);
+  const percent = Math.round((confirmedInCents / safeGoal) * 100);
+  const confirmedBarPercent = Math.min(
+    (confirmedInCents / safeGoal) * 100,
+    100,
+  );
   // O trecho "aguardando" só ocupa o que sobra até 100%.
-  const pendingBarPercent = Math.min((pendingInCents / safeGoal) * 100, 100 - confirmedBarPercent);
+  const pendingBarPercent = Math.min(
+    (pendingInCents / safeGoal) * 100,
+    100 - confirmedBarPercent,
+  );
 
   return {
     ...totals,
@@ -43,15 +49,23 @@ export function computeFundProgress(totals: FundTotals): FundProgress {
     percent,
     confirmedBarPercent,
     pendingBarPercent,
-    reached: raisedInCents >= goalInCents,
-    overflowInCents: Math.max(raisedInCents - goalInCents, 0),
-    remainingInCents: Math.max(goalInCents - raisedInCents, 0),
+    reached: confirmedInCents >= goalInCents,
+    overflowInCents: Math.max(confirmedInCents - goalInCents, 0),
+    remainingInCents: Math.max(goalInCents - confirmedInCents, 0),
   };
 }
 
 /** Sugestões de valor para o convidado tocar em vez de digitar: mínimo, múltiplos e "completar a meta". */
-export function suggestContributionAmounts(minInCents: number, remainingInCents: number): number[] {
-  const suggestions = new Set<number>([minInCents, minInCents * 2, minInCents * 5, minInCents * 10]);
+export function suggestContributionAmounts(
+  minInCents: number,
+  remainingInCents: number,
+): number[] {
+  const suggestions = new Set<number>([
+    minInCents,
+    minInCents * 2,
+    minInCents * 5,
+    minInCents * 10,
+  ]);
   // Só oferece "completar a meta" quando é um valor que faz sentido (acima do mínimo).
   if (remainingInCents > minInCents) suggestions.add(remainingInCents);
 

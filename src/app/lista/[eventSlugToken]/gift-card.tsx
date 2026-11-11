@@ -6,6 +6,15 @@ import { Check, QrCode } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogTitle,
+  SheetContent,
+  SheetHeader,
+  SheetBody,
+  SheetFooter,
+} from "@/components/ui/dialog";
+import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { GiftImage } from "@/components/gift-image";
@@ -18,7 +27,11 @@ import {
   cancelReservationAction,
 } from "@/actions/reservation.actions";
 import { IdentifyGuestDialog } from "./identify-guest-dialog";
-import { ReservationDialog, type MyReservation, type PaymentMethod } from "./reservation-dialog";
+import {
+  ReservationDialog,
+  type MyReservation,
+  type PaymentMethod,
+} from "./reservation-dialog";
 
 interface GiftCardProps {
   gift: {
@@ -27,11 +40,13 @@ interface GiftCardProps {
     description: string | null;
     imageUrl: string | null;
     priceLabel: string;
+    purchaseUrl: string | null;
   };
   availability: GiftAvailability;
   isIdentified: boolean;
   /** Item do tipo Pix: ainda sem loja, então só se presenteia por Pix (o método é escolhido sozinho). */
   pixOnly?: boolean;
+  pixConfigured: boolean;
   myReservation: MyReservation | null;
 }
 
@@ -69,34 +84,56 @@ function useCountdown(expiresAt: string | undefined) {
  * o selo sobre a foto, o contorno e o texto do botão — o passo a passo (Pix/loja) abre no diálogo.
  * Assim a grade não "pula" ao reservar nem ao desistir.
  */
-export function GiftCard({ gift, availability, isIdentified, pixOnly = false, myReservation }: GiftCardProps) {
+export function GiftCard({
+  gift,
+  availability,
+  isIdentified,
+  pixOnly = false,
+  pixConfigured,
+  myReservation,
+}: GiftCardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [identifyOpen, setIdentifyOpen] = useState(false);
   // Verdadeiro logo após reservar: o diálogo abre sozinho assim que a reserva chega do servidor.
+  const [inspectOpen, setInspectOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const countdown = useCountdown(myReservation?.status === "TEMPORARY" ? myReservation.expiresAt : undefined);
+  const countdown = useCountdown(
+    myReservation?.status === "TEMPORARY" ? myReservation.expiresAt : undefined,
+  );
 
   const isSelectable = availability.status !== "UNAVAILABLE";
   const showSoldOut = !myReservation && !isSelectable;
-  const isChoosingMethod = myReservation?.status === "TEMPORARY";
+  const isChoosingMethod =
+    myReservation?.status === "TEMPORARY" && !myReservation.paymentMethod;
   const dimmed = showSoldOut || Boolean(myReservation);
 
   function doReserve() {
     startTransition(async () => {
       const result = await createReservationAction(gift.id);
       if (!result.success) {
-        toast({ title: "Não foi possível reservar", description: result.error, variant: "destructive" });
+        toast({
+          title: "Não foi possível reservar",
+          description: result.error,
+          variant: "destructive",
+        });
         // Pode ter sido um conflito (outra pessoa pegou a última unidade): atualiza o card.
         router.refresh();
         return;
       }
       // Sem loja para escolher: já segue para o Pix, poupando um passo ao convidado.
-      if (pixOnly && result.reservation.status === "TEMPORARY") {
-        const chosen = await confirmReservationMethodAction(result.reservation.id, "PIX");
+      if (pixOnly && pixConfigured && result.reservation.status === "TEMPORARY") {
+        const chosen = await confirmReservationMethodAction(
+          result.reservation.id,
+          "PIX",
+        );
         if (!chosen.success) {
-          toast({ title: "Não foi possível continuar", description: chosen.error, variant: "destructive" });
+          toast({
+            title: "Não foi possível continuar",
+            description: chosen.error,
+            variant: "destructive",
+          });
         }
       }
       setDetailsOpen(true);
@@ -120,9 +157,16 @@ export function GiftCard({ gift, availability, isIdentified, pixOnly = false, my
   function handleChooseMethod(method: PaymentMethod) {
     if (!myReservation) return;
     startTransition(async () => {
-      const result = await confirmReservationMethodAction(myReservation.id, method);
+      const result = await confirmReservationMethodAction(
+        myReservation.id,
+        method,
+      );
       if (!result.success) {
-        toast({ title: "Não foi possível continuar", description: result.error, variant: "destructive" });
+        toast({
+          title: "Não foi possível continuar",
+          description: result.error,
+          variant: "destructive",
+        });
       }
       router.refresh();
     });
@@ -134,20 +178,29 @@ export function GiftCard({ gift, availability, isIdentified, pixOnly = false, my
       const result = await cancelReservationAction(myReservation.id);
       setConfirmOpen(false);
       if (!result.success) {
-        toast({ title: "Não foi possível desistir", description: result.error, variant: "destructive" });
+        toast({
+          title: "Não foi possível desistir",
+          description: result.error,
+          variant: "destructive",
+        });
         return;
       }
       // Fecha o passo a passo: o card volta sozinho ao estado normal quando a reserva some do servidor.
       setDetailsOpen(false);
-      toast({ title: "Reserva cancelada", description: "O presente voltou a ficar disponível." });
+      toast({
+        title: "Reserva cancelada",
+        description: "O presente voltou a ficar disponível.",
+      });
       router.refresh();
     });
   }
 
   const pixAlreadyDeclared =
-    myReservation?.paymentMethod === "PIX" && myReservation.pixStatus === "DECLARED";
+    myReservation?.paymentMethod === "PIX" &&
+    myReservation.pixStatus === "DECLARED";
   const purchaseAlreadyConfirmed =
-    myReservation?.paymentMethod === "EXTERNAL_PURCHASE" && myReservation.status === "COMPLETED";
+    myReservation?.paymentMethod === "EXTERNAL_PURCHASE" &&
+    myReservation.status === "COMPLETED";
 
   return (
     <Card
@@ -157,19 +210,27 @@ export function GiftCard({ gift, availability, isIdentified, pixOnly = false, my
         // (fundo cinza-quente, foto esmaecida): ninguém confunde o que ainda dá para presentear.
         dimmed && "bg-muted/50",
         // Selecionado por mim: além de apagado, ganha o contorno na cor da lista.
-        myReservation && "border-primary/60 ring-1 ring-primary/30"
+        myReservation && "border-primary/60 ring-1 ring-primary/30",
       )}
     >
       {/* Quadrado em todas as telas (igual ao GiftCardSkeleton). "contain": a foto aparece inteira,
           sem recorte — o que sobra nas laterais fica em branco, como numa vitrine de produto. */}
-      <div className={cn("relative aspect-square w-full border-b border-border", dimmed ? "bg-muted/60" : "bg-white")}>
+      <div
+        className={cn(
+          "relative aspect-square w-full border-b border-border",
+          dimmed ? "bg-muted/60" : "bg-white",
+        )}
+      >
         <GiftImage
           src={gift.imageUrl}
           alt={gift.name}
           fill
           fit="contain"
           sizes="(min-width: 1024px) 285px, (min-width: 768px) 33vw, 50vw"
-          className={cn(showSoldOut && "opacity-40 grayscale", myReservation && "opacity-60 saturate-50")}
+          className={cn(
+            showSoldOut && "opacity-40 grayscale",
+            myReservation && "opacity-60 saturate-50",
+          )}
         />
         {showSoldOut && (
           <Badge variant="overlayDark" className="absolute left-2 top-2">
@@ -181,7 +242,10 @@ export function GiftCard({ gift, availability, isIdentified, pixOnly = false, my
         {pixOnly && (
           <Badge
             variant="overlay"
-            className={cn("absolute top-2", myReservation || showSoldOut ? "right-2" : "left-2")}
+            className={cn(
+              "absolute top-2",
+              myReservation || showSoldOut ? "right-2" : "left-2",
+            )}
           >
             <QrCode className="h-3 w-3 text-primary" aria-hidden="true" />
             Pix
@@ -201,7 +265,7 @@ export function GiftCard({ gift, availability, isIdentified, pixOnly = false, my
           <h3
             className={cn(
               "line-clamp-2 break-words text-[15px] font-medium leading-snug sm:text-base",
-              dimmed ? "text-muted-foreground" : "text-foreground"
+              dimmed ? "text-muted-foreground" : "text-foreground",
             )}
           >
             {gift.name}
@@ -220,17 +284,21 @@ export function GiftCard({ gift, availability, isIdentified, pixOnly = false, my
             className={cn(
               "text-base font-semibold tabular-nums",
               dimmed ? "text-muted-foreground" : "text-foreground",
-              showSoldOut && "line-through decoration-muted-foreground/60"
+              showSoldOut && "line-through decoration-muted-foreground/60",
             )}
           >
             {gift.priceLabel}
           </span>
 
+          {gift.purchaseUrl && <StoreLink url={gift.purchaseUrl} />}
           {myReservation ? (
             <>
               {isChoosingMethod && (
                 <p className="text-xs text-muted-foreground">
-                  Reservado por <span className="font-semibold tabular-nums text-foreground">{countdown ?? "--:--"}</span>
+                  Reservado por{" "}
+                  <span className="font-semibold tabular-nums text-foreground">
+                    {countdown ?? "--:--"}
+                  </span>
                 </p>
               )}
               <Button
@@ -243,18 +311,70 @@ export function GiftCard({ gift, availability, isIdentified, pixOnly = false, my
                 {isChoosingMethod ? "Continuar" : "Ver detalhes"}
               </Button>
             </>
-          ) : !isSelectable ? (
+          ) : !isSelectable || (pixOnly && !pixConfigured) ? (
             <Button size="sm" variant="secondary" disabled className="w-full">
               Indisponível
             </Button>
           ) : (
-            <Button size="sm" variant="soft" onClick={handleReserve} disabled={isPending} className="w-full">
-              {isPending ? "Reservando..." : "Presentear"}
+            <Button
+              size="sm"
+              variant="soft"
+              onClick={() => setInspectOpen(true)}
+              disabled={isPending}
+              className="w-full"
+            >
+              {isPending ? "Reservando..." : "Ver presente"}
             </Button>
           )}
         </div>
       </CardContent>
 
+      <Dialog open={inspectOpen} onOpenChange={setInspectOpen}>
+        <SheetContent aria-describedby={undefined}>
+          <SheetHeader>
+            <DialogTitle>{gift.name}</DialogTitle>
+          </SheetHeader>
+          <SheetBody className="space-y-4">
+            <div className="relative mx-auto aspect-square w-full max-w-xs overflow-hidden rounded-xl bg-white">
+              <GiftImage
+                src={gift.imageUrl}
+                alt={gift.name}
+                fill
+                fit="contain"
+                sizes="300px"
+              />
+            </div>
+            {gift.description && (
+              <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">
+                {gift.description}
+              </p>
+            )}
+            <p className="text-2xl font-semibold tabular-nums">
+              {gift.priceLabel}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {availability.availableUnits} unidade(s) disponível(is).{" "}
+              {pixOnly ? "Presente por Pix." : pixConfigured ? "Compre em uma loja ou presenteie com Pix." : "Presente disponível para compra em loja."}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              A reserva começa somente quando você escolhe presentear. O
+              pagamento é feito no aplicativo do banco ou na loja.
+            </p>
+          </SheetBody>
+          <SheetFooter>
+            {gift.purchaseUrl && <StoreLink url={gift.purchaseUrl} />}
+            <Button
+              disabled={isPending || !isSelectable}
+              onClick={() => {
+                setInspectOpen(false);
+                handleReserve();
+              }}
+            >
+              Escolher este presente
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Dialog>
       <IdentifyGuestDialog
         open={identifyOpen}
         onOpenChange={setIdentifyOpen}
@@ -272,6 +392,7 @@ export function GiftCard({ gift, availability, isIdentified, pixOnly = false, my
           countdown={countdown}
           isPending={isPending}
           pixOnly={pixOnly}
+          pixConfigured={pixConfigured}
           onChooseMethod={handleChooseMethod}
           onCancel={() => setConfirmOpen(true)}
         />
@@ -293,8 +414,10 @@ export function GiftCard({ gift, availability, isIdentified, pixOnly = false, my
           ) : purchaseAlreadyConfirmed ? (
             <>
               A unidade voltará a ficar disponível para outros convidados.{" "}
-              <strong className="text-foreground">Isso não cancela a compra na loja</strong> — se você já comprou de
-              verdade, cancele o pedido por lá.
+              <strong className="text-foreground">
+                Isso não cancela a compra na loja
+              </strong>{" "}
+              — se você já comprou de verdade, cancele o pedido por lá.
             </>
           ) : (
             "A unidade voltará a ficar disponível para outros convidados."
@@ -306,5 +429,16 @@ export function GiftCard({ gift, availability, isIdentified, pixOnly = false, my
         onConfirm={confirmCancel}
       />
     </Card>
+  );
+}
+
+function StoreLink({ url }: { url: string }) {
+  return (
+    <Button asChild size="sm" variant="outline" className="w-full gap-1.5 px-2">
+      <a href={url} target="_blank" rel="noopener noreferrer">
+        Ver na loja <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
+        <span className="sr-only"> (abre em nova aba)</span>
+      </a>
+    </Button>
   );
 }

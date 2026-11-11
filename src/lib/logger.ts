@@ -1,3 +1,4 @@
+import { unstable_rethrow } from "next/navigation";
 /**
  * Observabilidade mínima (seções 37 e 38 do documento):
  * detalhes técnicos vão para o log do servidor, o usuário recebe uma
@@ -16,9 +17,11 @@ export const logger = {
       level: "error",
       scope,
       timestamp: new Date().toISOString(),
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-      ...context,
+      message: error instanceof Error ? error.name : "UnexpectedError",
+      code:
+        typeof error === "object" && error && "code" in error
+          ? String(error.code).slice(0, 30)
+          : undefined,
     };
     console.error(JSON.stringify(payload));
   },
@@ -30,8 +33,7 @@ export const logger = {
         scope,
         timestamp: new Date().toISOString(),
         message,
-        ...context,
-      })
+      }),
     );
   },
 };
@@ -43,11 +45,12 @@ export const logger = {
 export async function withErrorHandling<T>(
   scope: string,
   fn: () => Promise<T>,
-  context?: LogContext
+  context?: LogContext,
 ): Promise<T | { success: false; error: string }> {
   try {
     return await fn();
   } catch (error) {
+    unstable_rethrow(error);
     logger.error(scope, error, context);
     return { success: false, error: GENERIC_ERROR_MESSAGE };
   }

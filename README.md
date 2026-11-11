@@ -5,7 +5,7 @@
 **A lista de presentes do seu chá de panela ou casa nova, num link só.**
 Sem planilha, sem presente repetido e sem o convidado precisar criar conta.
 
-![Next.js](https://img.shields.io/badge/Next.js_14-000000?style=flat&logo=nextdotjs&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js_15-000000?style=flat&logo=nextdotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
 ![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat&logo=prisma&logoColor=white)
@@ -18,6 +18,14 @@ Sem planilha, sem presente repetido e sem o convidado precisar criar conta.
 </div>
 
 ---
+
+## Atualização de segurança e recadinhos
+
+Convidados confirmam o e-mail com código de uso único, sem senha. Organizadores com cadastro por senha também verificam o e-mail. Contas antigas sem verificação precisam confirmar o e-mail e definir uma nova senha em `/cadastro`; suas listas são preservadas. Google e senha não são associados automaticamente.
+
+**Antes de implantar, leia [o procedimento de atualização](docs/deployment.md)**: esta versão requer SMTP funcionando, migrations aditivas e conferência das permissões de banco e Storage. Não use `db push` para atualizar um banco em uso.
+
+Verificações: `npm test`, `npm run typecheck`, `npm run lint`, `npm run build` e `npm audit`. Os testes de banco e navegador exigem serviços locais isolados, conforme [o guia de testes](docs/testing.md). Planos, relatórios de execução, capturas, dados de testes e configurações particulares ficam em `.local/` e são ignorados pelo Git.
 
 ## ✨ O que é
 
@@ -32,8 +40,8 @@ O **Momoslist** é uma plataforma web para montar **listas de presentes de chá 
 
 | | | |
 |---|---|---|
-| 🎁 **Presentes, Pix e Vaquinha**<br>Três tipos de item para cada situação, com loja, só Pix ou meta coletiva. | 💌 **Recadinhos**<br>O convidado deixa uma mensagem carinhosa ao presentear; o casal lê tudo numa aba própria. | 🙋 **Confirmação de presença**<br>Quem vai, com quantos acompanhantes, adultos e crianças, com totais e CSV. |
-| ⚡ **Pix na hora**<br>QR Code e Pix Copia e Cola gerados com o valor exato, sem intermediário. | 🎨 **A cara do evento**<br>Capa, foto e cor de destaque por lista, com contraste de acessibilidade garantido. | 🔒 **Privado por link**<br>Só entra quem recebe o link; recados e dados dos convidados só o casal vê. |
+| 🎁 **Presentes, Pix e Vaquinha**<br>Três tipos de item para cada situação, com loja, só Pix ou meta coletiva. | 💌 **Recadinhos**<br>O convidado escreve com ou sem presente, escolhe público ou privado e pode editar ou excluir. | 🙋 **Confirmação de presença**<br>Quem vai, com quantos acompanhantes, adultos e crianças, com totais e CSV. |
+| ⚡ **Pix na hora**<br>QR Code e Pix Copia e Cola gerados com o valor exato, sem intermediário. | 🎨 **A cara do evento**<br>Capa, foto e cor de destaque por lista, com contraste de acessibilidade garantido. | 🔒 **Privado por link**<br>Só entra quem recebe o link; dados de contato e escolhas ficam com o casal; recados públicos são escolhidos pelo autor. |
 | 📱 **Feito para o celular**<br>O convidado abre pelo WhatsApp e resolve em poucos toques. | 🧭 **Painel organizado**<br>Resumo, presentes, confirmações, recadinhos e configurações em abas. | 🚫 **Sem presente repetido**<br>Reservas protegidas no banco contra escolhas simultâneas. |
 
 ## 🎯 Por que existe
@@ -92,7 +100,7 @@ flowchart LR
 
 1. Abre o link recebido no WhatsApp e vê a **capa, o local, a data e a mensagem** do casal.
 2. Navega pela vitrine (busca e ordenação ficam na URL) e toca em **Presentear** ou **Contribuir**.
-3. Se apresenta uma única vez com nome, e-mail e telefone. Sem senha.
+3. Informa nome, e-mail e telefone e confirma o código recebido no e-mail. Sem senha.
 4. Escolhe **loja** ou **Pix**. Itens só-Pix e vaquinhas já seguem direto para o pagamento.
 5. Paga com o **QR Code** ou o **Copia e Cola** e, se quiser, **deixa um recadinho**.
 6. Toca em **Já fiz o Pix** (ou **Já comprei**). Pode **confirmar presença** e voltar depois para editar o recado ou desistir.
@@ -166,7 +174,7 @@ Resumo │ Presentes │ Confirmações │ Recadinhos ⑦ │ Configurações
 
 ### 💍 Para o casal (painel, feito para desktop e responsivo)
 
-- **Conta** por e-mail e senha ou **login com Google**; as duas se unem quando o e-mail é o mesmo.
+- **Conta** por e-mail e senha ou **login com Google**; cada método mantém sua identidade, sem vinculação automática por e-mail.
 - **Lista completa:** tipo de evento, data e horário, local com link do mapa, endereço de entrega e uma mensagem que preserva parágrafos.
 - **Aparência própria:** capa, foto de perfil e **cor de destaque** por lista. A paleta é derivada da cor escolhida com **contraste de acessibilidade (WCAG AA)** garantido.
 - **Pix pendente sempre à vista:** logo abaixo do cabeçalho, em qualquer aba, uma faixa reúne todo Pix aguardando confirmação — de presente, item Pix ou vaquinha — com um botão para confirmar (ou recusar, no caso de vaquinha) sem precisar caçar em qual aba ele está.
@@ -183,12 +191,12 @@ Resumo │ Presentes │ Confirmações │ Recadinhos ⑦ │ Configurações
 
 ### 📱 Para o convidado (página pública, feita para o celular)
 
-- **Um link**, sem cadastro com senha. Ao escolher algo, informa só nome, e-mail e telefone.
-- **Vitrine** de 2 colunas no celular, com foto inteira (sem recortes), **busca e ordenação** que ficam na URL (dá para compartilhar o link já filtrado).
+- **Um link**, sem cadastro com senha. Ao interagir, informa nome, e-mail e telefone e confirma o e-mail com código.
+- **Vitrine** de uma coluna nas telas mais estreitas e duas a partir de 360 px, com foto inteira (sem recortes), **busca e ordenação** que ficam na URL (dá para compartilhar o link já filtrado).
 - **Sinalização clara:** itens só-Pix e vaquinhas têm selo próprio na foto, então o convidado sabe de antemão como vai presentear.
-- **Reserva com prazo** e possibilidade de **desistir a qualquer momento**, inclusive depois de confirmar.
+- **Reserva com prazo** antes de abrir as instruções; pagamentos possivelmente realizados ficam preservados para conferência. Pix declarado/confirmado e presentes recebidos exigem ajuste com o casal.
 - **Vitrine organizada por prioridade:** por padrão, o que já foi escolhido ou uma vaquinha que já bateu a meta desce para o fim da lista — quem chega vê primeiro o que ainda precisa de ajuda.
-- **Recadinho para o casal:** ao presentear (loja, Pix ou vaquinha) há um convite discreto para deixar uma mensagem de até 500 caracteres. Dá para escrevê-la antes de avisar o pagamento ou **depois**, e editar ou remover quando quiser. Só o casal lê.
+- **Recadinhos com ou sem presente:** até 500 caracteres, com escolha explícita entre público e privado. Recadinhos independentes podem ser editados e excluídos pelo autor; o organizador pode ocultar mensagens do mural.
 - **Pix com QR Code e Copia e Cola** gerados na hora, com o valor exato.
 - **Vaquinha** com progresso, quanto falta e contribuição a partir do mínimo. Ao bater a meta, ela fica sinalizada como "concluída" (a contribuição continua aberta, mas deixa de chamar atenção).
 - **Confirmação de presença:** vai ou não vai, com quantos acompanhantes, adultos, crianças e, opcionalmente, **os nomes de quem vai junto** — útil para o casal montar uma lista de recepção ou de portaria.
@@ -201,17 +209,17 @@ Resumo │ Presentes │ Confirmações │ Recadinhos ⑦ │ Configurações
 |---|---|
 | **Acesso à lista** | A URL exige **slug e token seguro** juntos, e a lista precisa estar publicada; caso contrário, 404. Listas não são indexadas por buscadores (`noindex`), mas geram prévia no WhatsApp. |
 | **Concorrência** | A reserva roda em uma transação com isolamento **Serializable**: se dois convidados pegam a última unidade ao mesmo tempo, o banco aceita só uma. |
-| **Reserva temporária** | Expira após `RESERVATION_TIMEOUT_MINUTES` (padrão 15). A expiração é tratada sob demanda, a cada carregamento e a cada nova tentativa de reserva. |
-| **Desistência** | O convidado pode cancelar antes ou depois de confirmar; a unidade volta para a lista. Se já declarou um Pix, é avisado de que **não há estorno automático**. |
-| **Item do tipo Pix** | Não tem link de loja: o método de pagamento é escolhido sozinho (Pix) ao reservar, e o servidor recusa "compra em loja" nesse tipo. O valor cadastrado é o valor do Pix gerado. |
+| **Reserva temporária** | Expira após `RESERVATION_TIMEOUT_MINUTES` (padrão 15) enquanto as instruções não foram abertas. Ao mostrar os dados de pagamento, a reserva passa a exigir conferência e não expira automaticamente. |
+| **Desistência** | O convidado pode liberar escolhas não pagas. Pix declarado/confirmado e presentes recebidos ficam protegidos contra cancelamento unilateral; ajustes são feitos com o casal. |
+| **Item do tipo Pix** | Não tem link de loja: o método de pagamento é escolhido sozinho (Pix) ao reservar, e o servidor recusa "compra em loja" nesse tipo. O valor é congelado na reserva e usado no Pix, mesmo após alteração do catálogo. |
 | **Chave Pix** | Só é entregue a quem tem reserva ativa com método Pix; nunca aparece na página pública antes disso. |
 | **Dinheiro** | Sempre em **centavos inteiros** (nunca `float`). Nenhum pagamento passa pela plataforma: o Pix vai direto para o casal. |
 | **Pix Copia e Cola** | Payload EMV / BR Code do BACEN gerado localmente em [`lib/pix-payload.ts`](src/lib/pix-payload.ts). |
-| **Vaquinha** | Valor mínimo por pessoa; a meta pode ser ultrapassada (o excedente aparece à parte) — contribuir depois de atingi-la continua permitido, só a vitrine deixa de destacar a vaquinha. O total arrecadado soma o **confirmado** e o **aguardando confirmação**, e a barra mostra os dois trechos separados. O casal pode confirmar ou recusar cada contribuição. |
-| **Identidade do convidado** | Nome + e-mail + telefone, sem senha. Um cookie `httpOnly` lembra a pessoa por 180 dias. Se o e-mail já existe com outro telefone, o cadastro é recusado. |
+| **Vaquinha** | Valor mínimo por pessoa; a meta pode ser ultrapassada (o excedente aparece à parte) — contribuir depois de atingi-la continua permitido, só a vitrine deixa de destacar a vaquinha. O percentual e a conclusão da meta usam apenas valores **confirmados**; o trecho **aguardando confirmação** aparece separado. O casal pode confirmar ou recusar cada contribuição. |
+| **Identidade do convidado** | Código por e-mail e sessão opaca revogável em cookie `httpOnly`, por até 30 dias. E-mail e telefone conhecidos não bastam para recuperar o histórico. |
 | **Confirmação de presença** | Uma resposta por convidado (pode ser alterada). Conta como 1 adulto + acompanhantes. Os nomes dos acompanhantes são texto livre e opcionais — não precisam bater com a contagem. Só funciona se a lista estiver publicada e o RSVP ligado. |
-| **Recadinhos** | Opcionais, com até **500 caracteres**, validados no servidor e exibidos sempre como texto puro. Ficam presos à reserva ou à contribuição: só o casal responsável pela lista os lê, nunca aparecem na página pública, e somem se a reserva for cancelada ou a contribuição recusada. O convidado pode adicionar, editar ou remover o seu enquanto a reserva estiver ativa. |
-| **E-mails de confirmação** | Enviados pelo SMTP do Gmail (sem custo, sem domínio próprio) quando `GMAIL_USER`/`GMAIL_APP_PASSWORD` estão configurados; sem eles, o envio é só ignorado (logado), nunca trava a ação do convidado. Nunca incluem a chave Pix nem dados sensíveis — só um resumo e o link de volta à lista. |
+| **Recadinhos** | Até 500 caracteres e texto puro. Há mensagens independentes e vinculadas a presentes/contribuições; são privadas por padrão e podem ser publicadas pelo autor. O organizador pode ocultá-las. |
+| **E-mails** | Códigos de identidade exigem entrega bem-sucedida, com expiração e limite de tentativas. E-mails de cortesia não são usados como prova de identidade. |
 | **Prévia do casal** | Somente o dono acessa; a página fica `inert`, para que nunca gere reserva de teste. |
 | **Ordem dos itens** | No painel, a ordenação é só uma visão do casal. Na vitrine pública, o padrão ("Sugeridos") mantém a ordem de cadastro, mas empurra para o fim o que já foi esgotado ou uma vaquinha que já bateu a meta. |
 
@@ -241,7 +249,7 @@ flowchart TB
 
 - **Next.js App Router com Server Components.** As páginas buscam os dados no servidor; a interatividade fica em componentes cliente pequenos.
 - **Server Actions** para todas as mutações (`src/actions`). Cada action **revalida a entrada com Zod no servidor** e confere se o usuário é dono do recurso. A validação do cliente é só conforto.
-- **Autenticação em duas camadas.** `lib/auth.config.ts` é a configuração leve (sem Prisma nem bcrypt), usada no **middleware** que protege `/dashboard/*` no Edge. `lib/auth.ts` é a configuração completa (Prisma, Google, senha). Sessão em **JWT**.
+- **Autenticação em duas camadas.** `lib/auth.config.ts` é a configuração leve (sem Prisma nem bcrypt), usada no **middleware** Node.js que protege `/dashboard/*`. `lib/auth.ts` é a configuração completa (Prisma, Google, senha). Sessão em **JWT**.
 - **Casal e convidado são entidades diferentes.** O casal é um `User` com Auth.js. O convidado é um `Guest` leve (sem senha), o que tira atrito de quem só quer presentear.
 - **Imagens.** Vão para o **Supabase Storage** (bucket público `gift-images`) pelo servidor, com a chave de serviço. Antes de enviar, o navegador **reduz a foto** (`lib/shrink-image.ts`), porque a Vercel recusa requisições acima de ~4,5 MB.
 - **Identidade visual.** Base neutra e fixa, com uma **cor de destaque por lista** aplicada via variáveis CSS (`--primary*`). Tipografia: Inter para a interface e Fraunces (serifada) só em títulos de destaque. Componentes no estilo shadcn/ui sobre Radix.
@@ -299,7 +307,7 @@ src/
     gift-availability.ts       disponibilidade = quantidade − reservas ativas
     shrink-image.ts            redução de foto no navegador
     supabase-storage.ts        upload de imagens
-    email.ts, email-templates.ts  e-mails de confirmação (SMTP do Gmail, opcional)
+    email.ts, email-templates.ts  SMTP para códigos obrigatórios de identidade e e-mails de cortesia
   components/                componentes compartilhados (ui/ = base do design system)
   app/
     page.tsx                 landing
@@ -326,7 +334,7 @@ npm install
 cp .env.example .env
 
 # 3. Criar as tabelas no banco
-npm run db:push
+npm run db:deploy
 
 # 4. Subir o projeto
 npm run dev
@@ -382,9 +390,9 @@ Copie [`.env.example`](.env.example) para `.env`. O `.env` **nunca deve ir para 
 
 Enquanto o app estiver em modo **Testando**, só entram os e-mails cadastrados como usuários de teste. Para liberar qualquer pessoa é preciso **publicar o app**, o que exige domínio próprio, página inicial e a política de privacidade em `/privacidade`.
 
-### E-mails de confirmação (opcional — via Gmail SMTP)
+### Verificação por e-mail (obrigatória — Gmail ou SMTP)
 
-Sem essa configuração, tudo continua funcionando normalmente: o app só deixa de mandar o e-mail de cortesia quando alguém confirma presença ou escolhe um presente (ver [`lib/email.ts`](src/lib/email.ts)). Essa opção não exige domínio próprio nem cartão de crédito — só uma conta Gmail.
+Configure o Gmail abaixo ou um SMTP compatível conforme `.env.example`. Sem entrega de e-mail, o app recusa novos acessos de convidados e novos cadastros; nunca dispensa a prova de identidade. E-mails de cortesia continuam sem bloquear operações já autenticadas.
 
 1. Na conta Gmail que vai enviar os e-mails, ative a **verificação em duas etapas** em [myaccount.google.com/security](https://myaccount.google.com/security) — é pré-requisito para o próximo passo.
 2. Em [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords), crie uma **senha de app** (escolha um nome como "Momoslist"). O Google mostra uma senha de 16 letras — copie-a, ela só aparece uma vez.
@@ -393,7 +401,7 @@ Sem essa configuração, tudo continua funcionando normalmente: o app só deixa 
 5. Opcional: `EMAIL_FROM_NAME` para o nome de exibição do remetente (o endereço visível continua sendo o `GMAIL_USER`).
 6. Redeploy (ou reinicie o `npm run dev`) para as variáveis valerem.
 
-**Limite:** contas Gmail comuns enviam até 500 e-mails/dia — bem acima do que uma lista de presentes usa. Se um dia a lista crescer muito ou quiser um remetente com o nome do seu domínio (em vez do seu Gmail pessoal), dá para trocar por um provedor como o [Resend](https://resend.com) (que exige domínio próprio verificado) sem mudar a estrutura do código — só o conteúdo de [`lib/email.ts`](src/lib/email.ts).
+**Limites de envio:** confira as cotas e a entregabilidade da conta usada. O app também aceita outro servidor SMTP sem alterar o código; não é necessário contratar um novo serviço.
 
 ---
 
@@ -404,7 +412,7 @@ Sem essa configuração, tudo continua funcionando normalmente: o app só deixa 
 | `npm run dev` | Servidor de desenvolvimento. |
 | `npm run build` / `npm start` | Build e execução de produção. |
 | `npm run lint` | ESLint. |
-| `npm run db:push` | Aplica o schema no banco (sem gerar migrations). |
+| `npm run db:deploy` | Aplica migrations versionadas; veja o procedimento de baseline para bancos existentes. |
 | `npm run db:migrate` | Cria e aplica uma migration (desenvolvimento). |
 | `npm run db:studio` | Abre o Prisma Studio para inspecionar os dados. |
 | `npm run check:storage` | Diagnostica o bucket do Supabase (variáveis, bucket, permissão pública e upload real). |
@@ -414,13 +422,13 @@ Sem essa configuração, tudo continua funcionando normalmente: o app só deixa 
 ## ▲ Deploy na Vercel
 
 1. Envie o código para o GitHub e importe o repositório na Vercel (Next.js é detectado automaticamente).
-2. Cadastre as [variáveis de ambiente](#variáveis-de-ambiente) em **Settings → Environment Variables**. Use um `AUTH_SECRET` novo e `NEXT_PUBLIC_SITE_URL` com o domínio final.
+2. Cadastre as [variáveis de ambiente](#variáveis-de-ambiente) em **Settings → Environment Variables**. Em uma implantação nova, gere `AUTH_SECRET`; em atualização, preserve o existente. Configure `NEXT_PUBLIC_SITE_URL` com o domínio final.
 3. Faça o deploy. O [`vercel.json`](vercel.json) fixa a região `gru1` (São Paulo), próxima ao banco, para reduzir a latência.
 4. No Google Cloud, adicione a origem `https://SEU-DOMINIO` e a URI `https://SEU-DOMINIO/api/auth/callback/google`.
 
 **Checklist pós-deploy:** login com senha → login com Google → criar lista → enviar foto pelo celular → abrir o link como convidado → reservar um presente → colar o link no WhatsApp para ver a prévia.
 
-Detalhes que já estão tratados no projeto para a Vercel: o `postinstall` gera o Prisma Client; o middleware usa só a configuração leve do Auth.js (cabe no Edge); `trustHost` está ativo; e as fotos são reduzidas no navegador por causa do limite de 4,5 MB por requisição.
+Detalhes que já estão tratados no projeto para a Vercel: o `postinstall` gera o Prisma Client; o middleware usa a configuração leve do Auth.js em Node.js; o host é confiável na Vercel e configurável fora dela; e as fotos são reduzidas no navegador por causa do limite de 4,5 MB por requisição.
 
 ---
 
@@ -429,18 +437,18 @@ Detalhes que já estão tratados no projeto para a Vercel: o `postinstall` gera 
 - **Autorização em toda mutação.** Cada action confere que o recurso pertence ao usuário logado; o painel só consulta dados do dono.
 - **Senhas** com hash bcrypt. A chave de serviço do Supabase nunca chega ao navegador.
 - **Cookie de sessão** e cookie do convidado com `httpOnly` e `sameSite=lax` (e `secure` em produção).
-- **Login com Google** só vincula a uma conta existente se o Google confirmar que o e-mail é verificado, e o seletor de contas é sempre exibido.
+- **Login com Google** exige e-mail verificado pelo provedor e nunca vincula automaticamente uma conta por e-mail. O seletor de contas é sempre exibido.
 - **Privacidade (LGPD):** a política está em [`/privacidade`](src/app/privacidade/page.tsx). Convidados não veem dados uns dos outros; o casal vê apenas quem interagiu com a própria lista.
 
-> **Trade-off assumido:** o convidado não tem senha. Quem souber o e-mail **e** o telefone de outra pessoa pode se passar por ela e mexer na reserva dela. É aceitável para listas fechadas entre amigos. Para abrir ao público geral, o caminho é trocar a identificação por um link mágico enviado por e-mail — o modelo `Guest` continua o mesmo.
+> **Identidade verificada:** recuperar uma identidade exige código de uso único no e-mail. O telefone não é prova de titularidade. Sessões antigas baseadas apenas no ID deixam de autenticar.
 
 ---
 
 ## 🧱 Limitações conhecidas e próximos passos
 
-- **Confirmação de e-mail no cadastro** do casal ainda não existe, nem redefinição de senha ("Esqueci minha senha").
-- **Sem limite de tentativas** (rate limiting) no login.
-- **Migrations versionadas:** o schema é aplicado com `db push`. Antes de operar com dados de clientes reais, migre para `prisma migrate`.
+- **Redefinição de senha de contas já verificadas** ("Esqueci minha senha") continua como evolução futura. Contas antigas não verificadas podem confirmar o e-mail e definir nova senha pelo cadastro.
+- **Limites persistentes** protegem login, códigos, reservas, uploads e mensagens; devem ser acompanhados em redes compartilhadas e complementados por limites HTTP da hospedagem.
+- **Migrations versionadas:** bancos existentes exigem conferência da baseline antes da atualização, conforme `docs/deployment.md`.
 - **Mesmo banco em desenvolvimento e produção**, se ambos usarem o mesmo projeto do Supabase; o ideal é ter um projeto separado para cada.
 - **Expiração de reservas** é tratada sob demanda. Um cron (Vercel Cron) para limpeza periódica seria apenas higiene.
 - **Pix é declarativo:** a plataforma não consulta o banco, então o casal confirma o recebimento manualmente.

@@ -146,15 +146,7 @@ model VerificationToken {
 // Convidado (identificação leve — Fase 8)
 // ---------------------------------------------------------------------------
 
-// O convidado NÃO é um User autenticado (sem senha, sem Auth.js). Ele se
-// identifica com nome + e-mail + telefone, guardados aqui, e um cookie
-// assinado no navegador lembra quem ele é. Para gerenciar a reserva de outro
-// aparelho, ele se identifica de novo com o mesmo e-mail + telefone.
-//
-// Trade-off consciente: sem verificação de e-mail/SMS, alguém que souber o
-// e-mail E o telefone de um convidado poderia se passar por ele. Aceitável
-// para o público inicial (convidados conhecidos do casal), mas não
-// deve ser usado como está para uma lista pública/aberta.
+// Identidade confirmada por código de e-mail; sessões usam tokens opacos revogáveis.
 model Guest {
   id        String   @id @default(cuid())
   name      String
@@ -166,6 +158,8 @@ model Guest {
   reservations  GiftReservation[]
   contributions Contribution[]
   rsvps         Rsvp[]
+  messages      EventMessage[]
+  guestSessions GuestSession[]
 
   @@unique([email])
   @@map("guests")
@@ -208,6 +202,7 @@ model Event {
   owner User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   gifts Gift[]
   rsvps Rsvp[]
+  messages EventMessage[]
 
   @@index([ownerId])
   @@map("events")
@@ -249,19 +244,23 @@ model GiftReservation {
 
   status ReservationStatus @default(TEMPORARY)
 
+  amountInCents Int?
   paymentMethod PaymentMethod?
   pixStatus     PixStatus      @default(NOT_APPLICABLE)
 
   reservedAt          DateTime  @default(now())
   expiresAt           DateTime
+  receivedAt DateTime?
   purchaseConfirmedAt DateTime?
   pixDeclaredAt       DateTime?
   pixConfirmedAt      DateTime?
   cancelledAt         DateTime?
 
-  /// Recadinho opcional do convidado para o casal — público no mural de recadinhos da lista. Até 500 caracteres.
+  /// Recadinho opcional do convidado para o casal — privado por padrão, público somente com escolha explícita. Até 500 caracteres.
   message   String?
   messageAt DateTime?
+  messagePublic Boolean @default(false)
+  messageHidden Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -295,8 +294,10 @@ model Contribution {
   confirmedAt DateTime?
   cancelledAt DateTime?
 
-  /// Recadinho opcional do convidado para o casal — público no mural de recadinhos da lista. Até 500 caracteres.
+  /// Recadinho opcional do convidado para o casal — privado por padrão, público somente com escolha explícita. Até 500 caracteres.
   message String?
+  messagePublic Boolean @default(false)
+  messageHidden Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -337,4 +338,45 @@ model Rsvp {
   @@unique([eventId, guestId])
   @@index([eventId, status])
   @@map("rsvps")
+}
+
+model GuestSession {
+  tokenHash String @id
+  guestId String
+  expiresAt DateTime
+  guest Guest @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  @@index([guestId])
+  @@map("guest_sessions")
+}
+
+model IdentityChallenge {
+  id String @id
+  codeHash String
+  payload Json
+  attempts Int @default(0)
+  expiresAt DateTime
+  @@map("identity_challenges")
+}
+
+model RateLimit {
+  key String @id
+  count Int @default(1)
+  expiresAt DateTime
+  @@map("rate_limits")
+}
+
+model EventMessage {
+  id String @id @default(cuid())
+  eventId String
+  guestId String
+  message String @db.Text
+  public Boolean @default(false)
+  hidden Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  guest Guest @relation(fields: [guestId], references: [id], onDelete: Cascade)
+  @@unique([eventId, guestId])
+  @@index([eventId, public, hidden, createdAt])
+  @@map("event_messages")
 }

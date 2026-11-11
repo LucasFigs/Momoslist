@@ -1,12 +1,14 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
+import { takeRateLimit } from "@/lib/rate-limit";
 import QRCode from "qrcode";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildPixPayload } from "@/lib/pix-payload";
-import { logger } from "@/lib/logger";
+import { logger, withErrorHandling } from "@/lib/logger";
 import { getCurrentGuest } from "@/lib/guest-session";
 import { formatCentsToBRL } from "@/lib/utils";
 import { MAX_AMOUNT_IN_CENTS } from "@/schemas/gift.schema";
@@ -40,7 +42,10 @@ async function loadFundForContribution(giftId: string, amountInCents: number) {
     return { ok: false as const, error: "Vaquinha não encontrada." };
   }
   if (!gift.event.pixKey || !gift.event.pixKeyType) {
-    return { ok: false as const, error: "O casal ainda não cadastrou uma chave Pix." };
+    return {
+      ok: false as const,
+      error: "O casal ainda não cadastrou uma chave Pix.",
+    };
   }
   if (!Number.isInteger(amountInCents) || amountInCents <= 0) {
     return { ok: false as const, error: "Informe um valor válido." };
@@ -48,22 +53,32 @@ async function loadFundForContribution(giftId: string, amountInCents: number) {
 
   const min = gift.minContributionInCents ?? 1;
   if (amountInCents < min) {
-    return { ok: false as const, error: `O valor mínimo é ${formatCentsToBRL(min)}.` };
+    return {
+      ok: false as const,
+      error: `O valor mínimo é ${formatCentsToBRL(min)}.`,
+    };
   }
   if (amountInCents > MAX_AMOUNT_IN_CENTS) {
-    return { ok: false as const, error: `O valor máximo é ${formatCentsToBRL(MAX_AMOUNT_IN_CENTS)}.` };
+    return {
+      ok: false as const,
+      error: `O valor máximo é ${formatCentsToBRL(MAX_AMOUNT_IN_CENTS)}.`,
+    };
   }
 
   return { ok: true as const, gift, event: gift.event };
 }
 
 /** Gera o Pix (QR + copia e cola) com o valor escolhido. Não grava nada ainda. */
-export async function getContributionPixAction(
+async function getContributionPixActionImpl(
   giftId: string,
-  amountInCents: number
-): Promise<{ success: true; details: ContributionPixDetails } | { success: false; error: string }> {
+  amountInCents: number,
+): Promise<
+  | { success: true; details: ContributionPixDetails }
+  | { success: false; error: string }
+> {
   const guest = await getCurrentGuest();
-  if (!guest) return { success: false, error: "Identifique-se para contribuir." };
+  if (!guest)
+    return { success: false, error: "Identifique-se para contribuir." };
 
   const loaded = await loadFundForContribution(giftId, amountInCents);
   if (!loaded.ok) return { success: false, error: loaded.error };
@@ -78,7 +93,10 @@ export async function getContributionPixAction(
 
   let qrCodeDataUrl: string | null = null;
   try {
-    qrCodeDataUrl = await QRCode.toDataURL(copyPasteCode, { width: 280, margin: 1 });
+    qrCodeDataUrl = await QRCode.toDataURL(copyPasteCode, {
+      width: 280,
+      margin: 1,
+    });
   } catch (error) {
     // Sem QR, o copia e cola sozinho resolve.
     logger.error("contributionQrCode", error, { giftId });
@@ -98,35 +116,69 @@ export async function getContributionPixAction(
 }
 
 /** Convidado avisa que fez o Pix. Só aqui a contribuição passa a existir (e a contar na barra). */
-export async function declareContributionAction(
+async function declareContributionActionImpl(
   giftId: string,
   amountInCents: number,
-  message?: string
+  message?: string,
+  messagePublic = false,
 ): Promise<SimpleResult> {
   const guest = await getCurrentGuest();
-  if (!guest) return { success: false, error: "Identifique-se para contribuir." };
+  if (!guest)
+    return { success: false, error: "Identifique-se para contribuir." };
 
   const loaded = await loadFundForContribution(giftId, amountInCents);
   if (!loaded.ok) return { success: false, error: loaded.error };
 
+  if (typeof messagePublic !== "boolean")
+    return { success: false, error: "Visibilidade inválida." };
   const note = parseMessage(message);
   if (!note.ok) return { success: false, error: note.error };
 
   // Duplo clique / reenvio: a mesma contribuição declarada há poucos segundos não vira duas.
-  const recentDuplicate = await prisma.contribution.findFirst({
-    where: {
-      giftId,
-      guestId: guest.id,
-      amountInCents,
-      status: "DECLARED",
-      declaredAt: { gt: new Date(Date.now() - 60_000) },
-    },
-  });
-  if (!recentDuplicate) {
-    await prisma.contribution.create({
-      data: { giftId, guestId: guest.id, amountInCents, message: note.value },
-    });
-
+  if (!(await takeRateLimit("contribute", guest.id, 10, 900)))
+    return {
+      success: false,
+      error: "Aguarde alguns minutos antes de contribuir novamente.",
+    };
+  let created = false;
+  try {
+    created = await prisma.$transaction(
+      async (tx) => {
+        const fund = await tx.gift.findFirst({
+          where: { id: giftId, kind: "FUND", event: { published: true } },
+        });
+        if (!fund) throw new Error("FundUnavailable");
+        const duplicate = await tx.contribution.findFirst({
+          where: {
+            giftId,
+            guestId: guest.id,
+            amountInCents,
+            status: { in: ["DECLARED", "CONFIRMED"] },
+            declaredAt: { gt: new Date(Date.now() - 60_000) },
+          },
+        });
+        if (duplicate) return false;
+        await tx.contribution.create({
+          data: {
+            giftId,
+            guestId: guest.id,
+            amountInCents,
+            message: note.value,
+            messagePublic,
+          },
+        });
+        return true;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  } catch {
+    return {
+      success: false,
+      error:
+        "Não foi possível registrar agora. Confira suas contribuições antes de tentar novamente.",
+    };
+  }
+  if (created) {
     // E-mail de cortesia: nunca bloqueia o registro da contribuição se falhar (ver lib/email.ts).
     await sendEmail({
       to: guest.email,
@@ -144,79 +196,175 @@ export async function declareContributionAction(
 }
 
 /** Convidado desfaz uma contribuição que ainda não foi confirmada (ex.: digitou o valor errado). */
-export async function cancelContributionAction(contributionId: string): Promise<SimpleResult> {
+async function cancelContributionActionImpl(
+  contributionId: string,
+): Promise<SimpleResult> {
   const guest = await getCurrentGuest();
-  if (!guest) return { success: false, error: "Identifique-se novamente para continuar." };
+  if (!guest)
+    return {
+      success: false,
+      error: "Identifique-se novamente para continuar.",
+    };
 
   const contribution = await prisma.contribution.findUnique({
     where: { id: contributionId },
-    include: { gift: { select: { eventId: true } } },
+    include: {
+      gift: {
+        select: { eventId: true, event: { select: { published: true } } },
+      },
+    },
   });
-  if (!contribution || contribution.guestId !== guest.id) {
+  if (
+    !contribution ||
+    contribution.guestId !== guest.id ||
+    !contribution.gift.event.published
+  ) {
     return { success: false, error: "Contribuição não encontrada." };
   }
   if (contribution.status !== "DECLARED") {
     return {
       success: false,
-      error: "Essa contribuição já foi confirmada pelo casal. Fale com o casal para qualquer ajuste.",
+      error:
+        "Essa contribuição já foi confirmada pelo casal. Fale com o casal para qualquer ajuste.",
     };
   }
 
-  await prisma.contribution.update({
-    where: { id: contributionId },
+  const changed = await prisma.contribution.updateMany({
+    where: { id: contributionId, status: "DECLARED" },
     data: { status: "CANCELLED", cancelledAt: new Date() },
   });
 
+  if (!changed.count)
+    return {
+      success: false,
+      error: "A contribuição mudou. Atualize a página.",
+    };
   revalidatePath(`/dashboard/eventos/${contribution.gift.eventId}`);
   return { success: true };
 }
 
 async function requireOwnedContribution(contributionId: string) {
   const session = await auth();
-  if (!session?.user?.id) return { ok: false as const, error: "Você precisa estar logado." };
+  if (!session?.user?.id)
+    return { ok: false as const, error: "Você precisa estar logado." };
 
   const contribution = await prisma.contribution.findUnique({
     where: { id: contributionId },
-    include: { gift: { include: { event: { select: { ownerId: true, id: true } } } } },
+    include: {
+      gift: { include: { event: { select: { ownerId: true, id: true } } } },
+    },
   });
   if (!contribution || contribution.gift.event.ownerId !== session.user.id) {
     return { ok: false as const, error: "Contribuição não encontrada." };
   }
-  return { ok: true as const, contribution, eventId: contribution.gift.event.id };
+  return {
+    ok: true as const,
+    contribution,
+    eventId: contribution.gift.event.id,
+  };
 }
 
 /** O casal confirma que o Pix caiu — passa de "aguardando" para "confirmado". */
-export async function confirmContributionAction(contributionId: string): Promise<SimpleResult> {
+async function confirmContributionActionImpl(
+  contributionId: string,
+): Promise<SimpleResult> {
   const owned = await requireOwnedContribution(contributionId);
   if (!owned.ok) return { success: false, error: owned.error };
 
   if (owned.contribution.status !== "DECLARED") {
-    return { success: false, error: "Essa contribuição não está aguardando confirmação." };
+    return {
+      success: false,
+      error: "Essa contribuição não está aguardando confirmação.",
+    };
   }
 
-  await prisma.contribution.update({
-    where: { id: contributionId },
+  const changed = await prisma.contribution.updateMany({
+    where: { id: contributionId, status: "DECLARED" },
     data: { status: "CONFIRMED", confirmedAt: new Date() },
   });
 
+  if (!changed.count)
+    return {
+      success: false,
+      error: "A contribuição mudou. Atualize a página.",
+    };
   revalidatePath(`/dashboard/eventos/${owned.eventId}`);
   return { success: true };
 }
 
 /** O casal recusa uma contribuição que não recebeu (ou foi declarada por engano). */
-export async function rejectContributionAction(contributionId: string): Promise<SimpleResult> {
+async function rejectContributionActionImpl(
+  contributionId: string,
+): Promise<SimpleResult> {
   const owned = await requireOwnedContribution(contributionId);
   if (!owned.ok) return { success: false, error: owned.error };
 
-  if (owned.contribution.status === "CANCELLED") {
+  if (owned.contribution.status !== "DECLARED") {
     return { success: false, error: "Essa contribuição já foi removida." };
   }
 
-  await prisma.contribution.update({
-    where: { id: contributionId },
+  const changed = await prisma.contribution.updateMany({
+    where: { id: contributionId, status: "DECLARED" },
     data: { status: "CANCELLED", cancelledAt: new Date() },
   });
 
+  if (!changed.count)
+    return {
+      success: false,
+      error: "A contribuição mudou. Atualize a página.",
+    };
   revalidatePath(`/dashboard/eventos/${owned.eventId}`);
   return { success: true };
+}
+
+export async function getContributionPixAction(
+  giftId: string,
+  amountInCents: number,
+): Promise<
+  | { success: true; details: ContributionPixDetails }
+  | { success: false; error: string }
+> {
+  return withErrorHandling("getContributionPixAction", () =>
+    getContributionPixActionImpl(giftId, amountInCents),
+  );
+}
+
+export async function declareContributionAction(
+  giftId: string,
+  amountInCents: number,
+  message?: string,
+  messagePublic = false,
+): Promise<SimpleResult> {
+  return withErrorHandling("declareContributionAction", () =>
+    declareContributionActionImpl(
+      giftId,
+      amountInCents,
+      message,
+      messagePublic,
+    ),
+  );
+}
+
+export async function cancelContributionAction(
+  contributionId: string,
+): Promise<SimpleResult> {
+  return withErrorHandling("cancelContributionAction", () =>
+    cancelContributionActionImpl(contributionId),
+  );
+}
+
+export async function confirmContributionAction(
+  contributionId: string,
+): Promise<SimpleResult> {
+  return withErrorHandling("confirmContributionAction", () =>
+    confirmContributionActionImpl(contributionId),
+  );
+}
+
+export async function rejectContributionAction(
+  contributionId: string,
+): Promise<SimpleResult> {
+  return withErrorHandling("rejectContributionAction", () =>
+    rejectContributionActionImpl(contributionId),
+  );
 }

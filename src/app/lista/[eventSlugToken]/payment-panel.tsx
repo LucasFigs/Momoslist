@@ -13,7 +13,15 @@ import {
   type PaymentDetails,
 } from "@/actions/payment.actions";
 import { toast } from "@/hooks/use-toast";
-import { Copy, Check, CheckCircle2, Clock, ExternalLink, ImageOff, MessageCircleHeart } from "lucide-react";
+import {
+  Copy,
+  Check,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  ImageOff,
+  MessageCircleHeart,
+} from "lucide-react";
 import { MessageField } from "./message-field";
 
 const pixKeyTypeLabel: Record<string, string> = {
@@ -43,7 +51,17 @@ const cancelLink =
  * Recadinho depois de avisar o pagamento: mostra o que já foi enviado (com opção de editar) ou, se ainda não
  * há nada, deixa escrever um. Usa a action própria porque aqui não há mais um botão principal para "levá-lo junto".
  */
-function PostMessage({ reservationId, initial }: { reservationId: string; initial: string | null }) {
+function PostMessage({
+  reservationId,
+  initial,
+  initialPublic,
+}: {
+  reservationId: string;
+  initial: string | null;
+  initialPublic: boolean;
+}) {
+  const [messagePublic, setMessagePublic] = useState(initialPublic);
+  const [savedPublic, setSavedPublic] = useState(initialPublic);
   const [saved, setSaved] = useState(initial ?? "");
   const [value, setValue] = useState(initial ?? "");
   const [editing, setEditing] = useState(false);
@@ -51,13 +69,22 @@ function PostMessage({ reservationId, initial }: { reservationId: string; initia
 
   function save() {
     startTransition(async () => {
-      const result = await saveReservationMessageAction(reservationId, value);
+      const result = await saveReservationMessageAction(
+        reservationId,
+        value,
+        messagePublic,
+      );
       if (!result.success) {
-        toast({ title: "Não foi possível salvar o recadinho", description: result.error, variant: "destructive" });
+        toast({
+          title: "Não foi possível salvar o recadinho",
+          description: result.error,
+          variant: "destructive",
+        });
         return;
       }
       const next = value.trim();
       setSaved(next);
+      setSavedPublic(messagePublic);
       setValue(next);
       setEditing(false);
       toast({ title: next ? "Recadinho enviado" : "Recadinho removido" });
@@ -68,10 +95,15 @@ function PostMessage({ reservationId, initial }: { reservationId: string; initia
     return (
       <div className="rounded-lg border border-border bg-muted/40 p-3">
         <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-          <MessageCircleHeart className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+          <MessageCircleHeart
+            className="h-3.5 w-3.5 text-primary"
+            aria-hidden="true"
+          />
           Seu recadinho para o casal
         </p>
-        <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">{saved}</p>
+        <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground">
+          {saved}
+        </p>
         <button
           type="button"
           onClick={() => {
@@ -86,11 +118,21 @@ function PostMessage({ reservationId, initial }: { reservationId: string; initia
     );
   }
 
-  const changed = value.trim() !== saved;
-  const saveLabel = value.trim() ? (saved ? "Salvar recadinho" : "Enviar recadinho") : "Remover recadinho";
+  const changed = value.trim() !== saved || messagePublic !== savedPublic;
+  const saveLabel = value.trim()
+    ? saved
+      ? "Salvar recadinho"
+      : "Enviar recadinho"
+    : "Remover recadinho";
   return (
     <div className="flex flex-col gap-2">
-      <MessageField value={value} onChange={setValue} disabled={isPending} />
+      <MessageField
+        value={value}
+        onChange={setValue}
+        isPublic={messagePublic}
+        onPublicChange={setMessagePublic}
+        disabled={isPending}
+      />
       {(changed || editing) && (
         <div className="flex flex-wrap gap-2">
           <Button size="sm" onClick={save} disabled={isPending || !changed}>
@@ -138,15 +180,23 @@ export function PaymentPanel({
   const [qrFailed, setQrFailed] = useState(false);
   // Recadinho digitado antes de avisar o pagamento: vai junto com "Já fiz o Pix" / "Já comprei".
   const [message, setMessage] = useState("");
+  const [messagePublic, setMessagePublic] = useState(false);
 
   useEffect(() => {
     let active = true;
-    getPaymentDetailsAction(reservationId).then((result) => {
-      if (!active) return;
-      if (result.success) setDetails(result.details);
-      else setError(result.error);
-      setLoading(false);
-    });
+    getPaymentDetailsAction(reservationId)
+      .then((result) => {
+        if (!active) return;
+        if (result.success) setDetails(result.details);
+        else setError(result.error);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (active) {
+          setError("Não foi possível carregar o pagamento. Tente novamente.");
+          setLoading(false);
+        }
+      });
     return () => {
       active = false;
     };
@@ -165,38 +215,67 @@ export function PaymentPanel({
       return;
     }
     setCopied(which);
-    toast({ title: which === "key" ? "Chave Pix copiada" : "Código Pix copiado" });
+    toast({
+      title: which === "key" ? "Chave Pix copiada" : "Código Pix copiado",
+    });
     setTimeout(() => setCopied(null), 2000);
   }
 
   /** O recadinho enviado junto com o pagamento precisa aparecer já no passo seguinte (os detalhes foram lidos antes). */
   function keepSentMessage() {
     const sent = message.trim();
-    if (sent) setDetails((current) => (current ? ({ ...current, message: sent } as PaymentDetails) : current));
+    if (sent)
+      setDetails((current) =>
+        current
+          ? ({ ...current, message: sent, messagePublic } as PaymentDetails)
+          : current,
+      );
   }
 
   function handleConfirmPurchase() {
     startTransition(async () => {
-      const result = await confirmExternalPurchaseAction(reservationId, message);
+      const result = await confirmExternalPurchaseAction(
+        reservationId,
+        message,
+        messagePublic,
+      );
       if (!result.success) {
-        toast({ title: "Não foi possível confirmar a compra", description: result.error, variant: "destructive" });
+        toast({
+          title: "Não foi possível confirmar a compra",
+          description: result.error,
+          variant: "destructive",
+        });
         return;
       }
       keepSentMessage();
-      toast({ title: "Compra confirmada", description: "Obrigado pelo presente!" });
+      toast({
+        title: "Compra confirmada",
+        description: "Obrigado pelo presente!",
+      });
       router.refresh();
     });
   }
 
   function handleDeclarePix() {
     startTransition(async () => {
-      const result = await declarePixPaymentAction(reservationId, message);
+      const result = await declarePixPaymentAction(
+        reservationId,
+        message,
+        messagePublic,
+      );
       if (!result.success) {
-        toast({ title: "Não foi possível informar o Pix", description: result.error, variant: "destructive" });
+        toast({
+          title: "Não foi possível informar o Pix",
+          description: result.error,
+          variant: "destructive",
+        });
         return;
       }
       keepSentMessage();
-      toast({ title: "Pix informado", description: "Aguardando a confirmação do casal." });
+      toast({
+        title: "Pix informado",
+        description: "Aguardando a confirmação do casal.",
+      });
       router.refresh();
     });
   }
@@ -228,13 +307,23 @@ export function PaymentPanel({
         <SheetBody className="flex flex-col gap-4">
           {summary}
           <p className="flex items-start gap-2 rounded-lg bg-success-soft p-3 text-sm font-medium text-success">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
+            <CheckCircle2
+              className="mt-0.5 h-4 w-4 flex-shrink-0"
+              aria-hidden="true"
+            />
             Pix confirmado pelo casal. Obrigado!
           </p>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Para qualquer ajuste depois da confirmação, fale diretamente com o casal.
+            Para qualquer ajuste depois da confirmação, fale diretamente com o
+            casal.
           </p>
-          {details && <PostMessage reservationId={reservationId} initial={details.message} />}
+          {details && (
+            <PostMessage
+              reservationId={reservationId}
+              initial={details.message}
+              initialPublic={details.messagePublic}
+            />
+          )}
         </SheetBody>
         {closeFooter}
       </>
@@ -248,19 +337,40 @@ export function PaymentPanel({
         <SheetBody className="flex flex-col gap-4">
           {summary}
           <p className="flex items-start gap-2 rounded-lg bg-success-soft p-3 text-sm font-medium text-success">
-            <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
-            Compra confirmada. Obrigado!
+            <CheckCircle2
+              className="mt-0.5 h-4 w-4 flex-shrink-0"
+              aria-hidden="true"
+            />
+            {details?.kind === "EXTERNAL_PURCHASE" && details.received
+              ? "O casal confirmou que recebeu o presente. Obrigado!"
+              : "Você informou a compra. O casal ainda vai confirmar o recebimento."}
           </p>
-          {details && <PostMessage reservationId={reservationId} initial={details.message} />}
-          <div className="rounded-lg bg-muted/60 p-3">
-            <p className="text-sm font-medium text-foreground">Confirmou por engano?</p>
-            <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
-              Você pode desistir: o presente volta a ficar disponível para os outros convidados.
-            </p>
-            <button type="button" onClick={onCancel} disabled={isCancelPending} className={`mt-2 ${cancelLink}`}>
-              Desistir deste presente
-            </button>
-          </div>
+          {details && (
+            <PostMessage
+              reservationId={reservationId}
+              initial={details.message}
+              initialPublic={details.messagePublic}
+            />
+          )}
+          {!(details?.kind === "EXTERNAL_PURCHASE" && details.received) && (
+            <div className="rounded-lg bg-muted/60 p-3">
+              <p className="text-sm font-medium text-foreground">
+                Confirmou por engano?
+              </p>
+              <p className="mt-0.5 text-sm leading-relaxed text-muted-foreground">
+                Você pode desistir: o presente volta a ficar disponível para os
+                outros convidados.
+              </p>
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isCancelPending}
+                className={`mt-2 ${cancelLink}`}
+              >
+                Desistir deste presente
+              </button>
+            </div>
+          )}
         </SheetBody>
         {closeFooter}
       </>
@@ -273,11 +383,24 @@ export function PaymentPanel({
         <SheetBody className="flex flex-col gap-4">
           {summary}
           <p className="flex items-start gap-2 rounded-lg bg-pending-soft p-3 text-sm font-medium text-pending">
-            <Clock className="mt-0.5 h-4 w-4 flex-shrink-0" aria-hidden="true" />
-            Pix informado — aguardando a confirmação do casal.
+            <Clock
+              className="mt-0.5 h-4 w-4 flex-shrink-0"
+              aria-hidden="true"
+            />
+            Pix informado — aguardando a confirmação do casal. Para corrigir ou
+            cancelar, fale com os organizadores.
           </p>
-          <PostMessage reservationId={reservationId} initial={details.message} />
-          <button type="button" onClick={onCancel} disabled={isCancelPending} className={cancelLink}>
+          <PostMessage
+            reservationId={reservationId}
+            initial={details.message}
+            initialPublic={details.messagePublic}
+          />
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isCancelPending}
+            className={cancelLink}
+          >
             Desistir deste presente
           </button>
         </SheetBody>
@@ -292,24 +415,43 @@ export function PaymentPanel({
         <SheetBody className="flex flex-col gap-4">
           {summary}
           <div className="rounded-lg bg-primary-subtle p-3 ring-1 ring-primary-border">
-            <p className="text-sm font-medium text-foreground">Você vai comprar em uma loja</p>
+            <p className="text-sm font-medium text-foreground">
+              Você vai comprar em uma loja
+            </p>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              O site do vendedor abre em outra aba e a compra é feita lá. Depois de comprar, volte aqui e toque em
-              &quot;Já comprei&quot;.
+              O site do vendedor abre em outra aba e a compra é feita lá. Depois
+              de comprar, volte aqui e toque em &quot;Já comprei&quot;.
             </p>
           </div>
           {!details.purchaseUrl && (
-            <p className="text-sm text-muted-foreground">O casal não cadastrou um link de loja para este presente.</p>
+            <p className="text-sm text-muted-foreground">
+              O casal não cadastrou um link de loja para este presente.
+            </p>
           )}
-          <MessageField value={message} onChange={setMessage} disabled={isPending} />
-          <button type="button" onClick={onCancel} disabled={isCancelPending} className={cancelLink}>
+          <MessageField
+            value={message}
+            onChange={setMessage}
+            isPublic={messagePublic}
+            onPublicChange={setMessagePublic}
+            disabled={isPending}
+          />
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isCancelPending}
+            className={cancelLink}
+          >
             Desistir deste presente
           </button>
         </SheetBody>
         <SheetFooter>
           {details.purchaseUrl && (
             <Button asChild className="w-full">
-              <a href={details.purchaseUrl} target="_blank" rel="noopener noreferrer">
+              <a
+                href={details.purchaseUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" />
                 Abrir site da loja
               </a>
@@ -333,6 +475,11 @@ export function PaymentPanel({
       <>
         <SheetBody className="flex flex-col gap-5">
           {summary}
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Ao abrir os dados de pagamento, sua escolha fica guardada para
+            conferência. Se não for pagar, desista do presente para liberar a
+            unidade. Se já pagou, avise o casal.
+          </p>
 
           {/* Celular: uma coluna, QR centralizado. Tela larga: QR à esquerda e dados à direita. */}
           <div className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-start sm:gap-6">
@@ -355,7 +502,9 @@ export function PaymentPanel({
                   className="flex h-[205px] w-[205px] flex-col items-center justify-center gap-1 rounded-xl bg-neutral-200 p-3 text-center text-neutral-500"
                 >
                   <ImageOff className="h-5 w-5" aria-hidden="true" />
-                  <span className="text-xs">QR Code indisponível — use a chave ou o copia e cola.</span>
+                  <span className="text-xs">
+                    QR Code indisponível — use a chave ou o copia e cola.
+                  </span>
                 </div>
               )}
             </div>
@@ -363,42 +512,86 @@ export function PaymentPanel({
             <div className="flex flex-col gap-4">
               <div>
                 <p className="text-xs text-muted-foreground">Valor a pagar</p>
-                <p className="text-2xl font-semibold tabular-nums text-foreground">{details.amountLabel}</p>
+                <p className="text-2xl font-semibold tabular-nums text-foreground">
+                  {details.amountLabel}
+                </p>
               </div>
 
               <div>
                 <p className="text-xs text-muted-foreground">
-                  {pixKeyTypeLabel[details.pixKeyType] ?? details.pixKeyType} de {details.hostName}
+                  {pixKeyTypeLabel[details.pixKeyType] ?? details.pixKeyType} de{" "}
+                  {details.hostName}
                 </p>
-                <p className="select-all break-all text-sm font-medium text-foreground">{details.pixKey}</p>
+                <p className="select-all break-all text-sm font-medium text-foreground">
+                  {details.pixKey}
+                </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" size="sm" onClick={() => copy(details.pixKey, "key")}>
-                  {copied === "key" ? <Check className="mr-1.5 h-4 w-4" /> : <Copy className="mr-1.5 h-4 w-4" />}
+              <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copy(details.pixKey, "key")}
+                >
+                  {copied === "key" ? (
+                    <Check className="mr-1.5 h-4 w-4" />
+                  ) : (
+                    <Copy className="mr-1.5 h-4 w-4" />
+                  )}
                   {copied === "key" ? "Copiada" : "Copiar chave"}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => copy(details.copyPasteCode, "code")}>
-                  {copied === "code" ? <Check className="mr-1.5 h-4 w-4" /> : <Copy className="mr-1.5 h-4 w-4" />}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copy(details.copyPasteCode, "code")}
+                >
+                  {copied === "code" ? (
+                    <Check className="mr-1.5 h-4 w-4" />
+                  ) : (
+                    <Copy className="mr-1.5 h-4 w-4" />
+                  )}
                   {copied === "code" ? "Copiado" : "Copia e cola"}
                 </Button>
               </div>
 
+              <details className="text-xs text-muted-foreground">
+                <summary className="min-h-11 cursor-pointer py-3">
+                  Ver código Pix para copiar manualmente
+                </summary>
+                <p className="select-all break-all">{details.copyPasteCode}</p>
+              </details>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Pague no app do seu banco e depois toque em <strong className="text-foreground">Já fiz o Pix</strong>{" "}
-                para avisar o casal.
+                Confira o destinatário no aplicativo do banco antes de pagar.
+                Depois toque em{" "}
+                <strong className="text-foreground">Já fiz o Pix</strong> para
+                avisar o casal.
               </p>
             </div>
           </div>
 
-          <MessageField value={message} onChange={setMessage} disabled={isPending} />
+          <MessageField
+            value={message}
+            onChange={setMessage}
+            isPublic={messagePublic}
+            onPublicChange={setMessagePublic}
+            disabled={isPending}
+          />
 
-          <button type="button" onClick={onCancel} disabled={isCancelPending} className={cancelLink}>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isCancelPending}
+            className={cancelLink}
+          >
             Desistir deste presente
           </button>
         </SheetBody>
         <SheetFooter>
-          <Button onClick={handleDeclarePix} disabled={isPending} className="w-full">
+          <Button
+            onClick={handleDeclarePix}
+            disabled={isPending}
+            className="w-full"
+          >
             {isPending ? "Enviando..." : "Já fiz o Pix"}
           </Button>
         </SheetFooter>
@@ -414,7 +607,12 @@ export function PaymentPanel({
         <p role="alert" className="text-sm text-destructive">
           {error ?? "Não foi possível carregar os dados do pagamento."}
         </p>
-        <button type="button" onClick={onCancel} disabled={isCancelPending} className={cancelLink}>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isCancelPending}
+          className={cancelLink}
+        >
           Desistir deste presente
         </button>
       </SheetBody>

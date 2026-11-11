@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { updateEventAction } from "@/actions/event.actions";
 import type { GuestSelection } from "./guest-selections";
 import { statusLabel, statusVariant } from "./gift-selection-status";
 import { EventDashboardView } from "./event-dashboard-view";
-import { computeGiftAvailability, ACTIVE_RESERVATION_STATUSES } from "@/lib/gift-availability";
+import {
+  computeGiftAvailability,
+  ACTIVE_RESERVATION_STATUSES,
+} from "@/lib/gift-availability";
 import { formatCentsToBRL } from "@/lib/utils";
 import { computeFundProgress, type FundTotals } from "@/lib/fund";
 import type { FundOverviewItem } from "./funds-overview";
@@ -17,21 +19,37 @@ import type { PendingApprovalItem } from "./pending-approvals-panel";
 import type { MetricDetailItem, SummaryMetricGroup } from "./summary-metrics";
 import { summarizeRsvps } from "@/lib/rsvp";
 
-const shortDate = (iso: string) => new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(new Date(iso));
+const shortDate = (iso: string) =>
+  new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" }).format(
+    new Date(iso),
+  );
 
 export const metadata: Metadata = { title: "Gerenciar lista" };
 
-export default async function EventoPage({ params }: { params: { id: string } }) {
+export default async function EventoPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
   const session = await auth();
   if (!session?.user?.id) notFound();
 
   const now = new Date();
 
   const event = await prisma.event.findUnique({
-    where: { id: params.id },
+    where: { id, ownerId: session.user.id },
     include: {
+      messages: {
+        include: { guest: { select: { name: true } } },
+        orderBy: { createdAt: "desc" },
+      },
       // Confirmações de presença (só o dono vê nome, e-mail e telefone).
-      rsvps: { include: { guest: { select: { name: true, email: true, phone: true } } } },
+      rsvps: {
+        include: {
+          guest: { select: { name: true, email: true, phone: true } },
+        },
+      },
       gifts: {
         orderBy: { createdAt: "asc" },
         include: {
@@ -68,7 +86,18 @@ export default async function EventoPage({ params }: { params: { id: string } })
   const fundTotals: Record<string, FundTotals> = {};
   const funds: FundOverviewItem[] = [];
   // Recadinhos dos convidados: reservas e contribuições ativas (as canceladas nem chegam aqui).
-  const messageItems: MessageItem[] = [];
+  const messageItems: MessageItem[] = event.messages.map((m) => ({
+    id: `m-${m.id}`,
+    guestId: m.guestId,
+    guestName: m.guest.name,
+    giftName: "",
+    kind: "MESSAGE",
+    amountLabel: null,
+    message: m.message,
+    at: m.createdAt.toISOString(),
+    public: m.public,
+    hidden: m.hidden,
+  }));
   // Todo Pix aguardando confirmação, de qualquer tipo de item — mostrado logo abaixo do cabeçalho.
   const pendingApprovals: PendingApprovalItem[] = [];
   // O que compõe cada número do Resumo — clicar no valor mostra esta lista (ver summary-metrics.tsx).
@@ -84,7 +113,8 @@ export default async function EventoPage({ params }: { params: { id: string } })
       let confirmed = 0;
       let pending = 0;
       for (const contribution of gift.contributions) {
-        if (contribution.status === "CONFIRMED") confirmed += contribution.amountInCents;
+        if (contribution.status === "CONFIRMED")
+          confirmed += contribution.amountInCents;
         else pending += contribution.amountInCents;
       }
       pixConfirmedCents += confirmed;
@@ -101,8 +131,10 @@ export default async function EventoPage({ params }: { params: { id: string } })
       fundCatalogDetails.push({
         id: gift.id,
         title: gift.name,
-        subtitle: progress.reached ? "Meta atingida" : `${progress.percent}% da meta`,
-        value: `${formatCentsToBRL(progress.raisedInCents)} de ${formatCentsToBRL(totals.goalInCents)}`,
+        subtitle: progress.reached
+          ? "Meta atingida"
+          : `${progress.percent}% da meta`,
+        value: `${formatCentsToBRL(totals.confirmedInCents)} de ${formatCentsToBRL(totals.goalInCents)}`,
       });
       for (const contribution of gift.contributions) {
         if (contribution.status === "CONFIRMED") {
@@ -128,6 +160,8 @@ export default async function EventoPage({ params }: { params: { id: string } })
         if (!contribution.message) continue;
         messageItems.push({
           id: `c-${contribution.id}`,
+          public: contribution.messagePublic,
+          hidden: contribution.messageHidden,
           guestId: contribution.guestId,
           guestName: contribution.guest.name ?? contribution.guest.email,
           giftName: gift.name,
@@ -173,6 +207,8 @@ export default async function EventoPage({ params }: { params: { id: string } })
       if (reservation.message) {
         messageItems.push({
           id: `r-${reservation.id}`,
+          public: reservation.messagePublic,
+          hidden: reservation.messageHidden,
           guestId: reservation.guestId,
           guestName: reservation.guest.name ?? reservation.guest.email,
           giftName: gift.name,
@@ -184,25 +220,34 @@ export default async function EventoPage({ params }: { params: { id: string } })
       }
       if (reservation.paymentMethod === "PIX") {
         if (reservation.pixStatus === "DECLARED") {
-          pixPendingCents += gift.priceInCents;
+          pixPendingCents += reservation.amountInCents ?? gift.priceInCents;
           pendingApprovals.push({
             id: reservation.id,
             source: "reservation",
             giftKind: gift.kind === "PIX" ? "PIX" : "PRODUCT",
             guestName: reservation.guest.name ?? reservation.guest.email,
             itemName: gift.name,
-            amountLabel: formatCentsToBRL(gift.priceInCents),
-            at: (reservation.pixDeclaredAt ?? reservation.reservedAt).toISOString(),
+            amountLabel: formatCentsToBRL(
+              reservation.amountInCents ?? gift.priceInCents,
+            ),
+            at: (
+              reservation.pixDeclaredAt ?? reservation.reservedAt
+            ).toISOString(),
           });
         }
         if (reservation.pixStatus === "CONFIRMED") {
-          pixConfirmedCents += gift.priceInCents;
+          pixConfirmedCents += reservation.amountInCents ?? gift.priceInCents;
           pixConfirmedDetails.push({
             id: reservation.id,
             title: gift.name,
             subtitle: `${reservation.guest.name ?? reservation.guest.email} · ${shortDate((reservation.pixConfirmedAt ?? reservation.reservedAt).toISOString())}`,
-            value: formatCentsToBRL(gift.priceInCents),
-            badge: { label: gift.kind === "PIX" ? "Pix" : "Presente", tone: "neutral" },
+            value: formatCentsToBRL(
+              reservation.amountInCents ?? gift.priceInCents,
+            ),
+            badge: {
+              label: gift.kind === "PIX" ? "Pix" : "Presente",
+              tone: "neutral",
+            },
           });
         }
       }
@@ -211,10 +256,13 @@ export default async function EventoPage({ params }: { params: { id: string } })
         reservedAt: reservation.reservedAt.toISOString(),
         giftName: gift.name,
         guestName: reservation.guest.name ?? reservation.guest.email,
-        priceLabel: formatCentsToBRL(gift.priceInCents),
+        priceLabel: formatCentsToBRL(
+          reservation.amountInCents ?? gift.priceInCents,
+        ),
         paymentMethod: reservation.paymentMethod,
         status: reservation.status,
         pixStatus: reservation.pixStatus,
+        receivedAt: reservation.receivedAt?.toISOString() ?? null,
       });
     }
   }
@@ -244,13 +292,15 @@ export default async function EventoPage({ params }: { params: { id: string } })
     subtitle: `${selection.guestName} · ${shortDate(selection.reservedAt)}`,
     badge: { label: statusLabel(selection), tone: statusVariant(selection) },
   }));
-  const pixPendingDetails: MetricDetailItem[] = pendingApprovals.map((item) => ({
-    id: item.id,
-    title: item.itemName,
-    subtitle: `${item.guestName} · ${shortDate(item.at)}`,
-    value: item.amountLabel,
-    badge: { label: "Aguardando", tone: "pending" },
-  }));
+  const pixPendingDetails: MetricDetailItem[] = pendingApprovals.map(
+    (item) => ({
+      id: item.id,
+      title: item.itemName,
+      subtitle: `${item.guestName} · ${shortDate(item.at)}`,
+      value: item.amountLabel,
+      badge: { label: "Aguardando", tone: "pending" },
+    }),
+  );
   const attendingDetails: MetricDetailItem[] = rsvpItems
     .filter((item) => item.status === "ATTENDING")
     .map((item) => {
@@ -278,7 +328,8 @@ export default async function EventoPage({ params }: { params: { id: string } })
           label: "Disponíveis",
           value: String(availableUnits),
           details: availableGiftDetails,
-          emptyMessage: "Nenhum presente disponível no momento — todos foram escolhidos.",
+          emptyMessage:
+            "Nenhum presente disponível no momento — todos foram escolhidos.",
         },
       ],
     },
@@ -337,10 +388,7 @@ export default async function EventoPage({ params }: { params: { id: string } })
       : []),
   ];
 
-  const headersList = headers();
-  const host = headersList.get("host");
-  const protocol = host?.startsWith("localhost") ? "http" : "https";
-  const publicUrl = `${protocol}://${host}/lista/${event.slug}-${event.secureToken}`;
+  const publicUrl = `/lista/${event.slug}-${event.secureToken}`;
 
   const boundUpdateAction = updateEventAction.bind(null, event.id);
 

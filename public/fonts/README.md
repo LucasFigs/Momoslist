@@ -1,0 +1,1 @@
+Fraunces and Inter, Latin variable subsets, distributed under the included SIL Open Font Licenses. Source: @fontsource-variable/fraunces and @fontsource-variable/inter 5.3.0 (https://fontsource.org/). Self-hosted for reproducible builds and visitor privacy.

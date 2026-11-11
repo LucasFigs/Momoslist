@@ -1,16 +1,21 @@
 "use server";
 
+import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { uploadImage } from "@/lib/supabase-storage";
 import { giftSchema, parsePriceToCents } from "@/schemas/gift.schema";
-import { logger } from "@/lib/logger";
+import { logger, withErrorHandling } from "@/lib/logger";
 
 type ActionResult = { success: true } | { success: false; error: string };
 
-const ACTIVE_RESERVATION_STATUSES = ["TEMPORARY", "CONFIRMED", "COMPLETED"] as const;
+const ACTIVE_RESERVATION_STATUSES = [
+  "TEMPORARY",
+  "CONFIRMED",
+  "COMPLETED",
+] as const;
 
 async function requireOwnedEvent(eventId: string, userId: string) {
   const event = await prisma.event.findUnique({ where: { id: eventId } });
@@ -19,7 +24,10 @@ async function requireOwnedEvent(eventId: string, userId: string) {
 }
 
 async function requireOwnedGift(giftId: string, userId: string) {
-  const gift = await prisma.gift.findUnique({ where: { id: giftId }, include: { event: true } });
+  const gift = await prisma.gift.findUnique({
+    where: { id: giftId },
+    include: { event: true },
+  });
   if (!gift || gift.event.ownerId !== userId) return null;
   return gift;
 }
@@ -33,7 +41,6 @@ function kindFromForm(formData: FormData): GiftKind {
 }
 
 function parseGiftForm(formData: FormData, kind: GiftKind) {
-
   return giftSchema.safeParse({
     kind,
     name: formData.get("name"),
@@ -47,19 +54,34 @@ function parseGiftForm(formData: FormData, kind: GiftKind) {
   });
 }
 
-export async function createGiftAction(eventId: string, formData: FormData): Promise<ActionResult> {
+async function createGiftActionImpl(
+  eventId: string,
+  formData: FormData,
+): Promise<ActionResult> {
   const session = await auth();
-  if (!session?.user?.id) return { success: false, error: "Você precisa estar logado." };
+  if (!session?.user?.id)
+    return { success: false, error: "Você precisa estar logado." };
 
   const event = await requireOwnedEvent(eventId, session.user.id);
   if (!event) return { success: false, error: "Lista não encontrada." };
 
   const parsed = parseGiftForm(formData, kindFromForm(formData));
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+    };
   }
 
-  const { kind, name, description, purchaseUrl, price, minContribution, quantity } = parsed.data;
+  const {
+    kind,
+    name,
+    description,
+    purchaseUrl,
+    price,
+    minContribution,
+    quantity,
+  } = parsed.data;
   const priceInCents = parsePriceToCents(price);
 
   const imageFile = formData.get("image");
@@ -81,7 +103,10 @@ export async function createGiftAction(eventId: string, formData: FormData): Pro
       description: description || null,
       purchaseUrl: purchaseUrl || null,
       priceInCents,
-      minContributionInCents: kind === "FUND" && minContribution ? parsePriceToCents(minContribution) : null,
+      minContributionInCents:
+        kind === "FUND" && minContribution
+          ? parsePriceToCents(minContribution)
+          : null,
       quantity,
       imageUrl,
     },
@@ -91,23 +116,35 @@ export async function createGiftAction(eventId: string, formData: FormData): Pro
   return { success: true };
 }
 
-export async function updateGiftAction(giftId: string, formData: FormData): Promise<ActionResult> {
+async function updateGiftActionImpl(
+  giftId: string,
+  formData: FormData,
+): Promise<ActionResult> {
   const session = await auth();
-  if (!session?.user?.id) return { success: false, error: "Você precisa estar logado." };
+  if (!session?.user?.id)
+    return { success: false, error: "Você precisa estar logado." };
 
-  const gift = await requireOwnedGift(giftId, session.user.id);
+  const ownerId = session.user.id;
+  const gift = await requireOwnedGift(giftId, ownerId);
   if (!gift) return { success: false, error: "Presente não encontrado." };
 
   // Presente comum e Pix podem ser trocados um pelo outro (ambos são reservas). A vaquinha não muda de tipo,
   // nem outro tipo vira vaquinha: contribuições e reservas seguem regras diferentes.
   const requestedKind = kindFromForm(formData);
-  const kind: GiftKind = gift.kind === "FUND" || requestedKind === "FUND" ? gift.kind : requestedKind;
+  const kind: GiftKind =
+    gift.kind === "FUND" || requestedKind === "FUND"
+      ? gift.kind
+      : requestedKind;
   const parsed = parseGiftForm(formData, kind);
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+    };
   }
 
-  const { name, description, purchaseUrl, price, minContribution, quantity } = parsed.data;
+  const { name, description, purchaseUrl, price, minContribution, quantity } =
+    parsed.data;
 
   // Regra do documento: a nova quantidade nunca pode ficar menor que o número
   // de reservas já ativas (ainda sempre 0 até a Fase 4, mas a checagem já vale).
@@ -133,29 +170,55 @@ export async function updateGiftAction(giftId: string, formData: FormData): Prom
     imageUrl = uploadResult.url;
   }
 
-  await prisma.gift.update({
-    where: { id: giftId },
-    data: {
-      kind,
-      name,
-      description: description || null,
-      purchaseUrl: purchaseUrl || null,
-      priceInCents: parsePriceToCents(price),
-      minContributionInCents: kind === "FUND" && minContribution ? parsePriceToCents(minContribution) : null,
-      quantity,
-      imageUrl,
-    },
-  });
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        const current = await tx.gift.findFirst({
+          where: { id: giftId, event: { ownerId } },
+        });
+        if (!current) throw new Error("GiftUnavailable");
+        const count = await tx.giftReservation.count({
+          where: { giftId, status: { in: [...ACTIVE_RESERVATION_STATUSES] } },
+        });
+        if (quantity < count) throw new Error("StockChanged");
+        await tx.gift.update({
+          where: { id: giftId },
+          data: {
+            kind,
+            name,
+            description: description || null,
+            purchaseUrl: purchaseUrl || null,
+            priceInCents: parsePriceToCents(price),
+            minContributionInCents:
+              kind === "FUND" && minContribution
+                ? parsePriceToCents(minContribution)
+                : null,
+            quantity,
+            imageUrl,
+          },
+        });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  } catch {
+    return {
+      success: false,
+      error:
+        "O presente mudou enquanto você editava. Confira as reservas e tente novamente.",
+    };
+  }
 
   revalidatePath(`/dashboard/eventos/${gift.eventId}`);
   return { success: true };
 }
 
-export async function deleteGiftAction(giftId: string): Promise<ActionResult> {
+async function deleteGiftActionImpl(giftId: string): Promise<ActionResult> {
   const session = await auth();
-  if (!session?.user?.id) return { success: false, error: "Você precisa estar logado." };
+  if (!session?.user?.id)
+    return { success: false, error: "Você precisa estar logado." };
 
-  const gift = await requireOwnedGift(giftId, session.user.id);
+  const ownerId = session.user.id;
+  const gift = await requireOwnedGift(giftId, ownerId);
   if (!gift) return { success: false, error: "Presente não encontrado." };
 
   const activeReservations = await prisma.giftReservation.count({
@@ -165,7 +228,8 @@ export async function deleteGiftAction(giftId: string): Promise<ActionResult> {
   if (activeReservations > 0) {
     return {
       success: false,
-      error: "Este presente já foi escolhido por um convidado e não pode ser excluído.",
+      error:
+        "Este presente já foi escolhido por um convidado e não pode ser excluído.",
     };
   }
 
@@ -181,8 +245,49 @@ export async function deleteGiftAction(giftId: string): Promise<ActionResult> {
     };
   }
 
-  await prisma.gift.delete({ where: { id: giftId } });
+  try {
+    await prisma.$transaction(
+      async (tx) => {
+        const history =
+          (await tx.giftReservation.count({ where: { giftId } })) +
+          (await tx.contribution.count({ where: { giftId } }));
+        if (history) throw new Error("GiftHasHistory");
+        await tx.gift.delete({ where: { id: giftId, event: { ownerId } } });
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  } catch {
+    return {
+      success: false,
+      error:
+        "Este presente tem histórico ou acabou de ser escolhido e não pode ser excluído.",
+    };
+  }
 
   revalidatePath(`/dashboard/eventos/${gift.eventId}`);
   return { success: true };
+}
+
+export async function createGiftAction(
+  eventId: string,
+  formData: FormData,
+): Promise<ActionResult> {
+  return withErrorHandling("createGiftAction", () =>
+    createGiftActionImpl(eventId, formData),
+  );
+}
+
+export async function updateGiftAction(
+  giftId: string,
+  formData: FormData,
+): Promise<ActionResult> {
+  return withErrorHandling("updateGiftAction", () =>
+    updateGiftActionImpl(giftId, formData),
+  );
+}
+
+export async function deleteGiftAction(giftId: string): Promise<ActionResult> {
+  return withErrorHandling("deleteGiftAction", () =>
+    deleteGiftActionImpl(giftId),
+  );
 }

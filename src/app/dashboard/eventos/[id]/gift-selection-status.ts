@@ -13,14 +13,19 @@ export function statusLabel(selection: GuestSelection): string {
     if (selection.pixStatus === "DECLARED") return "Aguardando confirmação";
     return "Aguardando pagamento";
   }
-  if (selection.status === "COMPLETED") return "Compra confirmada";
+  if (selection.receivedAt) return "Presente recebido";
+  if (selection.status === "COMPLETED") return "Compra informada";
   if (selection.status === "CONFIRMED") return "Selecionado";
   return "Reserva em andamento";
 }
 
 /** Concluído = verde, precisa de ação/espera = âmbar, o resto = neutro. O texto do selo sempre diz o estado. */
-export function statusVariant(selection: GuestSelection): "success" | "pending" | "neutral" {
-  if (selection.pixStatus === "CONFIRMED" || selection.status === "COMPLETED") return "success";
-  if (selection.paymentMethod === "PIX" && selection.pixStatus !== "CONFIRMED") return "pending";
+export function statusVariant(
+  selection: GuestSelection,
+): "success" | "pending" | "neutral" {
+  if (selection.pixStatus === "CONFIRMED" || selection.status === "COMPLETED")
+    return "success";
+  if (selection.paymentMethod === "PIX" && selection.pixStatus !== "CONFIRMED")
+    return "pending";
   return "neutral";
 }

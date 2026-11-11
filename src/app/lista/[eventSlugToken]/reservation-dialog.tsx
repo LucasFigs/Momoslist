@@ -1,7 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogTitle, SheetBody, SheetContent, SheetFooter, SheetHeader } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogTitle,
+  SheetBody,
+  SheetContent,
+  SheetFooter,
+  SheetHeader,
+} from "@/components/ui/dialog";
 import { GiftImage } from "@/components/gift-image";
 import { PaymentPanel } from "./payment-panel";
 
@@ -27,6 +34,7 @@ interface ReservationDialogProps {
   isPending: boolean;
   /** Item só-Pix: não há loja para escolher. */
   pixOnly?: boolean;
+  pixConfigured: boolean;
   onChooseMethod: (method: PaymentMethod) => void;
   /** Abre a confirmação de desistência (o diálogo de confirmação fica no card). */
   onCancel: () => void;
@@ -50,12 +58,16 @@ export function ReservationDialog({
   countdown,
   isPending,
   pixOnly = false,
+  pixConfigured,
   onChooseMethod,
   onCancel,
 }: ReservationDialogProps) {
-  const choosingMethod = reservation.status === "TEMPORARY";
+  const choosingMethod =
+    reservation.status === "TEMPORARY" && !reservation.paymentMethod;
   // O Pix com QR pede duas colunas; os demais passos são curtos e ficam melhores estreitos.
-  const wide = reservation.paymentMethod === "PIX" && reservation.pixStatus === "NOT_DECLARED";
+  const wide =
+    reservation.paymentMethod === "PIX" &&
+    reservation.pixStatus === "NOT_DECLARED";
 
   const summary = (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-2.5">
@@ -63,8 +75,12 @@ export function ReservationDialog({
         <GiftImage src={imageUrl} alt="" fill fit="contain" sizes="56px" />
       </div>
       <div className="min-w-0">
-        <p className="line-clamp-2 break-words text-sm font-medium leading-snug text-foreground">{giftName}</p>
-        <p className="text-sm font-semibold tabular-nums text-foreground">{priceLabel}</p>
+        <p className="line-clamp-2 break-words text-sm font-medium leading-snug text-foreground">
+          {giftName}
+        </p>
+        <p className="text-sm font-semibold tabular-nums text-foreground">
+          {priceLabel}
+        </p>
       </div>
     </div>
   );
@@ -73,7 +89,9 @@ export function ReservationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <SheetContent size={wide ? "lg" : "md"} aria-describedby={undefined}>
         <SheetHeader>
-          <DialogTitle>{choosingMethod ? "Como você quer presentear?" : "Seu presente"}</DialogTitle>
+          <DialogTitle>
+            {choosingMethod ? "Como você quer presentear?" : "Seu presente"}
+          </DialogTitle>
         </SheetHeader>
 
         {choosingMethod ? (
@@ -82,30 +100,33 @@ export function ReservationDialog({
               {summary}
               <p className="rounded-lg bg-primary-subtle p-3 text-sm leading-relaxed text-foreground ring-1 ring-primary-border">
                 Guardamos este presente para você por{" "}
-                <span className="font-semibold tabular-nums">{countdown ?? "--:--"}</span>. Escolha abaixo como prefere
-                presentear.
+                <span className="font-semibold tabular-nums">
+                  {countdown ?? "--:--"}
+                </span>
+                . Escolha abaixo como prefere presentear.
               </p>
-              <p className="text-sm leading-relaxed text-muted-foreground">
-                {pixOnly
-                  ? "Este item ainda não tem loja definida: o presente é feito por Pix."
-                  : "Na loja, a compra é feita no site do vendedor: a Momoslist só guarda o presente para você."}
-              </p>
-              <button type="button" onClick={onCancel} disabled={isPending} className={cancelLink}>
+              {!pixOnly && <p className="text-sm text-muted-foreground">
+                A compra é feita na loja. Depois, volte ao Momoslist para informar que comprou o presente.
+              </p>}
+              {pixOnly && !pixConfigured && <p role="status" className="text-sm text-muted-foreground">O Pix está indisponível neste momento.</p>}
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={isPending}
+                className={cancelLink}
+              >
                 Desistir deste presente
               </button>
             </SheetBody>
             <SheetFooter>
-              <Button disabled={isPending} onClick={() => onChooseMethod("PIX")} className="w-full">
-                Pagar via Pix
-              </Button>
               {!pixOnly && (
-                <Button
-                  variant="outline"
-                  disabled={isPending}
-                  onClick={() => onChooseMethod("EXTERNAL_PURCHASE")}
-                  className="w-full"
-                >
+                <Button variant="outline" disabled={isPending} onClick={() => onChooseMethod("EXTERNAL_PURCHASE")} className="w-full">
                   Comprar em uma loja
+                </Button>
+              )}
+              {pixConfigured && (
+                <Button variant="outline" disabled={isPending} onClick={() => onChooseMethod("PIX")} className="w-full">
+                  Presentear com Pix
                 </Button>
               )}
             </SheetFooter>

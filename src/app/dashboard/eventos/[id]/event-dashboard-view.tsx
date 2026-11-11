@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import type { Event, Gift } from "@prisma/client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EventForm } from "./event-form";
 import { PublishToggle } from "./publish-toggle";
@@ -16,7 +22,10 @@ import { CoverImageUploader } from "./cover-image-uploader";
 import { ProfileImageUploader } from "./profile-image-uploader";
 import { ThemeSelector } from "./theme-selector";
 import { FundsOverview, type FundOverviewItem } from "./funds-overview";
-import { PendingApprovalsPanel, type PendingApprovalItem } from "./pending-approvals-panel";
+import {
+  PendingApprovalsPanel,
+  type PendingApprovalItem,
+} from "./pending-approvals-panel";
 import { SummaryMetrics, type SummaryMetricGroup } from "./summary-metrics";
 import { RsvpPanel, type RsvpItem } from "./rsvp-panel";
 import { MessagesPanel, type MessageItem } from "./messages-panel";
@@ -86,9 +95,17 @@ export function EventDashboardView({
                 />
                 {event.published ? "Publicada" : "Rascunho"}
               </Badge>
-              <span>{event.type === "CHA_PANELA" ? "Chá de Panela" : "Chá de Casa Nova"}</span>
+              <span>
+                {event.type === "CHA_PANELA"
+                  ? "Chá de Panela"
+                  : "Chá de Casa Nova"}
+              </span>
               <span aria-hidden="true">·</span>
-              <span>{event.gifts.length === 1 ? "1 item" : `${event.gifts.length} itens`}</span>
+              <span>
+                {event.gifts.length === 1
+                  ? "1 item"
+                  : `${event.gifts.length} itens`}
+              </span>
             </div>
             <h1 className="break-words font-serif text-2xl font-medium text-foreground sm:text-3xl">
               {event.title}
@@ -102,24 +119,70 @@ export function EventDashboardView({
             {/* Com a lista publicada, ver o que os convidados veem é a ação mais útil ao lado de despublicar. */}
             {event.published ? (
               // Abaixo de sm, vira um botão quadrado só com o ícone — cabe ao lado dos outros no celular.
-              <Button variant="outline" size="sm" asChild className="w-10 justify-center px-0 sm:w-auto sm:px-3">
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="w-10 justify-center px-0 sm:w-auto sm:px-3"
+              >
                 <a href={publicUrl} target="_blank" rel="noopener noreferrer">
-                  <ExternalLink className="h-3.5 w-3.5 sm:mr-1.5" aria-hidden="true" />
+                  <ExternalLink
+                    className="h-3.5 w-3.5 sm:mr-1.5"
+                    aria-hidden="true"
+                  />
                   <span className="hidden sm:inline">Abrir lista pública</span>
                   <span className="sr-only">
-                    <span className="sm:hidden">Abrir lista pública </span>(abre em nova aba)
+                    <span className="sm:hidden">Abrir lista pública </span>(abre
+                    em nova aba)
                   </span>
                 </a>
               </Button>
             ) : (
               // Rascunho não tem link público (responde 404): a pré-visualização é a única forma de ver.
-              <ListPreviewButton eventId={event.id} label="Visualizar lista" compact />
+              <ListPreviewButton
+                eventId={event.id}
+                label="Visualizar lista"
+                compact
+              />
             )}
             <PublishToggle eventId={event.id} published={event.published} />
           </div>
         </div>
       </div>
 
+      {!event.published && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Antes de compartilhar</CardTitle>
+            <CardDescription>
+              Prepare sua lista com calma. O link recebe convidados depois da
+              publicação.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="grid gap-2 text-sm sm:grid-cols-2">
+              <li>
+                {event.gifts.length ? "✓" : "○"} Adicione ao menos um presente
+              </li>
+              <li>
+                {pixConfigured
+                  ? "✓ Pix configurado"
+                  : "○ Configure o Pix se quiser receber contribuições"}
+              </li>
+              <li>
+                {event.eventDate
+                  ? "✓ Data do encontro definida"
+                  : "○ Data do encontro (opcional)"}
+              </li>
+              <li>
+                {event.coverImageUrl
+                  ? "✓ Capa personalizada"
+                  : "○ Uma capa deixa a lista com a sua cara (opcional)"}
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+      )}
       {/* Abas logo abaixo do título: o conteúdo começa na primeira tela, mesmo no celular. */}
       <Tabs defaultValue={defaultTab}>
         <TabsList>
@@ -147,8 +210,13 @@ export function EventDashboardView({
             // confirmar. Mesma superfície neutra das demais seções (Card comum), sem virar uma faixa colorida.
             <Card>
               <CardHeader className="px-5 pb-3 pt-4">
-                <CardTitle className="text-base">Pix aguardando confirmação</CardTitle>
-                <CardDescription>De presentes, itens Pix e vaquinhas — confirme assim que o dinheiro cair.</CardDescription>
+                <CardTitle className="text-base">
+                  Pix aguardando confirmação
+                </CardTitle>
+                <CardDescription>
+                  De presentes, itens Pix e vaquinhas — confirme assim que o
+                  dinheiro cair.
+                </CardDescription>
               </CardHeader>
               <CardContent className="px-5 pb-4">
                 <PendingApprovalsPanel items={pendingApprovals} />
@@ -160,8 +228,8 @@ export function EventDashboardView({
             <CardHeader className="px-5 pb-3 pt-4">
               <CardTitle className="text-base">Presentes reservados</CardTitle>
               <CardDescription>
-                Da mais recente para a mais antiga. Só você vê os nomes dos convidados — eles não
-                aparecem na lista pública.
+                Da mais recente para a mais antiga. Só você vê os nomes dos
+                convidados — eles não aparecem na lista pública.
               </CardDescription>
             </CardHeader>
             <CardContent className="px-5 pb-4">
@@ -174,7 +242,9 @@ export function EventDashboardView({
             <Card>
               <CardHeader className="px-5 pb-3 pt-4">
                 <CardTitle className="text-base">Vaquinhas</CardTitle>
-                <CardDescription>Acompanhe o progresso e confirme os Pix que chegarem.</CardDescription>
+                <CardDescription>
+                  Acompanhe o progresso e confirme os Pix que chegarem.
+                </CardDescription>
               </CardHeader>
               <CardContent className="px-5 pb-4">
                 <FundsOverview funds={funds} />
@@ -190,10 +260,15 @@ export function EventDashboardView({
               <div>
                 <CardTitle>Presentes e vaquinhas</CardTitle>
                 <CardDescription>
-                  {event.gifts.length === 1 ? "1 item" : `${event.gifts.length} itens`}
+                  {event.gifts.length === 1
+                    ? "1 item"
+                    : `${event.gifts.length} itens`}
                 </CardDescription>
               </div>
-              <GiftFormDialog eventId={event.id} pixConfigured={pixConfigured} />
+              <GiftFormDialog
+                eventId={event.id}
+                pixConfigured={pixConfigured}
+              />
             </CardHeader>
             <CardContent>
               <GiftList
@@ -209,22 +284,31 @@ export function EventDashboardView({
 
         {/* Confirmações de presença */}
         <TabsContent value="confirmacoes">
-          <RsvpPanel eventId={event.id} eventSlug={event.slug} enabled={rsvpEnabled} items={rsvpItems} />
+          <RsvpPanel
+            eventId={event.id}
+            eventSlug={event.slug}
+            enabled={rsvpEnabled}
+            items={rsvpItems}
+          />
         </TabsContent>
 
         {/* Recadinhos dos convidados */}
         <TabsContent value="recadinhos">
-          <MessagesPanel items={messageItems} />
+          <MessagesPanel eventId={event.id} items={messageItems} />
         </TabsContent>
 
         {/* Configurações: informações do evento e aparência da lista, na mesma etapa. Ocupa a largura toda
             (como as outras abas): formulário à esquerda e aparência ao lado no desktop; empilhado no celular. */}
-        <TabsContent value="configuracoes" className="grid items-start gap-6 lg:grid-cols-3">
+        <TabsContent
+          value="configuracoes"
+          className="grid items-start gap-6 lg:grid-cols-3"
+        >
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Informações do evento</CardTitle>
               <CardDescription>
-                Dados exibidos aos convidados, local, endereço de entrega e sua chave Pix.
+                Dados exibidos aos convidados, local, endereço de entrega e sua
+                chave Pix.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -240,26 +324,45 @@ export function EventDashboardView({
           <Card>
             <CardHeader>
               <CardTitle>Aparência da lista</CardTitle>
-              <CardDescription>Capa, foto e cor que os convidados veem no topo da página.</CardDescription>
+              <CardDescription>
+                Capa, foto e cor que os convidados veem no topo da página.
+              </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
               <div>
-                <p className="mb-2 text-sm font-medium text-foreground">Capa (banner)</p>
-                <CoverImageUploader eventId={event.id} currentUrl={event.coverImageUrl} />
+                <p className="mb-2 text-sm font-medium text-foreground">
+                  Capa (banner)
+                </p>
+                <CoverImageUploader
+                  eventId={event.id}
+                  currentUrl={event.coverImageUrl}
+                />
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Ideal: 1800 × 600 px (proporção 3:1). No celular as laterais podem ser cortadas, então deixe o
-                  que importa no centro.
+                  Ideal: 1800 × 600 px (proporção 3:1). No celular as laterais
+                  podem ser cortadas, então deixe o que importa no centro.
                 </p>
               </div>
               <div className="border-t border-border pt-6">
-                <p className="mb-2 text-sm font-medium text-foreground">Foto de perfil</p>
-                <ProfileImageUploader eventId={event.id} currentUrl={event.profileImageUrl} />
+                <p className="mb-2 text-sm font-medium text-foreground">
+                  Foto de perfil
+                </p>
+                <ProfileImageUploader
+                  eventId={event.id}
+                  currentUrl={event.profileImageUrl}
+                />
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Ideal: imagem quadrada, a partir de 400 × 400 px. Fica redonda, metade sobre a capa.
+                  Ideal: imagem quadrada, a partir de 400 × 400 px. Fica
+                  redonda, metade sobre a capa.
                 </p>
               </div>
               <div className="border-t border-border pt-6">
-                <ThemeSelector eventId={event.id} currentColor={resolveThemeColor(event.themeColor, event.theme)} />
+                <ThemeSelector
+                  eventId={event.id}
+                  currentColor={resolveThemeColor(
+                    event.themeColor,
+                    event.theme,
+                  )}
+                />
               </div>
             </CardContent>
           </Card>

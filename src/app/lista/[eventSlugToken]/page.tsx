@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
@@ -8,11 +9,11 @@ import { PublicListView } from "./public-list-view";
 import { parseGiftQuery, parseGiftSort } from "./gift-sort";
 
 interface PageProps {
-  params: { eventSlugToken: string };
-  searchParams: { q?: string | string[]; sort?: string | string[] };
+  params: Promise<{ eventSlugToken: string }>;
+  searchParams: Promise<{ q?: string | string[]; sort?: string | string[] }>;
 }
 
-async function getPublicEvent(eventSlugToken: string) {
+const getPublicEvent = cache(async (eventSlugToken: string) => {
   const parsed = parseEventSlugToken(eventSlugToken);
   if (!parsed) return null;
 
@@ -26,15 +27,19 @@ async function getPublicEvent(eventSlugToken: string) {
   if (!event.published) return null;
 
   return event;
-}
+});
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const event = await getPublicEvent(params.eventSlugToken);
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { eventSlugToken } = await params;
+  const event = await getPublicEvent(eventSlugToken);
   if (!event) return {};
 
   return {
     title: `Lista de presentes — ${event.title}`,
-    description: event.description ?? "Confira a lista de presentes e escolha o seu.",
+    description:
+      event.description ?? "Confira a lista de presentes e escolha o seu.",
     // A lista é privada por link: gera prévia bonita no WhatsApp, mas não é indexada.
     robots: { index: false, follow: false },
     openGraph: {
@@ -45,10 +50,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function PublicEventPage({ params, searchParams }: PageProps) {
-  const event = await getPublicEvent(params.eventSlugToken);
+export default async function PublicEventPage({
+  params,
+  searchParams,
+}: PageProps) {
+  const { eventSlugToken } = await params;
+  const event = await getPublicEvent(eventSlugToken);
   if (!event) notFound();
 
+  const queryParams = await searchParams;
   const guest = await getCurrentGuest();
 
   // Só busca a resposta se as confirmações estiverem ligadas e o convidado já estiver identificado.
@@ -56,7 +66,12 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
     guest && event.rsvpEnabled
       ? await prisma.rsvp.findUnique({
           where: { eventId_guestId: { eventId: event.id, guestId: guest.id } },
-          select: { status: true, companionAdults: true, companionChildren: true, companionNames: true },
+          select: {
+            status: true,
+            companionAdults: true,
+            companionChildren: true,
+            companionNames: true,
+          },
         })
       : null;
 
@@ -65,10 +80,10 @@ export default async function PublicEventPage({ params, searchParams }: PageProp
       event={event}
       guest={guest}
       myRsvp={myRsvp}
-      publicUrl={`${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/lista/${params.eventSlugToken}`}
-      query={parseGiftQuery(searchParams.q)}
-      sort={parseGiftSort(searchParams.sort)}
-      clearHref={`/lista/${params.eventSlugToken}`}
+      publicUrl={`${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/lista/${eventSlugToken}`}
+      query={parseGiftQuery(queryParams.q)}
+      sort={parseGiftSort(queryParams.sort)}
+      clearHref={`/lista/${eventSlugToken}`}
     />
   );
 }

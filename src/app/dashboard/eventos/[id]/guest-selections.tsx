@@ -12,21 +12,31 @@ import {
   confirmExternalPurchaseReceivedAction,
   confirmPixReceivedAction,
   rejectPixReceivedAction,
+  releaseUnpaidReservationAction,
 } from "@/actions/payment.actions";
 import { Inbox } from "lucide-react";
 import { statusLabel, statusVariant } from "./gift-selection-status";
 
 const RECENT_LIMIT = 8;
 
-const dateFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit" });
+const dateFormatter = new Intl.DateTimeFormat("pt-BR", {
+  day: "2-digit",
+  month: "2-digit",
+});
 
 function isAwaitingPixConfirmation(selection: GuestSelection): boolean {
-  return selection.paymentMethod === "PIX" && selection.pixStatus === "DECLARED";
+  return (
+    selection.paymentMethod === "PIX" && selection.pixStatus === "DECLARED"
+  );
 }
 
 /** Compra em loja: pode ser confirmada assim que reservada, sem depender de o convidado avisar nada antes. */
 function isAwaitingExternalConfirmation(selection: GuestSelection): boolean {
-  return selection.paymentMethod === "EXTERNAL_PURCHASE" && selection.status === "CONFIRMED";
+  return (
+    selection.paymentMethod === "EXTERNAL_PURCHASE" &&
+    ["CONFIRMED", "COMPLETED"].includes(selection.status) &&
+    !selection.receivedAt
+  );
 }
 
 export interface GuestSelection {
@@ -39,14 +49,18 @@ export interface GuestSelection {
   paymentMethod: "EXTERNAL_PURCHASE" | "PIX" | null;
   status: string;
   pixStatus: string;
+  receivedAt?: string | null;
 }
-
 
 /**
  * Recolhida por padrão, no mesmo padrão das vaquinhas: com muitas reservas essa área tomava a tela toda do
  * Resumo. O resumo (quantos e quantos aguardando) continua visível sem precisar expandir.
  */
-export function GuestSelections({ selections }: { selections: GuestSelection[] }) {
+export function GuestSelections({
+  selections,
+}: {
+  selections: GuestSelection[];
+}) {
   const [expanded, setExpanded] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
@@ -73,12 +87,16 @@ export function GuestSelections({ selections }: { selections: GuestSelection[] }
       >
         <span className="min-w-0 truncate text-sm text-foreground">
           <span className="font-medium">
-            {selections.length === 1 ? "1 presente reservado" : `${selections.length} presentes reservados`}
+            {selections.length === 1
+              ? "1 presente reservado"
+              : `${selections.length} presentes reservados`}
           </span>
           {pendingCount > 0 && (
             <>
               {" · "}
-              <span className="font-medium text-pending">{pendingCount} aguardando confirmação</span>
+              <span className="font-medium text-pending">
+                {pendingCount} aguardando confirmação
+              </span>
             </>
           )}
         </span>
@@ -95,7 +113,8 @@ export function GuestSelections({ selections }: { selections: GuestSelection[] }
   const visible = showAll
     ? selections
     : selections.filter(
-        (selection, index) => index < RECENT_LIMIT || isAwaitingPixConfirmation(selection)
+        (selection, index) =>
+          index < RECENT_LIMIT || isAwaitingPixConfirmation(selection),
       );
   const hiddenCount = selections.length - visible.length;
 
@@ -122,7 +141,9 @@ export function GuestSelections({ selections }: { selections: GuestSelection[] }
           className="self-center"
           onClick={() => setShowAll((current) => !current)}
         >
-          {showAll ? "Mostrar só as mais recentes" : `Ver todas (${selections.length})`}
+          {showAll
+            ? "Mostrar só as mais recentes"
+            : `Ver todas (${selections.length})`}
         </Button>
       )}
     </div>
@@ -133,6 +154,11 @@ function SelectionRow({ selection }: { selection: GuestSelection }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [releaseOpen, setReleaseOpen] = useState(false);
+  const canRelease =
+    ["TEMPORARY", "CONFIRMED"].includes(selection.status) &&
+    !["DECLARED", "CONFIRMED"].includes(selection.pixStatus) &&
+    !selection.receivedAt;
 
   const awaitingPix = isAwaitingPixConfirmation(selection);
   const awaitingExternal = isAwaitingExternalConfirmation(selection);
@@ -145,7 +171,9 @@ function SelectionRow({ selection }: { selection: GuestSelection }) {
         : await confirmExternalPurchaseReceivedAction(selection.reservationId);
       if (!result.success) {
         toast({
-          title: awaitingPix ? "Não foi possível confirmar o Pix" : "Não foi possível confirmar o recebimento",
+          title: awaitingPix
+            ? "Não foi possível confirmar o Pix"
+            : "Não foi possível confirmar o recebimento",
           description: result.error,
           variant: "destructive",
         });
@@ -164,7 +192,11 @@ function SelectionRow({ selection }: { selection: GuestSelection }) {
       const result = await rejectPixReceivedAction(selection.reservationId);
       setRejectOpen(false);
       if (!result.success) {
-        toast({ title: "Não foi possível registrar", description: result.error, variant: "destructive" });
+        toast({
+          title: "Não foi possível registrar",
+          description: result.error,
+          variant: "destructive",
+        });
         return;
       }
       toast({
@@ -179,7 +211,9 @@ function SelectionRow({ selection }: { selection: GuestSelection }) {
     // No celular empilha (texto → selo → botão de largura total); a partir de sm volta a ficar em linha.
     <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
-        <p className="break-words font-medium text-foreground">{selection.giftName}</p>
+        <p className="break-words font-medium text-foreground">
+          {selection.giftName}
+        </p>
         <p className="text-sm text-muted-foreground">
           {selection.guestName} · {selection.priceLabel} ·{" "}
           {selection.paymentMethod === "PIX" ? "Pix" : "Compra externa"} ·{" "}
@@ -188,14 +222,26 @@ function SelectionRow({ selection }: { selection: GuestSelection }) {
       </div>
 
       <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
-        <Badge variant={statusVariant(selection)}>{statusLabel(selection)}</Badge>
+        <Badge variant={statusVariant(selection)}>
+          {statusLabel(selection)}
+        </Badge>
         {awaitingConfirmation && (
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-            <Button size="sm" onClick={handleConfirm} disabled={isPending} className="flex-1 sm:flex-none">
+            <Button
+              size="sm"
+              onClick={handleConfirm}
+              disabled={isPending}
+              className="flex-1 sm:flex-none"
+            >
               {isPending ? "Confirmando..." : "Confirmar recebimento"}
             </Button>
             {awaitingPix && (
-              <Button size="sm" variant="ghost" onClick={() => setRejectOpen(true)} disabled={isPending}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setRejectOpen(true)}
+                disabled={isPending}
+              >
                 Não recebi
               </Button>
             )}
@@ -203,6 +249,38 @@ function SelectionRow({ selection }: { selection: GuestSelection }) {
         )}
       </div>
 
+      {canRelease && (
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={isPending}
+          onClick={() => setReleaseOpen(true)}
+        >
+          Liberar escolha pendente
+        </Button>
+      )}
+      <ConfirmDialog
+        open={releaseOpen}
+        onOpenChange={setReleaseOpen}
+        title="Conferiu esta escolha com o convidado?"
+        description="Libere somente depois de conferir o extrato e confirmar com o convidado que não há Pix nem compra em andamento. Isso não faz estorno nem cancela pedidos em lojas."
+        confirmLabel="Conferi e quero liberar"
+        isPending={isPending}
+        onConfirm={() =>
+          startTransition(async () => {
+            const result = await releaseUnpaidReservationAction(
+              selection.reservationId,
+            );
+            setReleaseOpen(false);
+            if (!result.success)
+              toast({ title: result.error, variant: "destructive" });
+            else {
+              toast({ title: "Escolha liberada" });
+              router.refresh();
+            }
+          })
+        }
+      />
       <ConfirmDialog
         open={rejectOpen}
         onOpenChange={setRejectOpen}

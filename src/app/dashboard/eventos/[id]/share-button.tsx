@@ -8,9 +8,13 @@ import { toast } from "@/hooks/use-toast";
 /** Botão de cabeçalho: celular abre o menu nativo de compartilhar (WhatsApp etc.); desktop copia o link. */
 export function ShareButton({ url }: { url: string }) {
   async function handleShare() {
+    const shareUrl = new URL(url, window.location.origin).href;
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({ title: "Minha lista de presentes", url });
+        await navigator.share({
+          title: "Minha lista de presentes",
+          url: shareUrl,
+        });
       } catch {
         // Convidado cancelou o compartilhamento nativo — sem problema, sem toast de erro.
       }
@@ -18,8 +22,11 @@ export function ShareButton({ url }: { url: string }) {
     }
 
     try {
-      await navigator.clipboard.writeText(url);
-      toast({ title: "Link copiado!", description: "Agora é só colar e enviar." });
+      await navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Link copiado!",
+        description: "Agora é só colar e enviar.",
+      });
     } catch {
       toast({
         title: "Não foi possível copiar",

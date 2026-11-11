@@ -5,7 +5,9 @@
  */
 
 function emvField(id: string, value: string): string {
-  const length = value.length.toString().padStart(2, "0");
+  const size = new TextEncoder().encode(value).length;
+  if (size > 99) throw new Error("Pix field too long");
+  const length = size.toString().padStart(2, "0");
   return `${id}${length}${value}`;
 }
 
@@ -46,6 +48,14 @@ export function buildPixPayload({
   city = "BRASIL",
   txid = "***",
 }: PixPayloadParams): string {
+  if (
+    !Number.isSafeInteger(amountInCents) ||
+    amountInCents <= 0 ||
+    amountInCents > 10_000_000
+  )
+    throw new Error("Invalid Pix amount");
+  if (!pixKey.trim() || new TextEncoder().encode(pixKey.trim()).length > 77)
+    throw new Error("Invalid Pix key");
   const merchantAccountInfo =
     emvField("00", "br.gov.bcb.pix") + emvField("01", pixKey.trim());
 

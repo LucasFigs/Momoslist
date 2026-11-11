@@ -82,16 +82,16 @@
     --border: 30 7% 22%;
     --input: 30 8% 48%;
 
-    --primary: 140 20% 48%;
-    --primary-hover: 140 20% 54%;
-    --primary-active: 140 20% 59%;
+    --primary: 140 20% 70%;
+    --primary-hover: 140 20% 76%;
+    --primary-active: 140 20% 80%;
     --primary-soft: 140 15% 19%;
     --primary-subtle: 140 15% 15%;
     --primary-border: 140 15% 30%;
-    --primary-foreground: 40 30% 98%;
+    --primary-foreground: 30 8% 8%;
 
     --destructive: 4 68% 58%;
-    --destructive-foreground: 40 20% 98%;
+    --destructive-foreground: 30 8% 8%;
     --success: 152 40% 55%;
     --success-soft: 152 25% 17%;
     --pending: 34 85% 62%;

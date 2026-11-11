@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { buildEventSlug, generateSecureToken } from "@/lib/slug";
 import { eventSchema } from "@/schemas/event.schema";
 import { uploadImage } from "@/lib/supabase-storage";
-import { logger } from "@/lib/logger";
+import { logger, withErrorHandling } from "@/lib/logger";
 import { HEX_COLOR_PATTERN } from "@/lib/theme";
 
 type ActionResult = { success: true } | { success: false; error: string };
@@ -21,7 +21,9 @@ async function requireOwnerEvent(eventId: string, userId: string) {
   return event;
 }
 
-export async function createEventAction(formData: FormData): Promise<ActionResult> {
+async function createEventActionImpl(
+  formData: FormData,
+): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id) {
     return { success: false, error: "Você precisa estar logado." };
@@ -41,7 +43,10 @@ export async function createEventAction(formData: FormData): Promise<ActionResul
   });
 
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+    };
   }
 
   const {
@@ -86,16 +91,19 @@ export async function createEventAction(formData: FormData): Promise<ActionResul
   }
 
   if (!event) {
-    return { success: false, error: "Não foi possível criar a lista. Tente novamente." };
+    return {
+      success: false,
+      error: "Não foi possível criar a lista. Tente novamente.",
+    };
   }
 
   revalidatePath("/dashboard");
   redirect(`/dashboard/eventos/${event.id}`);
 }
 
-export async function updateEventAction(
+async function updateEventActionImpl(
   eventId: string,
-  formData: FormData
+  formData: FormData,
 ): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id) {
@@ -121,7 +129,10 @@ export async function updateEventAction(
   });
 
   if (!parsed.success) {
-    return { success: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+    };
   }
 
   const {
@@ -157,9 +168,9 @@ export async function updateEventAction(
   return { success: true };
 }
 
-export async function setEventPublishedAction(
+async function setEventPublishedActionImpl(
   eventId: string,
-  published: boolean
+  published: boolean,
 ): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id) {
@@ -171,10 +182,24 @@ export async function setEventPublishedAction(
     return { success: false, error: "Lista não encontrada." };
   }
 
+  if (typeof published !== "boolean")
+    return { success: false, error: "Status inválido." };
   if (published) {
+    const needsPix = await prisma.gift.count({
+      where: { eventId, kind: { in: ["PIX", "FUND"] } },
+    });
+    if (needsPix && (!owned.pixKey || !owned.pixKeyType))
+      return {
+        success: false,
+        error:
+          "Configure a chave Pix antes de publicar itens Pix ou vaquinhas.",
+      };
     const giftCount = await prisma.gift.count({ where: { eventId } });
     if (giftCount === 0) {
-      return { success: false, error: "Adicione ao menos um presente antes de publicar." };
+      return {
+        success: false,
+        error: "Adicione ao menos um presente antes de publicar.",
+      };
     }
   }
 
@@ -185,9 +210,9 @@ export async function setEventPublishedAction(
   return { success: true };
 }
 
-export async function updateEventCoverImageAction(
+async function updateEventCoverImageActionImpl(
   eventId: string,
-  formData: FormData
+  formData: FormData,
 ): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id) {
@@ -206,20 +231,25 @@ export async function updateEventCoverImageAction(
 
   const uploadResult = await uploadImage(imageFile, `events/${eventId}/cover`);
   if (!uploadResult.success) {
-    logger.error("updateEventCoverImage", new Error(uploadResult.error), { eventId });
+    logger.error("updateEventCoverImage", new Error(uploadResult.error), {
+      eventId,
+    });
     return { success: false, error: uploadResult.error };
   }
 
-  await prisma.event.update({ where: { id: eventId }, data: { coverImageUrl: uploadResult.url } });
+  await prisma.event.update({
+    where: { id: eventId },
+    data: { coverImageUrl: uploadResult.url },
+  });
 
   revalidatePath(`/dashboard/eventos/${eventId}`);
   return { success: true };
 }
 
 /** Salva a cor de acento da lista pública. Aceita qualquer #RRGGBB: o contraste é garantido ao aplicar (lib/theme). */
-export async function updateEventThemeAction(
+async function updateEventThemeActionImpl(
   eventId: string,
-  themeColor: string
+  themeColor: string,
 ): Promise<ActionResult> {
   if (!HEX_COLOR_PATTERN.test(themeColor)) {
     return { success: false, error: "Escolha uma cor válida." };
@@ -235,15 +265,18 @@ export async function updateEventThemeAction(
     return { success: false, error: "Lista não encontrada." };
   }
 
-  await prisma.event.update({ where: { id: eventId }, data: { themeColor: themeColor.toUpperCase() } });
+  await prisma.event.update({
+    where: { id: eventId },
+    data: { themeColor: themeColor.toUpperCase() },
+  });
 
   revalidatePath(`/dashboard/eventos/${eventId}`);
   return { success: true };
 }
 
-export async function updateEventProfileImageAction(
+async function updateEventProfileImageActionImpl(
   eventId: string,
-  formData: FormData
+  formData: FormData,
 ): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id) {
@@ -260,14 +293,75 @@ export async function updateEventProfileImageAction(
     return { success: false, error: "Selecione uma imagem." };
   }
 
-  const uploadResult = await uploadImage(imageFile, `events/${eventId}/profile`);
+  const uploadResult = await uploadImage(
+    imageFile,
+    `events/${eventId}/profile`,
+  );
   if (!uploadResult.success) {
-    logger.error("updateEventProfileImage", new Error(uploadResult.error), { eventId });
+    logger.error("updateEventProfileImage", new Error(uploadResult.error), {
+      eventId,
+    });
     return { success: false, error: uploadResult.error };
   }
 
-  await prisma.event.update({ where: { id: eventId }, data: { profileImageUrl: uploadResult.url } });
+  await prisma.event.update({
+    where: { id: eventId },
+    data: { profileImageUrl: uploadResult.url },
+  });
 
   revalidatePath(`/dashboard/eventos/${eventId}`);
   return { success: true };
+}
+
+export async function createEventAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  return withErrorHandling("createEventAction", () =>
+    createEventActionImpl(formData),
+  );
+}
+
+export async function updateEventAction(
+  eventId: string,
+  formData: FormData,
+): Promise<ActionResult> {
+  return withErrorHandling("updateEventAction", () =>
+    updateEventActionImpl(eventId, formData),
+  );
+}
+
+export async function setEventPublishedAction(
+  eventId: string,
+  published: boolean,
+): Promise<ActionResult> {
+  return withErrorHandling("setEventPublishedAction", () =>
+    setEventPublishedActionImpl(eventId, published),
+  );
+}
+
+export async function updateEventCoverImageAction(
+  eventId: string,
+  formData: FormData,
+): Promise<ActionResult> {
+  return withErrorHandling("updateEventCoverImageAction", () =>
+    updateEventCoverImageActionImpl(eventId, formData),
+  );
+}
+
+export async function updateEventThemeAction(
+  eventId: string,
+  themeColor: string,
+): Promise<ActionResult> {
+  return withErrorHandling("updateEventThemeAction", () =>
+    updateEventThemeActionImpl(eventId, themeColor),
+  );
+}
+
+export async function updateEventProfileImageAction(
+  eventId: string,
+  formData: FormData,
+): Promise<ActionResult> {
+  return withErrorHandling("updateEventProfileImageAction", () =>
+    updateEventProfileImageActionImpl(eventId, formData),
+  );
 }

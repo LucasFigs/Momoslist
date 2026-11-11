@@ -1,6 +1,6 @@
+import { ProductDemo } from "@/components/product-demo";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Wordmark } from "@/components/wordmark";
 import { SiteFooter } from "@/components/site-footer";
 import { Badge } from "@/components/ui/badge";
@@ -9,17 +9,20 @@ const passos = [
   {
     numero: "01",
     titulo: "Monte sua lista",
-    texto: "Escolha o tipo de chá, conte um pouco sobre a ocasião e adicione os presentes que combinam com a sua nova casa.",
+    texto:
+      "Escolha o tipo de chá, conte um pouco sobre a ocasião e adicione os presentes que combinam com a sua nova casa.",
   },
   {
     numero: "02",
     titulo: "Compartilhe o link",
-    texto: "Envie o link pelo WhatsApp. Cada convidado abre a lista, vê o que já foi escolhido e o que ainda está disponível.",
+    texto:
+      "Envie o link pelo WhatsApp. Cada convidado abre a lista, vê o que já foi escolhido e o que ainda está disponível.",
   },
   {
     numero: "03",
     titulo: "Acompanhe em tempo real",
-    texto: "Veja quem já garantiu um presente, quem pagou via Pix e confirme o recebimento direto pelo seu painel.",
+    texto:
+      "Veja quem já garantiu um presente, quem pagou via Pix e confirme o recebimento direto pelo seu painel.",
   },
 ];
 
@@ -64,7 +67,7 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
-  
+
         {/* Como funciona */}
         <section className="container py-24">
           <h2 className="mb-12 max-w-lg font-serif text-3xl font-medium text-foreground">
@@ -76,38 +79,27 @@ export default function LandingPage() {
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-soft text-sm font-semibold text-primary">
                   {passo.numero}
                 </span>
-                <h3 className="mt-4 text-lg font-semibold tracking-tight text-foreground">{passo.titulo}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{passo.texto}</p>
+                <h3 className="mt-4 text-lg font-semibold tracking-tight text-foreground">
+                  {passo.titulo}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {passo.texto}
+                </p>
               </div>
             ))}
           </div>
         </section>
-  
+
         {/* Exemplo de lista */}
         <section className="border-y border-border bg-muted/40">
           <div className="container py-24">
             <h2 className="mb-10 max-w-lg font-serif text-3xl font-medium text-foreground">
               O que seus convidados veem
             </h2>
-            {/* Ilustração: não é interativa, então some para leitores de tela e do foco do teclado. */}
-            <Card className="max-w-sm" aria-hidden="true">
-              <div className="h-40 rounded-t-lg bg-gradient-to-br from-primary-soft to-primary-border" />
-              <CardContent className="pt-5">
-                <p className="text-base font-medium text-foreground">Jogo de Panelas</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Conjunto para a nossa nova cozinha.
-                </p>
-                <div className="mt-4 flex items-center justify-between">
-                  <span className="font-medium text-foreground">R$ 450,00</span>
-                  <Button size="sm" variant="soft" tabIndex={-1}>
-                    Presentear
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <ProductDemo />
           </div>
         </section>
-  
+
         {/* CTA final */}
         <section className="container py-24 text-center">
           <h2 className="mx-auto max-w-xl font-serif text-3xl font-medium text-foreground">

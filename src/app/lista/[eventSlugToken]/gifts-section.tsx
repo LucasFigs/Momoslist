@@ -1,5 +1,9 @@
+import { safeStoreUrl } from "@/lib/store-url";
 import { prisma } from "@/lib/prisma";
-import { computeGiftAvailability, ACTIVE_RESERVATION_STATUSES } from "@/lib/gift-availability";
+import {
+  computeGiftAvailability,
+  ACTIVE_RESERVATION_STATUSES,
+} from "@/lib/gift-availability";
 import { formatCentsToBRL } from "@/lib/utils";
 import { computeFundProgress, type FundTotals } from "@/lib/fund";
 import { GiftCard } from "./gift-card";
@@ -44,7 +48,11 @@ export async function GiftsSection({
   // Antes de calcular disponibilidade, trata reservas temporárias vencidas (seção 33).
   if (giftIds.length) {
     await prisma.giftReservation.updateMany({
-      where: { giftId: { in: giftIds }, status: "TEMPORARY", expiresAt: { lt: new Date() } },
+      where: {
+        giftId: { in: giftIds },
+        status: "TEMPORARY",
+        expiresAt: { lt: new Date() },
+      },
       data: { status: "EXPIRED" },
     });
   }
@@ -52,11 +60,16 @@ export async function GiftsSection({
   const activeCounts = giftIds.length
     ? await prisma.giftReservation.groupBy({
         by: ["giftId"],
-        where: { giftId: { in: giftIds }, status: { in: [...ACTIVE_RESERVATION_STATUSES] } },
+        where: {
+          giftId: { in: giftIds },
+          status: { in: [...ACTIVE_RESERVATION_STATUSES] },
+        },
         _count: { _all: true },
       })
     : [];
-  const activeCountByGiftId = new Map(activeCounts.map((row) => [row.giftId, row._count._all]));
+  const activeCountByGiftId = new Map(
+    activeCounts.map((row) => [row.giftId, row._count._all]),
+  );
 
   const myReservations =
     guest && giftIds.length
@@ -68,16 +81,23 @@ export async function GiftsSection({
           },
         })
       : [];
-  const myReservationByGiftId = new Map(myReservations.map((r) => [r.giftId, r]));
+  const myReservationByGiftId = new Map(
+    myReservations.map((r) => [r.giftId, r]),
+  );
 
   // Vaquinhas: total confirmado x aguardando por vaquinha, e o que ESTE convidado já contribuiu.
-  const fundIds = gifts.filter((gift) => gift.kind === "FUND").map((gift) => gift.id);
+  const fundIds = gifts
+    .filter((gift) => gift.kind === "FUND")
+    .map((gift) => gift.id);
   const activeContributionStatuses = ["DECLARED", "CONFIRMED"] as const;
 
   const contributionSums = fundIds.length
     ? await prisma.contribution.groupBy({
         by: ["giftId", "status"],
-        where: { giftId: { in: fundIds }, status: { in: [...activeContributionStatuses] } },
+        where: {
+          giftId: { in: fundIds },
+          status: { in: [...activeContributionStatuses] },
+        },
         _sum: { amountInCents: true },
         _count: { _all: true },
       })
@@ -93,7 +113,8 @@ export async function GiftsSection({
       goalInCents: gift.priceInCents,
       confirmedInCents: confirmed?._sum.amountInCents ?? 0,
       pendingInCents: declared?._sum.amountInCents ?? 0,
-      contributionsCount: (confirmed?._count._all ?? 0) + (declared?._count._all ?? 0),
+      contributionsCount:
+        (confirmed?._count._all ?? 0) + (declared?._count._all ?? 0),
     });
   }
 
@@ -111,7 +132,10 @@ export async function GiftsSection({
 
   const withAvailability = gifts.map((gift) => ({
     gift,
-    availability: computeGiftAvailability(gift.quantity, activeCountByGiftId.get(gift.id) ?? 0),
+    availability: computeGiftAvailability(
+      gift.quantity,
+      activeCountByGiftId.get(gift.id) ?? 0,
+    ),
   }));
 
   const normalizedQuery = normalize(query.trim());
@@ -119,13 +143,16 @@ export async function GiftsSection({
     ? withAvailability.filter(
         ({ gift }) =>
           normalize(gift.name).includes(normalizedQuery) ||
-          (gift.description && normalize(gift.description).includes(normalizedQuery))
+          (gift.description &&
+            normalize(gift.description).includes(normalizedQuery)),
       )
     : withAvailability;
 
   // Em vaquinha o valor que o convidado de fato paga é o mínimo, não a meta.
   const effectivePrice = (gift: Gift) =>
-    gift.kind === "FUND" ? (gift.minContributionInCents ?? gift.priceInCents) : gift.priceInCents;
+    gift.kind === "FUND"
+      ? (gift.minContributionInCents ?? gift.priceInCents)
+      : gift.priceInCents;
 
   // "Fora de jogo": presente/item Pix esgotado, ou vaquinha que já bateu a meta — não precisa mais de atenção.
   const isOutOfPlay = ({ gift, availability }: (typeof filtered)[number]) =>
@@ -180,11 +207,13 @@ export async function GiftsSection({
     <>
       {query && (
         <p role="status" className="mb-4 text-sm text-muted-foreground">
-          {sorted.length === 1 ? "1 presente encontrado" : `${sorted.length} presentes encontrados`}{" "}
+          {sorted.length === 1
+            ? "1 presente encontrado"
+            : `${sorted.length} presentes encontrados`}{" "}
           para “{query}”
         </p>
       )}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
         {sorted.map(({ gift, availability }) => {
           if (gift.kind === "FUND") {
             return (
@@ -198,7 +227,9 @@ export async function GiftsSection({
                   minInCents: gift.minContributionInCents ?? 1,
                 }}
                 totals={fundTotalsByGiftId.get(gift.id)!}
-                reached={computeFundProgress(fundTotalsByGiftId.get(gift.id)!).reached}
+                reached={
+                  computeFundProgress(fundTotalsByGiftId.get(gift.id)!).reached
+                }
                 myContributions={myContributionRows
                   .filter((row) => row.giftId === gift.id)
                   .map((row) => ({
@@ -221,16 +252,23 @@ export async function GiftsSection({
                 name: gift.name,
                 description: gift.description,
                 imageUrl: gift.imageUrl,
-                priceLabel: formatCentsToBRL(gift.priceInCents),
+                purchaseUrl: gift.kind === "PRODUCT" ? safeStoreUrl(gift.purchaseUrl) : null,
+                priceLabel: formatCentsToBRL(
+                  mine?.amountInCents ?? gift.priceInCents,
+                ),
               }}
               availability={availability}
               isIdentified={isIdentified}
               pixOnly={gift.kind === "PIX"}
+              pixConfigured={pixConfigured}
               myReservation={
                 mine
                   ? {
                       id: mine.id,
-                      status: mine.status as "TEMPORARY" | "CONFIRMED" | "COMPLETED",
+                      status: mine.status as
+                        | "TEMPORARY"
+                        | "CONFIRMED"
+                        | "COMPLETED",
                       paymentMethod: mine.paymentMethod,
                       pixStatus: mine.pixStatus,
                       expiresAt: mine.expiresAt.toISOString(),

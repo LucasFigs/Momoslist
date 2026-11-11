@@ -15,9 +15,10 @@ export function SharePublicListButton({
   className?: string;
 }) {
   async function handleShare() {
+    const shareUrl = new URL(url, window.location.origin).href;
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({ title, url });
+        await navigator.share({ title, url: shareUrl });
       } catch {
         // Usuário cancelou o compartilhamento nativo — sem problema, sem toast de erro.
       }
@@ -25,8 +26,11 @@ export function SharePublicListButton({
     }
 
     try {
-      await navigator.clipboard.writeText(url);
-      toast({ title: "Link copiado!", description: "Agora é só colar e enviar." });
+      await navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Link copiado!",
+        description: "Agora é só colar e enviar.",
+      });
     } catch {
       toast({
         title: "Não foi possível copiar",
@@ -44,7 +48,7 @@ export function SharePublicListButton({
       aria-label="Compartilhar lista"
       className={cn(
         "h-11 w-11 gap-1.5 rounded-full border-transparent bg-card/95 p-0 shadow-sm hover:bg-card sm:h-10 sm:w-auto sm:px-4",
-        className
+        className,
       )}
     >
       <Share2 className="h-4 w-4" aria-hidden="true" />

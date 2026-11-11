@@ -1,15 +1,23 @@
 import { z } from "zod";
-import { MAX_COMPANIONS_PER_KIND, MAX_COMPANION_NAMES_LENGTH, parseCompanionNames } from "@/lib/rsvp";
+import {
+  MAX_COMPANIONS_PER_KIND,
+  MAX_COMPANION_NAMES_LENGTH,
+  parseCompanionNames,
+} from "@/lib/rsvp";
 
 const count = (label: string) =>
   z
-    .number({ invalid_type_error: `Informe quantos ${label}.` })
+    .number({ error: `Informe quantos ${label}.` })
     .int(`Informe um número inteiro de ${label}.`)
     .min(0, `A quantidade de ${label} não pode ser negativa.`)
-    .max(MAX_COMPANIONS_PER_KIND, `O máximo é ${MAX_COMPANIONS_PER_KIND} ${label}.`);
+    .max(
+      MAX_COMPANIONS_PER_KIND,
+      `O máximo é ${MAX_COMPANIONS_PER_KIND} ${label}.`,
+    );
 
 /** `FormData`/JSON ausente vira string vazia — sem isso o Zod recusa `null` antes mesmo de checar o conteúdo. */
-const emptyIfMissing = (value: unknown) => (value === null || value === undefined ? "" : value);
+const emptyIfMissing = (value: unknown) =>
+  value === null || value === undefined ? "" : value;
 
 /** Texto livre com um nome de acompanhante por linha (ver src/lib/rsvp.ts `parseCompanionNames`). A obrigatoriedade
  *  (um nome por acompanhante) é checada abaixo, em `superRefine` — aqui só o tamanho geral. */
@@ -18,7 +26,10 @@ const companionNames = z.preprocess(
   z
     .string()
     .trim()
-    .max(MAX_COMPANION_NAMES_LENGTH, `A lista de nomes pode ter até ${MAX_COMPANION_NAMES_LENGTH} caracteres.`)
+    .max(
+      MAX_COMPANION_NAMES_LENGTH,
+      `A lista de nomes pode ter até ${MAX_COMPANION_NAMES_LENGTH} caracteres.`,
+    ),
 );
 
 /**
@@ -28,7 +39,9 @@ const companionNames = z.preprocess(
  */
 export const rsvpSchema = z
   .object({
-    status: z.enum(["ATTENDING", "NOT_ATTENDING"], { errorMap: () => ({ message: "Diga se você vai comparecer." }) }),
+    status: z.enum(["ATTENDING", "NOT_ATTENDING"], {
+      error: "Diga se você vai comparecer.",
+    }),
     companionAdults: count("adultos"),
     companionChildren: count("crianças"),
     companionNames,
@@ -50,8 +63,12 @@ export const rsvpSchema = z
   .transform((data) => ({
     status: data.status,
     companionAdults: data.status === "NOT_ATTENDING" ? 0 : data.companionAdults,
-    companionChildren: data.status === "NOT_ATTENDING" ? 0 : data.companionChildren,
-    companionNames: data.status === "NOT_ATTENDING" || !data.companionNames ? null : data.companionNames,
+    companionChildren:
+      data.status === "NOT_ATTENDING" ? 0 : data.companionChildren,
+    companionNames:
+      data.status === "NOT_ATTENDING" || !data.companionNames
+        ? null
+        : data.companionNames,
   }));
 
 export type RsvpInput = z.input<typeof rsvpSchema>;

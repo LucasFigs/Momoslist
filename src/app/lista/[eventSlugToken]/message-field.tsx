@@ -12,6 +12,8 @@ interface MessageFieldProps {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  isPublic?: boolean;
+  onPublicChange?: (value: boolean) => void;
 }
 
 /**
@@ -19,7 +21,13 @@ interface MessageFieldProps {
  * recolhido passava despercebido, quase ninguém escrevia um recadinho. "Não deixar" ainda recolhe pra
  * quem realmente não quer ver o campo.
  */
-export function MessageField({ value, onChange, disabled }: MessageFieldProps) {
+export function MessageField({
+  value,
+  onChange,
+  disabled,
+  isPublic = false,
+  onPublicChange,
+}: MessageFieldProps) {
   const id = useId();
   const [open, setOpen] = useState(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -46,7 +54,10 @@ export function MessageField({ value, onChange, disabled }: MessageFieldProps) {
         disabled={disabled}
         className="flex min-h-11 w-full items-center gap-2.5 rounded-lg border border-dashed border-primary-border bg-primary-subtle px-3.5 py-2.5 text-left text-sm transition-colors hover:bg-primary-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
       >
-        <MessageCircleHeart className="h-4 w-4 flex-shrink-0 text-primary" aria-hidden="true" />
+        <MessageCircleHeart
+          className="h-4 w-4 flex-shrink-0 text-primary"
+          aria-hidden="true"
+        />
         <span className="font-medium text-foreground">
           Deixar um recadinho para o casal{" "}
           <span className="font-normal text-muted-foreground">(opcional)</span>
@@ -61,9 +72,15 @@ export function MessageField({ value, onChange, disabled }: MessageFieldProps) {
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-2">
         <Label htmlFor={id} className="flex min-w-0 items-center gap-1.5">
-          <MessageCircleHeart className="h-4 w-4 flex-shrink-0 text-primary" aria-hidden="true" />
+          <MessageCircleHeart
+            className="h-4 w-4 flex-shrink-0 text-primary"
+            aria-hidden="true"
+          />
           <span className="truncate">
-            Recadinho para o casal <span className="font-normal text-muted-foreground">(opcional)</span>
+            Recadinho para o casal{" "}
+            <span className="font-normal text-muted-foreground">
+              (opcional)
+            </span>
           </span>
         </Label>
         <button
@@ -82,7 +99,9 @@ export function MessageField({ value, onChange, disabled }: MessageFieldProps) {
         ref={textareaRef}
         id={id}
         value={value}
-        onChange={(event) => onChange(event.target.value.slice(0, MAX_MESSAGE_LENGTH))}
+        onChange={(event) =>
+          onChange(event.target.value.slice(0, MAX_MESSAGE_LENGTH))
+        }
         maxLength={MAX_MESSAGE_LENGTH}
         rows={3}
         disabled={disabled}
@@ -90,9 +109,32 @@ export function MessageField({ value, onChange, disabled }: MessageFieldProps) {
         aria-describedby={`${id}-hint`}
         className="min-h-[88px] resize-y"
       />
-      <p id={`${id}-hint`} className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-        <span>Aparece com seu nome no mural de recadinhos, visível para todos os convidados.</span>
-        <span className={cn("tabular-nums", nearLimit && "font-medium text-foreground")}>
+      {onPublicChange && (
+        <label className="flex min-h-11 items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={isPublic}
+            onChange={(e) => onPublicChange(e.target.checked)}
+            disabled={disabled}
+          />
+          Mostrar também no mural público
+        </label>
+      )}
+      <p
+        id={`${id}-hint`}
+        className="flex items-center justify-between gap-3 text-xs text-muted-foreground"
+      >
+        <span>
+          {isPublic
+            ? "Seu nome e mensagem aparecem para quem tem o link."
+            : "Somente os organizadores leem este recadinho."}
+        </span>
+        <span
+          className={cn(
+            "tabular-nums",
+            nearLimit && "font-medium text-foreground",
+          )}
+        >
           {value.length}/{MAX_MESSAGE_LENGTH}
         </span>
       </p>

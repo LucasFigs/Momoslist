@@ -1,20 +1,30 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
 
-const fraunces = Fraunces({
-  subsets: ["latin"],
+const fraunces = localFont({
+  src: [
+    {
+      path: "../../public/fonts/fraunces-latin-wght-normal.woff2",
+      weight: "100 900",
+      style: "normal",
+    },
+    {
+      path: "../../public/fonts/fraunces-latin-wght-italic.woff2",
+      weight: "100 900",
+      style: "italic",
+    },
+  ],
   variable: "--font-serif",
-  weight: ["400", "500", "600"],
-  style: ["normal", "italic"],
+  display: "swap",
 });
-
-const inter = Inter({
-  subsets: ["latin"],
+const inter = localFont({
+  src: "../../public/fonts/inter-latin-wght-normal.woff2",
+  weight: "100 900",
   variable: "--font-sans",
-  weight: ["400", "500", "600"],
+  display: "swap",
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -55,7 +65,11 @@ export default function RootLayout({
   return (
     // suppressHydrationWarning: o next-themes ajusta a classe "dark" logo antes da hidratação (evita
     // piscar o tema errado), o que por natureza difere do HTML enviado pelo servidor.
-    <html lang="pt-BR" className={`${fraunces.variable} ${inter.variable}`} suppressHydrationWarning>
+    <html
+      lang="pt-BR"
+      className={`${fraunces.variable} ${inter.variable}`}
+      suppressHydrationWarning
+    >
       <body className="font-sans antialiased">
         <ThemeProvider>
           {children}

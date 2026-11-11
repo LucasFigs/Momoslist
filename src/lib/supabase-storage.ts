@@ -1,12 +1,21 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { takeRateLimit } from "@/lib/rate-limit";
+import { sanitizeImage } from "@/lib/image-validation";
 import { logger } from "@/lib/logger";
 
 export const GIFT_IMAGES_BUCKET = "gift-images";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
-const ALLOWED_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+];
 
-type UploadResult = { success: true; url: string } | { success: false; error: string };
+type UploadResult =
+  | { success: true; url: string }
+  | { success: false; error: string };
 
 /**
  * Cliente admin — usa a service role key, então SÓ pode ser usado em código
@@ -34,7 +43,10 @@ function getSupabaseAdmin(): SupabaseClient | null {
  * Nunca lança: todo caminho de falha vira um UploadResult com mensagem
  * legível para o usuário e um log estruturado no servidor.
  */
-export async function uploadImage(file: File, folder: string): Promise<UploadResult> {
+export async function uploadImage(
+  file: File,
+  folder: string,
+): Promise<UploadResult> {
   if (!ALLOWED_MIME_TYPES.includes(file.type)) {
     return { success: false, error: "Formato inválido. Use JPG, PNG ou WebP." };
   }
@@ -43,6 +55,18 @@ export async function uploadImage(file: File, folder: string): Promise<UploadRes
     return { success: false, error: "A imagem deve ter no máximo 5MB." };
   }
 
+  if (
+    !(await takeRateLimit(
+      "upload",
+      folder.split("/").slice(0, 2).join("/"),
+      20,
+      900,
+    ))
+  )
+    return {
+      success: false,
+      error: "Muitos envios em sequência. Aguarde alguns minutos.",
+    };
   const supabase = getSupabaseAdmin();
   if (!supabase) {
     return {
@@ -52,17 +76,32 @@ export async function uploadImage(file: File, folder: string): Promise<UploadRes
     };
   }
 
-  const extension = file.type === "image/jpg" ? "jpg" : file.type.split("/")[1];
+  let sanitized: Buffer;
+  try {
+    sanitized = await sanitizeImage(Buffer.from(await file.arrayBuffer()));
+  } catch {
+    return {
+      success: false,
+      error:
+        "Imagem inválida. Escolha um JPG, PNG ou WebP válido de até 20 megapixels.",
+    };
+  }
+  const extension = "webp";
   const fileName = `${folder}/${crypto.randomUUID()}.${extension}`;
 
   try {
-    const { error } = await supabase.storage.from(GIFT_IMAGES_BUCKET).upload(fileName, file, {
-      contentType: file.type,
-      upsert: false,
-    });
+    const { error } = await supabase.storage
+      .from(GIFT_IMAGES_BUCKET)
+      .upload(fileName, sanitized, {
+        contentType: "image/webp",
+        upsert: false,
+      });
 
     if (error) {
-      logger.error("supabaseStorage.upload", error, { fileName, bucket: GIFT_IMAGES_BUCKET });
+      logger.error("supabaseStorage.upload", error, {
+        fileName,
+        bucket: GIFT_IMAGES_BUCKET,
+      });
 
       const message = error.message?.toLowerCase() ?? "";
       if (message.includes("bucket") && message.includes("not found")) {
@@ -72,19 +111,34 @@ export async function uploadImage(file: File, folder: string): Promise<UploadRes
         };
       }
 
-      return { success: false, error: "Não foi possível enviar a imagem. Tente novamente." };
+      return {
+        success: false,
+        error: "Não foi possível enviar a imagem. Tente novamente.",
+      };
     }
 
-    const { data } = supabase.storage.from(GIFT_IMAGES_BUCKET).getPublicUrl(fileName);
+    const { data } = supabase.storage
+      .from(GIFT_IMAGES_BUCKET)
+      .getPublicUrl(fileName);
 
     if (!data?.publicUrl) {
-      logger.error("supabaseStorage.publicUrl", new Error("URL publica vazia"), { fileName });
-      return { success: false, error: "Não foi possível gerar o endereço da imagem." };
+      logger.error(
+        "supabaseStorage.publicUrl",
+        new Error("URL publica vazia"),
+        { fileName },
+      );
+      return {
+        success: false,
+        error: "Não foi possível gerar o endereço da imagem.",
+      };
     }
 
     return { success: true, url: data.publicUrl };
   } catch (error) {
     logger.error("supabaseStorage.unexpected", error, { fileName });
-    return { success: false, error: "Não foi possível enviar a imagem. Tente novamente." };
+    return {
+      success: false,
+      error: "Não foi possível enviar a imagem. Tente novamente.",
+    };
   }
 }

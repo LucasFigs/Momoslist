@@ -271,7 +271,7 @@ test.describe("real local journeys", () => {
       .first()
       .click();
     await expect(
-      page.getByText(
+      page.getByRole("dialog").getByText(
         "Uma descrição completa que pode ser lida antes de reservar o presente.",
         { exact: true },
       ),

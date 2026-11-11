@@ -59,7 +59,7 @@ export function IdentifyGuestDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <SheetContent aria-describedby={undefined}>
         {/* O <form> envolve corpo e rodapé: o botão fixo no rodapé continua enviando o formulário (e o Enter também). */}
-        <form action={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <form onSubmit={(event) => { event.preventDefault(); void handleSubmit(new FormData(event.currentTarget)); }} className="flex min-h-0 flex-1 flex-col">
           <SheetHeader>
             <DialogTitle>Como podemos te chamar?</DialogTitle>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">

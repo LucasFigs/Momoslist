@@ -42,7 +42,7 @@ export function CadastroForm() {
   }
 
   return (
-    <form action={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={(event) => { event.preventDefault(); void handleSubmit(new FormData(event.currentTarget)); }} className="flex flex-col gap-4">
       {verifying && (
         <div className="space-y-2">
           <p role="status">

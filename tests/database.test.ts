@@ -615,5 +615,49 @@ describe.runIf(Boolean(process.env.TEST_DATABASE_URL))(
         await prisma.rsvp.count({ where: { eventId, guestId: state.guestId } }),
       ).toBe(1);
     });
+    it("supports owned gift CRUD and preserves the last published item", async () => {
+      const event = await prisma.event.create({
+        data: {
+          ownerId: state.ownerId,
+          title: "CRUD isolated",
+          type: "CHA_CASA_NOVA",
+          slug: "crud-" + prefix,
+          secureToken: randomUUID(),
+        },
+      });
+      const form = new FormData();
+      for (const [key, value] of Object.entries({
+        name: "Panela CRUD",
+        kind: "PRODUCT",
+        price: "25,00",
+        quantity: "1",
+        description: "",
+        purchaseUrl: "",
+        minContribution: "",
+      }))
+        form.set(key, value);
+      expect((await createGiftAction(event.id, form)).success).toBe(true);
+      const gift = await prisma.gift.findFirstOrThrow({
+        where: { eventId: event.id },
+      });
+      form.set("name", "Panela editada");
+      form.set("price", "35,00");
+      form.set("quantity", "2");
+      expect((await updateGiftAction(gift.id, form)).success).toBe(true);
+      expect(
+        (await prisma.gift.findUniqueOrThrow({ where: { id: gift.id } }))
+          .priceInCents,
+      ).toBe(3500);
+      expect((await setEventPublishedAction(event.id, true)).success).toBe(
+        true,
+      );
+      expect((await deleteGiftAction(gift.id)).success).toBe(false);
+      expect(await prisma.gift.count({ where: { eventId: event.id } })).toBe(1);
+      expect((await setEventPublishedAction(event.id, false)).success).toBe(
+        true,
+      );
+      expect((await deleteGiftAction(gift.id)).success).toBe(true);
+      expect(await prisma.gift.count({ where: { eventId: event.id } })).toBe(0);
+    });
   },
 );

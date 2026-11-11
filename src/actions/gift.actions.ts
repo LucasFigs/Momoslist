@@ -284,6 +284,15 @@ async function deleteGiftActionImpl(giftId: string): Promise<ActionResult> {
           (await tx.giftReservation.count({ where: { giftId } })) +
           (await tx.contribution.count({ where: { giftId } }));
         if (history) throw new Error("GiftHasHistory");
+        const currentEvent = await tx.event.findFirst({
+          where: { id: gift.eventId, ownerId },
+        });
+        if (!currentEvent) throw new Error("EventUnavailable");
+        if (
+          currentEvent.published &&
+          (await tx.gift.count({ where: { eventId: gift.eventId } })) <= 1
+        )
+          throw new Error("PublishedListNeedsGift");
         await tx.gift.delete({ where: { id: giftId, event: { ownerId } } });
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
@@ -292,7 +301,7 @@ async function deleteGiftActionImpl(giftId: string): Promise<ActionResult> {
     return {
       success: false,
       error:
-        "Este presente tem histórico ou acabou de ser escolhido e não pode ser excluído.",
+        "Este presente tem histórico, acabou de ser escolhido ou é o último item de uma lista publicada. Despublique a lista antes de remover seu último item.",
     };
   }
 

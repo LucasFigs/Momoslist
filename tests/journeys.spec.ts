@@ -145,6 +145,29 @@ test.describe("real local journeys", () => {
       await db.$disconnect();
     }
   });
+  test("store link works before identification on mobile and desktop", async ({ page }) => {
+    await page.context().route("https://shop.example.invalid/**", route =>
+      route.fulfill({ body: "Loja de teste" }),
+    );
+    for (const width of [375, 1280]) {
+      await page.setViewportSize({ width, height: 850 });
+      await page.goto(path);
+      const storeLink = page.getByRole("link", { name: /Ver na loja/ });
+      await expect(storeLink).toBeVisible();
+      const [store] = await Promise.all([
+        page.waitForEvent("popup"),
+        storeLink.click(),
+      ]);
+      await expect(store).toHaveURL("https://shop.example.invalid/panelas");
+      await store.close();
+      await expect(page.getByRole("dialog")).toHaveCount(0);
+      await page.getByRole("button", { name: "Ver presente", exact: true }).first().click();
+      await expect(page.getByRole("dialog").getByRole("link", { name: /Ver na loja/ })).toBeVisible();
+      expect(await db.giftReservation.count({ where: { gift: { eventId } } })).toBe(0);
+      await noOverflow(page);
+    }
+  });
+
   test("mobile layouts, dark mode, home link and accessibility", async ({
     page,
   }, info) => {

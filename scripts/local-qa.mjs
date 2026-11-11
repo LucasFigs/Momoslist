@@ -1,6 +1,8 @@
 // Local test infrastructure only. Never used by the application or deployment.
 import net from "node:net";
-import { mkdirSync, writeFileSync } from "node:fs";
+import http from "node:http";
+import https from "node:https";
+import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 
@@ -94,13 +96,60 @@ const child = spawn(
       SMTP_PASSWORD: "",
       EMAIL_FROM_ADDRESS: "test@example.invalid",
       NEXT_PUBLIC_SITE_URL: "http://127.0.0.1:3107",
+      // Never inherit real external-service credentials into the local QA process.
+      NEXT_PUBLIC_SUPABASE_URL: "",
+      SUPABASE_SERVICE_ROLE_KEY: "",
+      AUTH_GOOGLE_ID: "",
+      AUTH_GOOGLE_SECRET: "",
+      GMAIL_USER: "",
+      GMAIL_APP_PASSWORD: "",
     },
   },
 );
-child.on("exit", () => smtp.close());
+// Optional self-signed loopback TLS for testing Secure cookies. Never a deployment proxy.
+let tlsProxy;
+if (process.env.TEST_TLS_CERT_FILE && process.env.TEST_TLS_KEY_FILE) {
+  tlsProxy = https.createServer(
+    {
+      cert: readFileSync(process.env.TEST_TLS_CERT_FILE),
+      key: readFileSync(process.env.TEST_TLS_KEY_FILE),
+    },
+    (request, response) => {
+      const upstream = http.request(
+        {
+          hostname: "127.0.0.1",
+          port: 3107,
+          path: request.url,
+          method: request.method,
+          headers: {
+            ...request.headers,
+            host: "127.0.0.1:3447",
+            "x-forwarded-host": "127.0.0.1:3447",
+            "x-forwarded-proto": "https",
+          },
+        },
+        (result) => {
+          response.writeHead(result.statusCode || 502, result.headers);
+          result.pipe(response);
+        },
+      );
+      upstream.on("error", () => {
+        response.writeHead(502);
+        response.end("Local QA upstream unavailable");
+      });
+      request.pipe(upstream);
+    },
+  );
+  tlsProxy.listen(3447, "127.0.0.1");
+}
+child.on("exit", () => {
+  smtp.close();
+  tlsProxy?.close();
+});
 function stop() {
   child.kill();
   smtp.close();
+  tlsProxy?.close();
 }
 process.on("SIGINT", stop);
 process.on("SIGTERM", stop);

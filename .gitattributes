@@ -1,0 +1,2 @@
+# Migration checksums must use identical bytes on Windows, Linux and Vercel.
+prisma/migrations/**/migration.sql text eol=lf

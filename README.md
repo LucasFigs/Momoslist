@@ -324,7 +324,7 @@ src/
 
 ## 🚀 Rodando localmente
 
-**Pré-requisitos:** Node.js 20+ e um projeto no [Supabase](https://supabase.com) (Postgres e Storage).
+**Pré-requisitos:** Node.js 22.13+ da série 22 (conforme `engines.node`) e um projeto no [Supabase](https://supabase.com) (Postgres e Storage). Para atualizar uma instalação em uso, siga [o roteiro de implantação segura](docs/deployment.md) antes de integrar/publicar.
 
 ```bash
 # 1. Instalar dependências (o postinstall já roda `prisma generate`)

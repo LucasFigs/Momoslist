@@ -1,0 +1,14 @@
+.git
+.local
+MOMOSLIST_RELATORIO_MELHORIAS.md
+.env*
+test-results
+playwright-report
+coverage
+artifacts
+*.dump
+*.sql.gz
+*.pem
+*.key
+*.log
+*.tsbuildinfo

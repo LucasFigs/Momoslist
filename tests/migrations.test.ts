@@ -62,7 +62,13 @@ ROLLBACK;
       process.env.PSQL_BIN!,
       [
         "--dbname",
-        process.env.TEST_DATABASE_URL!,
+        // Prisma's schema URL parameter is not a libpq parameter. This test
+        // creates its own schema and must connect using a plain PostgreSQL URL.
+        (() => {
+          const connection = new URL(process.env.TEST_DATABASE_URL!);
+          connection.searchParams.delete("schema");
+          return connection.toString();
+        })(),
         "--no-psqlrc",
         "--set",
         "ON_ERROR_STOP=1",

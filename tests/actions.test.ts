@@ -43,6 +43,8 @@ import {
   declarePixPaymentAction,
   confirmPixReceivedAction,
   getPaymentDetailsAction,
+  confirmExternalPurchaseAction,
+  confirmExternalPurchaseReceivedAction,
   saveReservationMessageAction,
   releaseUnpaidReservationAction,
 } from "@/actions/payment.actions";
@@ -315,5 +317,33 @@ describe("contributions", () => {
     });
     expect((await confirmContributionAction("c-a")).success).toBe(false);
     expect(db.contribution.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe("external purchase remains distinct from receipt", () => {
+  it("does not complete a purchase when reading the store link", async () => {
+    db.giftReservation.findUnique.mockResolvedValue(reservation({
+      paymentMethod: "EXTERNAL_PURCHASE", pixStatus: "NOT_APPLICABLE",
+    }));
+    expect((await getPaymentDetailsAction("r-a")).success).toBe(true);
+    expect(db.giftReservation.updateMany).not.toHaveBeenCalled();
+  });
+  it("guest declaration does not mark the gift as received", async () => {
+    db.giftReservation.findUnique.mockResolvedValue(reservation({
+      paymentMethod: "EXTERNAL_PURCHASE", pixStatus: "NOT_APPLICABLE",
+    }));
+    expect((await confirmExternalPurchaseAction("r-a")).success).toBe(true);
+    expect(db.giftReservation.updateMany.mock.calls[0][0].data).toMatchObject({
+      status: "COMPLETED", purchaseConfirmedAt: expect.any(Date),
+    });
+    expect(db.giftReservation.updateMany.mock.calls[0][0].data.receivedAt).toBeUndefined();
+  });
+  it("owner separately confirms receipt after the guest declares purchase", async () => {
+    db.giftReservation.findUnique.mockResolvedValue(reservation({
+      paymentMethod: "EXTERNAL_PURCHASE", pixStatus: "NOT_APPLICABLE",
+      status: "COMPLETED", receivedAt: null,
+    }));
+    expect((await confirmExternalPurchaseReceivedAction("r-a")).success).toBe(true);
+    expect(db.giftReservation.updateMany.mock.calls[0][0].data.receivedAt).toBeInstanceOf(Date);
   });
 });

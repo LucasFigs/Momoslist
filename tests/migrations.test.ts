@@ -37,6 +37,8 @@ INSERT INTO guests (id,name,email,phone,"updatedAt") VALUES ('guest','Ana','ana@
 INSERT INTO events (id,"ownerId",title,type,slug,"secureToken","updatedAt") VALUES ('event','owner','Chá','CHA_CASA_NOVA','evento','123456789012345678901234',now());
 INSERT INTO gifts (id,"eventId",name,"priceInCents","updatedAt") VALUES ('gift','event','Panela',12000,now());
 INSERT INTO gift_reservations (id,"giftId","guestId","expiresAt",message,"updatedAt") VALUES ('reservation','gift','guest',now()+interval '15 minutes','Recado antigo',now());
+INSERT INTO gift_reservations (id,"giftId","guestId",status,"paymentMethod","pixStatus","pixDeclaredAt","cancelledAt","expiresAt",message,"updatedAt") VALUES ('cancelled-declared','gift','guest','CANCELLED','PIX','DECLARED',now()-interval '2 hours',now()-interval '1 hour',now()-interval '1 hour','Recado cancelado legado',now());
+CREATE TEMP TABLE legacy_financial_snapshot AS SELECT status,"paymentMethod","pixStatus","pixDeclaredAt","pixConfirmedAt","cancelledAt","purchaseConfirmedAt" FROM gift_reservations WHERE id='cancelled-declared';
 INSERT INTO contributions (id,"giftId","guestId","amountInCents",message,"updatedAt") VALUES ('contribution','gift','guest',2000,'Outra mensagem antiga',now());
 INSERT INTO rsvps (id,"eventId","guestId",status,"updatedAt") VALUES ('rsvp','event','guest','ATTENDING',now());
 ${expansion}
@@ -46,6 +48,8 @@ DO $$ BEGIN
  IF (SELECT count(*) FROM users) <> 1 OR (SELECT count(*) FROM guests) <> 1 OR (SELECT count(*) FROM events) <> 1 OR (SELECT count(*) FROM rsvps) <> 1 THEN RAISE EXCEPTION 'Legacy data lost'; END IF;
  IF NOT EXISTS (SELECT 1 FROM gift_reservations WHERE id='reservation' AND "amountInCents"=12000 AND message='Recado antigo' AND "messagePublic"=false) THEN RAISE EXCEPTION 'Reservation migration failed'; END IF;
  IF NOT EXISTS (SELECT 1 FROM contributions WHERE id='contribution' AND message='Outra mensagem antiga' AND "messagePublic"=false) THEN RAISE EXCEPTION 'Contribution migration failed'; END IF;
+ IF NOT EXISTS (SELECT 1 FROM gift_reservations WHERE id='cancelled-declared' AND status='CANCELLED' AND "pixStatus"='DECLARED' AND "paymentMethod"='PIX' AND "pixDeclaredAt" IS NOT NULL AND "cancelledAt" IS NOT NULL AND "pixConfirmedAt" IS NULL AND "amountInCents"=12000 AND "messagePublic"=false) THEN RAISE EXCEPTION 'Cancelled declared Pix history was modified'; END IF;
+ IF EXISTS(SELECT status,"paymentMethod","pixStatus","pixDeclaredAt","pixConfirmedAt","cancelledAt","purchaseConfirmedAt" FROM gift_reservations WHERE id='cancelled-declared' EXCEPT SELECT * FROM legacy_financial_snapshot) THEN RAISE EXCEPTION 'Legacy financial states or timestamps changed'; END IF;
 END $$;
 INSERT INTO gift_reservations (id,"giftId","guestId",status,"expiresAt","updatedAt") VALUES ('legacy-insert','gift','guest','CANCELLED',now(),now());
 UPDATE gifts SET "priceInCents"=99000 WHERE id='gift';
@@ -73,8 +77,9 @@ ROLLBACK;
         "--set",
         "ON_ERROR_STOP=1",
       ],
-      { input: script, encoding: "utf8", windowsHide: true },
+      { input: script, encoding: "utf8", windowsHide: true, timeout: 25_000 },
     );
     expect(output).toContain("ROLLBACK");
   },
+  30_000,
 );

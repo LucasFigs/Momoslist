@@ -185,7 +185,7 @@ export function EventDashboardView({
       )}
       {/* Abas logo abaixo do título: o conteúdo começa na primeira tela, mesmo no celular. */}
       <Tabs defaultValue={defaultTab}>
-        <TabsList>
+        <TabsList className="max-sm:flex-nowrap max-sm:overflow-x-auto max-sm:scroll-smooth">
           <TabsTrigger value="resumo">Resumo</TabsTrigger>
           <TabsTrigger value="presentes">Presentes</TabsTrigger>
           <TabsTrigger value="confirmacoes">Confirmações</TabsTrigger>

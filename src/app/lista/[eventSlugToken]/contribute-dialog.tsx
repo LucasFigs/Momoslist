@@ -85,7 +85,7 @@ export function ContributeDialog({
   const [cancelTarget, setCancelTarget] = useState<MyContribution | null>(null);
   const [requestKey, setRequestKey] = useState<string | undefined>();
   const [message, setMessage] = useState("");
-  const [messagePublic, setMessagePublic] = useState(false);
+  const [messagePublic, setMessagePublic] = useState(true);
 
   const amountInCents = amountInput ? parsePriceToCents(amountInput) : NaN;
   const isValidAmount =
@@ -116,6 +116,7 @@ export function ContributeDialog({
       setStep("amount");
       setPix(null);
       setQrFailed(false);
+      setMessagePublic(true);
     }
   }
 

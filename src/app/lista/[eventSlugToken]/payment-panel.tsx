@@ -180,7 +180,7 @@ export function PaymentPanel({
   const [qrFailed, setQrFailed] = useState(false);
   // Recadinho digitado antes de avisar o pagamento: vai junto com "Já fiz o Pix" / "Já comprei".
   const [message, setMessage] = useState("");
-  const [messagePublic, setMessagePublic] = useState(false);
+  const [messagePublic, setMessagePublic] = useState(true);
 
   useEffect(() => {
     let active = true;

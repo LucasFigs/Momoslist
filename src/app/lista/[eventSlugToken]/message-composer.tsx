@@ -33,7 +33,7 @@ export function MessageComposer({
   const [open, setOpen] = useState(false);
   const [identify, setIdentify] = useState(false);
   const [message, setMessage] = useState(mine?.message ?? "");
-  const [isPublic, setPublic] = useState(mine?.public ?? false);
+  const [isPublic, setPublic] = useState(mine?.public ?? true);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
   function submit(remove = false) {

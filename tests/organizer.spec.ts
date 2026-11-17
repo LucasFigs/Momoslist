@@ -427,12 +427,7 @@ test.describe("organizer merge readiness", () => {
       await page
         .getByRole("button", { name: "Continuar", exact: true })
         .click();
-      await page
-        .getByLabel("Código de 6 dígitos")
-        .fill(await code(`tls-${uid}@example.invalid`));
-      await page
-        .getByRole("button", { name: "Continuar", exact: true })
-        .click();
+      await expect(page.getByLabel("Código de 6 dígitos")).toHaveCount(0);
       await expect
         .poll(async () =>
           Boolean(

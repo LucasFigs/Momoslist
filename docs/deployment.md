@@ -31,7 +31,7 @@ O código anterior ignora as novas opções de privacidade, por isso **não mant
 
 ## Mudanças de comportamento
 
-- Cookies antigos `guest_id` não autenticam mais ninguém. O convidado recupera seu histórico por código no e-mail, sem usar telefone como prova.
+- Cookies antigos `guest_id` não autenticam mais ninguém. Um convidado com e-mail ainda não cadastrado informa nome, e-mail e telefone e recebe uma sessão opaca sem código no primeiro acesso. Se o e-mail já estiver registrado, a recuperação do histórico exige código enviado ao e-mail; nome e telefone não servem como prova. Uma recuperação confirmada revoga as sessões antigas daquele convidado para evitar acesso por alguém que tenha informado o endereço sem verificá-lo.
 - Senhas antigas não verificadas não permitem login até a confirmação do e-mail com escolha de nova senha em `/cadastro`. A atualização ocorre no mesmo usuário, preservando suas listas.
 - Contas Google e senha com mesmo e-mail não são vinculadas automaticamente. Use o método original. Uma futura associação explícita exigirá prova dos dois métodos.
 - Escolher um método mantém a reserva temporária. Abrir as instruções marca a reserva como aguardando pagamento/compra: ela deixa de expirar automaticamente porque o pagamento pode ter ocorrido. Declarações e confirmações de Pix nunca expiram automaticamente. O organizador pode usar “Liberar escolha pendente” somente após conferir o extrato e conversar com o convidado; a operação recusa reservas com pagamento/compra informado. O organizador deve conferir pendências; o sistema não consulta bancos.

@@ -63,9 +63,9 @@ export function IdentifyGuestDialog({
           <SheetHeader>
             <DialogTitle>Como podemos te chamar?</DialogTitle>
             <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-              Confirme seu e-mail com um código para acompanhar suas escolhas
-              com segurança. Nada de senha. Todos os campos abaixo são
-              obrigatórios.
+              {verifying
+                ? "Este e-mail já tem cadastro. Para proteger suas escolhas anteriores, confirme o código enviado."
+                : "Informe seus dados para escolher um presente. Se for seu primeiro acesso, você continua sem precisar de código ou senha."}
             </p>
           </SheetHeader>
 

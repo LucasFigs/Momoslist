@@ -225,7 +225,7 @@ test.describe("real local journeys", () => {
     await expect(page).toHaveURL("http://127.0.0.1:3107/");
     await accessible(page);
   });
-  test("guest verifies email, writes without a gift, edits, RSVPs and pays Pix", async ({
+  test("new guest proceeds without a code, writes without a gift, edits, RSVPs and pays Pix", async ({
     page,
   }, info) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -235,9 +235,9 @@ test.describe("real local journeys", () => {
     await page.getByLabel("E-mail", { exact: false }).fill(guestEmail);
     await page.getByLabel("Telefone", { exact: false }).fill("85999999999");
     await page.getByRole("button", { name: "Continuar", exact: true }).click();
-    await page.getByLabel("Código de 6 dígitos").fill(await otp(guestEmail));
-    await page.getByRole("button", { name: "Continuar", exact: true }).click();
+    await expect(page.getByLabel("Código de 6 dígitos")).toHaveCount(0);
     await page.getByLabel("Sua mensagem").fill("Mensagem privada para o casal");
+    await page.getByLabel("Quem pode ler?").selectOption("private");
     await page
       .getByRole("button", { name: "Enviar recadinho", exact: true })
       .click();
@@ -534,7 +534,14 @@ test.describe("real local journeys", () => {
     await page.getByLabel("Nome", { exact: false }).fill("Visitante da loja");
     await page.getByLabel("E-mail", { exact: false }).fill(guestEmail);
     await page.getByLabel("Telefone", { exact: false }).fill("85999999999");
-    // Reuse the verified mailbox; a fresh code is required in this new browser session.
+    const registeredGuest = await db.guest.findUniqueOrThrow({
+      where: { email: guestEmail },
+    });
+    const oldSessions = await db.guestSession.findMany({
+      where: { guestId: registeredGuest.id },
+    });
+    expect(oldSessions.length).toBeGreaterThan(0);
+    // Reusing an existing identity requires a fresh code in this new browser session.
     let previousCode = "";
     try {
       previousCode =
@@ -546,6 +553,13 @@ test.describe("real local journeys", () => {
     await expect.poll(async () => await otp(guestEmail)).not.toBe(previousCode);
     await page.getByLabel("Código de 6 dígitos").fill(await otp(guestEmail));
     await page.getByRole("button", { name: "Continuar", exact: true }).click();
+    await expect
+      .poll(() =>
+        db.guestSession.count({
+          where: { tokenHash: { in: oldSessions.map((session) => session.tokenHash) } },
+        }),
+      )
+      .toBe(0);
     await expect(
       page.getByRole("button", { name: "Comprar em uma loja", exact: true }),
     ).toBeVisible();

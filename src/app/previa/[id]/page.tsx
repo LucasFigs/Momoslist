@@ -1,3 +1,4 @@
+import { exposedGiftWhere } from "@/lib/gift-visibility";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
@@ -36,7 +37,7 @@ export default async function PreviewPage({ params, searchParams }: PageProps) {
 
   const event = await prisma.event.findUnique({
     where: { id: id },
-    include: { gifts: { orderBy: { createdAt: "asc" } } },
+    include: { gifts: { where: exposedGiftWhere, orderBy: { createdAt: "asc" } } },
   });
   if (!event || event.ownerId !== session.user.id) notFound();
 

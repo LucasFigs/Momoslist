@@ -57,6 +57,7 @@ async function createReservationActionImpl(
           where: { id: giftId, event: { published: true } },
         });
         if (!gift) throw new Error("GIFT_NOT_FOUND");
+        if (gift.kind !== "FUND" && gift.quantity <= 0) throw new Error("GIFT_NOT_FOUND");
 
         // 1. Expira reservas temporárias vencidas antes de contar disponibilidade.
         await tx.giftReservation.updateMany({

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { isGiftExposed } from "@/lib/gift-visibility";
 import { Wordmark } from "@/components/wordmark";
 import { Suspense } from "react";
 import type { Event, Gift, Guest } from "@prisma/client";
@@ -47,6 +48,7 @@ export function PublicListView({
   myRsvp = null,
   preview = false,
 }: PublicListViewProps) {
+  const exposedGifts = event.gifts.filter(isGiftExposed);
   const eventDateLabel = event.eventDate
     ? new Intl.DateTimeFormat("pt-BR", {
         dateStyle: "long",
@@ -54,7 +56,7 @@ export function PublicListView({
       }).format(new Date(event.eventDate))
     : null;
 
-  const hasExternalPurchaseGift = event.gifts.some((gift) =>
+  const hasExternalPurchaseGift = exposedGifts.some((gift) =>
     Boolean(gift.purchaseUrl),
   );
   // Só o acento muda por lista; a base neutra da marca é fixa. Contraste garantido em lib/theme.
@@ -148,7 +150,7 @@ export function PublicListView({
                   )}
                 </div>
 
-                {event.gifts.length > 0 && (
+                {exposedGifts.length > 0 && (
                   // useSearchParams exige um Suspense próprio, separado do da listagem.
                   <Suspense
                     fallback={<div className="mb-6 h-11" aria-hidden="true" />}
@@ -159,7 +161,7 @@ export function PublicListView({
 
                 <Suspense key={suspenseKey} fallback={<GiftCardSkeletonList />}>
                   <GiftsSection
-                    gifts={event.gifts}
+                    gifts={exposedGifts}
                     guest={guest}
                     isIdentified={Boolean(guest)}
                     query={query}

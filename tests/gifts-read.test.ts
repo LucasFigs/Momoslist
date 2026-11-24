@@ -14,6 +14,18 @@ vi.mock("@/app/lista/[eventSlugToken]/fund-card", () => ({
 import { GiftsSection } from "@/app/lista/[eventSlugToken]/gifts-section";
 
 describe("public gift reads", () => {
+  it.each(["", "retirado"])("never renders or queries archived PRODUCT/PIX in search '%s'", async (query) => {
+    vi.clearAllMocks();
+    const gifts = [
+      { id: "archived-product", kind: "PRODUCT", name: "Retirado", quantity: 0 },
+      { id: "archived-pix", kind: "PIX", name: "Retirado Pix", quantity: 0 },
+    ] as Gift[];
+    const result = await GiftsSection({ gifts, guest: null, isIdentified: false, query, sort: "price_asc", clearHref: "/", pixConfigured: true });
+    expect(JSON.stringify(result)).not.toContain("archived-product");
+    expect(JSON.stringify(result)).not.toContain("archived-pix");
+    expect(db.giftReservation.groupBy).not.toHaveBeenCalled();
+    expect(db.contribution.groupBy).not.toHaveBeenCalled();
+  });
   it("starts independent queries together and never writes while rendering", async () => {
     let finish!: (rows: unknown[]) => void;
     db.giftReservation.groupBy.mockReturnValue(

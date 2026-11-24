@@ -1,4 +1,5 @@
 "use server";
+import { exposedGiftWhere } from "@/lib/gift-visibility";
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -160,7 +161,7 @@ async function updateEventActionImpl(
           current.published &&
           (!pixKey || !pixKeyType) &&
           (await tx.gift.count({
-            where: { eventId, kind: { in: ["PIX", "FUND"] } },
+            where: { eventId, kind: { in: ["PIX", "FUND"] }, ...exposedGiftWhere },
           }))
         )
           throw new Error("PixRequired");
@@ -218,9 +219,9 @@ async function setEventPublishedActionImpl(
         });
         if (!current) throw new Error("EventUnavailable");
         if (published) {
-          const giftCount = await tx.gift.count({ where: { eventId } });
+          const giftCount = await tx.gift.count({ where: { eventId, ...exposedGiftWhere } });
           const needsPix = await tx.gift.count({
-            where: { eventId, kind: { in: ["PIX", "FUND"] } },
+            where: { eventId, kind: { in: ["PIX", "FUND"] }, ...exposedGiftWhere },
           });
           if (
             !giftCount ||

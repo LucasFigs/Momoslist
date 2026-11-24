@@ -162,7 +162,7 @@ export function EventDashboardView({
           <CardContent>
             <ul className="grid gap-2 text-sm sm:grid-cols-2">
               <li>
-                {event.gifts.length ? "✓" : "○"} Adicione ao menos um presente
+                {event.gifts.some((gift) => gift.kind === "FUND" || gift.quantity > 0) ? "✓" : "○"} Adicione ao menos um presente em exposição
               </li>
               <li>
                 {pixConfigured

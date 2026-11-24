@@ -1,4 +1,5 @@
 import { expiredReservationWhere } from "@/lib/reservation-policy";
+import { isGiftExposed } from "@/lib/gift-visibility";
 import { safeStoreUrl } from "@/lib/store-url";
 import { prisma } from "@/lib/prisma";
 import {
@@ -44,6 +45,7 @@ export async function GiftsSection({
   clearHref,
   pixConfigured,
 }: GiftsSectionProps) {
+  gifts = gifts.filter(isGiftExposed);
   const giftIds = gifts.map((gift) => gift.id);
 
   // Rendering never writes. Expired unpaid holds do not consume stock.

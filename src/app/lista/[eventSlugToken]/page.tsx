@@ -1,3 +1,4 @@
+import { exposedGiftWhere } from "@/lib/gift-visibility";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -19,7 +20,7 @@ const getPublicEvent = cache(async (eventSlugToken: string) => {
 
   const event = await prisma.event.findUnique({
     where: { slug: parsed.slug },
-    include: { gifts: { orderBy: { createdAt: "asc" } } },
+    include: { gifts: { where: exposedGiftWhere, orderBy: { createdAt: "asc" } } },
   });
 
   // Slug e secureToken precisam bater os dois — isso dificulta enumeração por slug.

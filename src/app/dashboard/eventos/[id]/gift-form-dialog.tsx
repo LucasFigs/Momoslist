@@ -68,6 +68,7 @@ export function GiftFormDialog({ eventId, gift, trigger, pixConfigured = true }:
   const [error, setError] = useState<string | null>(null);
 
   const isEditing = Boolean(gift);
+  const archived = gift?.kind !== "FUND" && gift?.quantity === 0;
   const initialKind: Kind = gift?.kind ?? "PRODUCT";
   const [kind, setKind] = useState<Kind>(initialKind);
   const isFund = kind === "FUND";
@@ -250,12 +251,14 @@ export function GiftFormDialog({ eventId, gift, trigger, pixConfigured = true }:
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="quantity">Quantidade</Label>
+                  {archived && <p className="text-sm text-muted-foreground">Item retirado. Salvar não o recoloca na lista. Use Restaurar no painel para disponibilizar 1 unidade.</p>}
                   <Input
                     id="quantity"
                     name="quantity"
                     type="number"
                     min={1}
-                    defaultValue={gift?.quantity ?? 1}
+                    defaultValue={archived ? 1 : gift?.quantity ?? 1}
+                    readOnly={archived}
                     required
                   />
                 </div>

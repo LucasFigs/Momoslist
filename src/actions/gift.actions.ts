@@ -8,6 +8,8 @@ import { prisma } from "@/lib/prisma";
 import { uploadImage } from "@/lib/supabase-storage";
 import { giftSchema, parsePriceToCents } from "@/schemas/gift.schema";
 import { logger, withErrorHandling } from "@/lib/logger";
+import { expiredReservationWhere } from "@/lib/reservation-policy";
+import { exposedGiftWhere } from "@/lib/gift-visibility";
 
 type ActionResult = { success: true } | { success: false; error: string };
 
@@ -171,7 +173,7 @@ async function updateGiftActionImpl(
   // Regra do documento: a nova quantidade nunca pode ficar menor que o número
   // de reservas já ativas (ainda sempre 0 até a Fase 4, mas a checagem já vale).
   const activeReservations = await prisma.giftReservation.count({
-    where: { giftId, status: { in: [...ACTIVE_RESERVATION_STATUSES] } },
+    where: { giftId, status: { in: [...ACTIVE_RESERVATION_STATUSES] }, NOT: expiredReservationWhere() },
   });
 
   if (quantity < activeReservations) {
@@ -210,9 +212,10 @@ async function updateGiftActionImpl(
         )
           throw new Error("UnavailablePayment");
         const count = await tx.giftReservation.count({
-          where: { giftId, status: { in: [...ACTIVE_RESERVATION_STATUSES] } },
+          where: { giftId, status: { in: [...ACTIVE_RESERVATION_STATUSES] }, NOT: expiredReservationWhere() },
         });
-        if (quantity < count) throw new Error("StockChanged");
+        const nextQuantity = current.kind !== "FUND" && current.quantity === 0 ? 0 : quantity;
+        if (nextQuantity < count) throw new Error("StockChanged");
         await tx.gift.update({
           where: { id: giftId },
           data: {
@@ -225,7 +228,7 @@ async function updateGiftActionImpl(
               kind === "FUND" && minContribution
                 ? parsePriceToCents(minContribution)
                 : null,
-            quantity,
+            quantity: nextQuantity,
             imageUrl,
           },
         });
@@ -254,7 +257,7 @@ async function deleteGiftActionImpl(giftId: string): Promise<ActionResult> {
   if (!gift) return { success: false, error: "Presente não encontrado." };
 
   const activeReservations = await prisma.giftReservation.count({
-    where: { giftId, status: { in: [...ACTIVE_RESERVATION_STATUSES] } },
+    where: { giftId, status: { in: [...ACTIVE_RESERVATION_STATUSES] }, NOT: expiredReservationWhere() },
   });
 
   if (activeReservations > 0) {
@@ -290,7 +293,7 @@ async function deleteGiftActionImpl(giftId: string): Promise<ActionResult> {
         if (!currentEvent) throw new Error("EventUnavailable");
         if (
           currentEvent.published &&
-          (await tx.gift.count({ where: { eventId: gift.eventId } })) <= 1
+          (await tx.gift.count({ where: { eventId: gift.eventId, id: { not: giftId }, ...exposedGiftWhere } })) === 0
         )
           throw new Error("PublishedListNeedsGift");
         await tx.gift.delete({ where: { id: giftId, event: { ownerId } } });
@@ -331,4 +334,49 @@ export async function deleteGiftAction(giftId: string): Promise<ActionResult> {
   return withErrorHandling("deleteGiftAction", () =>
     deleteGiftActionImpl(giftId),
   );
+}
+
+async function changeGiftVisibility(giftId: string, restore: boolean): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { success: false, error: "Você precisa estar logado." };
+  try {
+    await prisma.$transaction(async (tx) => {
+      const gift = await tx.gift.findFirst({
+        where: { id: giftId, event: { ownerId: session.user!.id } },
+        include: { event: true },
+      });
+      if (!gift) throw new Error("Presente não encontrado.");
+      if (gift.kind === "FUND") throw new Error("A retirada não está disponível para vaquinhas.");
+      if (restore ? gift.quantity !== 0 : gift.quantity === 0)
+        throw new Error("O presente mudou. Atualize a página.");
+      // Não expira nem altera o histórico: exclui da contagem somente holds realmente abandonados.
+      const active = await tx.giftReservation.count({
+        where: { giftId, status: { in: [...ACTIVE_RESERVATION_STATUSES] }, NOT: expiredReservationWhere() },
+      });
+      if (active > (restore ? 1 : 0))
+        throw new Error(restore ? "As reservas existentes impedem restaurar com quantidade 1." : "Este presente tem reservas ativas e não pode ser retirado.");
+      if (!restore && gift.event.published && !(await tx.gift.count({
+        where: { eventId: gift.eventId, id: { not: giftId }, ...exposedGiftWhere },
+      }))) throw new Error("Uma lista publicada precisa manter pelo menos um presente em exposição. Adicione outro antes de retirar este.");
+      if (restore && gift.kind === "PIX" && gift.event.published && (!gift.event.pixKey || !gift.event.pixKeyType))
+        throw new Error("Configure o Pix antes de restaurar este item.");
+      await tx.gift.update({ where: { id: giftId }, data: { quantity: restore ? 1 : 0 } });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  } catch (error) {
+    const message = error instanceof Error && !(error instanceof Prisma.PrismaClientKnownRequestError)
+      ? error.message : "O presente mudou durante a operação. Atualize e tente novamente.";
+    return { success: false, error: message };
+  }
+  revalidatePath("/dashboard", "layout");
+  revalidatePath("/lista/[eventSlugToken]", "page");
+  revalidatePath("/previa/[id]", "page");
+  return { success: true };
+}
+
+export async function archiveGiftAction(giftId: string): Promise<ActionResult> {
+  return withErrorHandling("archiveGiftAction", () => changeGiftVisibility(giftId, false));
+}
+
+export async function restoreGiftAction(giftId: string): Promise<ActionResult> {
+  return withErrorHandling("restoreGiftAction", () => changeGiftVisibility(giftId, true));
 }

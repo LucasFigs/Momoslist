@@ -8,9 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { cn, formatCentsToBRL } from "@/lib/utils";
-import { deleteGiftAction } from "@/actions/gift.actions";
+import { archiveGiftAction, restoreGiftAction, deleteGiftAction } from "@/actions/gift.actions";
 import { GiftFormDialog } from "./gift-form-dialog";
-import { PackageOpen, Pencil, Trash2 } from "lucide-react";
+import { Archive, RotateCcw, PackageOpen, Pencil, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { GiftImage } from "@/components/gift-image";
@@ -20,7 +20,7 @@ import { PiggyBank, QrCode } from "lucide-react";
 
 // Mesmas colunas no cabeçalho e nas linhas: miniatura | nome | quantidade | valor | ações.
 // No celular, quantidade e valor descem para baixo do nome e só sobram 3 colunas.
-const ROW_GRID = "grid grid-cols-[3rem_1fr_auto] items-center gap-x-3 md:grid-cols-[3rem_1fr_6rem_8rem_6.5rem]";
+const ROW_GRID = "grid grid-cols-[3rem_1fr_auto] items-center gap-x-3 md:grid-cols-[3rem_1fr_6rem_8rem_9rem]";
 
 type SortKey = "created_asc" | "created_desc" | "name_asc" | "name_desc" | "price_asc" | "price_desc" | "type";
 
@@ -168,6 +168,21 @@ function GiftRow({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const archived = gift.kind !== "FUND" && gift.quantity === 0;
+
+  function changeVisibility() {
+    startTransition(async () => {
+      const result = await (archived ? restoreGiftAction : archiveGiftAction)(gift.id);
+      setArchiveOpen(false);
+      if (!result.success) {
+        toast({ title: "Não foi possível alterar o presente", description: result.error, variant: "destructive" });
+        return;
+      }
+      toast({ title: archived ? "Presente restaurado" : "Presente retirado", description: "O histórico foi preservado." });
+      router.refresh();
+    });
+  }
 
   function confirmDelete() {
     startTransition(async () => {
@@ -192,7 +207,7 @@ function GiftRow({
   const fund = isFund && fundTotals ? computeFundProgress(fundTotals) : null;
   // Vaquinha não tem "reservado" (é contribuição livre, sem unidade). Só presentes/itens Pix mostram isso.
   const soldOut = !isFund && reservedUnits >= gift.quantity;
-  const reservedLabel = soldOut ? "Esgotado" : reservedUnits > 0 ? `${reservedUnits} reservado${reservedUnits > 1 ? "s" : ""}` : null;
+  const reservedLabel = archived ? "Retirado" : soldOut ? "Esgotado" : reservedUnits > 0 ? `${reservedUnits} reservado${reservedUnits > 1 ? "s" : ""}` : null;
   // Esgotado ou meta batida: já foi "resolvido", então a linha fica esmaecida — como um item desabilitado —
   // pra puxar a atenção do casal para o que ainda precisa dela.
   const done = soldOut || Boolean(fund?.reached);
@@ -257,6 +272,7 @@ function GiftRow({
             </p>
           </div>
         )}
+        {isFund && <p className="mt-1 text-xs text-muted-foreground">A retirada não está disponível para vaquinhas.</p>}
       </div>
 
       <span className="hidden text-sm text-muted-foreground md:block">{isFund ? "—" : gift.quantity}</span>
@@ -265,6 +281,17 @@ function GiftRow({
       </span>
 
       <div className="flex justify-end gap-1">
+        {!isFund && <Button size="icon" variant="ghost" disabled={isPending}
+          aria-label={`${archived ? "Restaurar" : "Retirar da lista"} ${gift.name}`}
+          title={archived ? "Restaurar" : "Retirar da lista"}
+          onClick={() => setArchiveOpen(true)}>
+          {archived ? <RotateCcw className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+        </Button>}
+        <ConfirmDialog open={archiveOpen} onOpenChange={setArchiveOpen}
+          title={`${archived ? "Restaurar" : "Retirar da lista"} "${gift.name}"?`}
+          description={archived ? "O presente voltará à lista pública com 1 unidade. O histórico será preservado." : "O presente sairá da lista pública. Reservas, Pix, contribuições e recadinhos serão preservados. Reservas ativas impedem a retirada."}
+          confirmLabel={archived ? "Restaurar" : "Retirar da lista"}
+          isPending={isPending} onConfirm={changeVisibility} />
         <GiftFormDialog
           eventId={eventId}
           gift={gift}

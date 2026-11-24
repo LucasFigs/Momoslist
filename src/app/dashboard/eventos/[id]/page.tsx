@@ -1,4 +1,5 @@
 import { expiredReservationWhere } from "@/lib/reservation-policy";
+import { GiftHistory } from "./gift-history";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
@@ -394,6 +395,7 @@ export default async function EventoPage({
   const boundUpdateAction = updateEventAction.bind(null, event.id);
 
   return (
+    <>
     <EventDashboardView
       event={event}
       metricGroups={metricGroups}
@@ -409,5 +411,7 @@ export default async function EventoPage({
       messageItems={messageItems}
       pendingApprovals={pendingApprovals}
     />
+    <GiftHistory eventId={event.id} />
+    </>
   );
 }

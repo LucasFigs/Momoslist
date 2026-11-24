@@ -7,7 +7,12 @@ import {
   createGiftAction,
   updateGiftAction,
   deleteGiftAction,
+  archiveGiftAction,
+  restoreGiftAction,
 } from "@/actions/gift.actions";
+import { exposedGiftWhere } from "@/lib/gift-visibility";
+import { GiftHistory } from "@/app/dashboard/eventos/[id]/gift-history";
+import { MessageBoardSection } from "@/app/lista/[eventSlugToken]/message-board-section";
 import {
   beforeAll,
   afterAll,
@@ -471,6 +476,8 @@ describe.runIf(Boolean(process.env.TEST_DATABASE_URL))(
         expect((await createGiftAction(foreign.id, form)).success).toBe(false);
         expect((await updateGiftAction(gift.id, form)).success).toBe(false);
         expect((await deleteGiftAction(gift.id)).success).toBe(false);
+        expect((await archiveGiftAction(gift.id)).success).toBe(false);
+        expect((await restoreGiftAction(gift.id)).success).toBe(false);
         expect(
           (await prisma.gift.findUniqueOrThrow({ where: { id: gift.id } }))
             .name,
@@ -614,6 +621,71 @@ describe.runIf(Boolean(process.env.TEST_DATABASE_URL))(
       expect(
         await prisma.rsvp.count({ where: { eventId, guestId: state.guestId } }),
       ).toBe(1);
+    });
+    it.each(["PRODUCT", "PIX"] as const)("archives %s without changing cancelled Pix, contributions or notes; restores explicitly", async (kind) => {
+      const event = await prisma.event.create({ data: {
+        ownerId: state.ownerId, title: "Archive integration", type: "CHA_CASA_NOVA",
+        slug: randomUUID(), secureToken: randomUUID(), published: true,
+        pixKey: "test@example.invalid", pixKeyType: "EMAIL",
+      } });
+      await prisma.gift.create({ data: { eventId: event.id, name: "Exposto", priceInCents: 1000 } });
+      const gift = await prisma.gift.create({ data: { eventId: event.id, name: "Histórico", kind, priceInCents: 2000 } });
+      const reservation = await prisma.giftReservation.create({ data: {
+        giftId: gift.id, guestId: state.guestId, status: "CANCELLED", paymentMethod: "PIX",
+        pixStatus: "DECLARED", amountInCents: 1500, message: "Recado histórico", messagePublic: true,
+        expiresAt: new Date(Date.now() - 1000),
+      } });
+      const expired = await prisma.giftReservation.create({ data: {
+        giftId: gift.id, guestId: state.otherGuestId, status: "TEMPORARY", expiresAt: new Date(Date.now() - 1000),
+      } });
+      const contribution = await prisma.contribution.create({ data: {
+        giftId: gift.id, guestId: state.guestId, amountInCents: 500, status: "CONFIRMED",
+        message: "Contribuição legada", messagePublic: true,
+      } });
+      const boardBefore = JSON.stringify(await MessageBoardSection({ eventId: event.id }));
+      expect(boardBefore).toContain("Contribuição legada");
+      expect((await archiveGiftAction(gift.id)).success).toBe(true);
+      expect(await prisma.gift.count({ where: { id: gift.id, ...exposedGiftWhere } })).toBe(0);
+      expect((await createReservationAction(gift.id)).success).toBe(false);
+      expect(await prisma.giftReservation.findUnique({ where: { id: reservation.id } })).toEqual(reservation);
+      expect(await prisma.giftReservation.findUnique({ where: { id: expired.id } })).toEqual(expired);
+      expect(await prisma.contribution.findUnique({ where: { id: contribution.id } })).toEqual(contribution);
+      expect(JSON.stringify(await MessageBoardSection({ eventId: event.id }))).toBe(boardBefore);
+      const history = JSON.stringify(await GiftHistory({ eventId: event.id }));
+      expect(history).toContain("Recado histórico");
+      expect(history).toContain("DECLARED");
+      const form = new FormData();
+      for (const [key, value] of Object.entries({ name: "Editado retirado", kind, quantity: "9", price: "20", description: "", purchaseUrl: "", minContribution: "" })) form.set(key, value);
+      expect((await updateGiftAction(gift.id, form)).success).toBe(true);
+      expect((await prisma.gift.findUniqueOrThrow({ where: { id: gift.id } })).quantity).toBe(0);
+      expect((await deleteGiftAction(gift.id)).success).toBe(false);
+      expect((await restoreGiftAction(gift.id)).success).toBe(true);
+      expect((await prisma.gift.findUniqueOrThrow({ where: { id: gift.id } })).quantity).toBe(1);
+      expect((await createReservationAction(gift.id)).success).toBe(true);
+    });
+    it.each(["TEMPORARY", "CONFIRMED", "COMPLETED", "PAID_EXPIRED"] as const)("blocks archive with active %s", async (status) => {
+      const gift = await prisma.gift.create({ data: { eventId, name: "Active", priceInCents: 1000 } });
+      await prisma.giftReservation.create({ data: {
+        giftId: gift.id, guestId: state.guestId,
+        status: status === "PAID_EXPIRED" ? "TEMPORARY" : status,
+        pixStatus: status === "PAID_EXPIRED" ? "DECLARED" : "NOT_APPLICABLE",
+        expiresAt: new Date(Date.now() + (status === "PAID_EXPIRED" ? -60000 : 60000)),
+      } });
+      expect((await archiveGiftAction(gift.id)).success).toBe(false);
+      expect((await prisma.gift.findUniqueOrThrow({ where: { id: gift.id } })).quantity).toBe(1);
+    });
+    it("keeps the last exposed item and excludes archived gifts from publishing readiness", async () => {
+      const event = await prisma.event.create({ data: { ownerId: state.ownerId, title: "Last exposed", type: "CHA_CASA_NOVA", slug: randomUUID(), secureToken: randomUUID() } });
+      const last = await prisma.gift.create({ data: { eventId: event.id, name: "Last", priceInCents: 1000 } });
+      await prisma.gift.create({ data: { eventId: event.id, name: "Retirado", priceInCents: 1000, quantity: 0 } });
+      expect((await setEventPublishedAction(event.id, true)).success).toBe(true);
+      expect((await archiveGiftAction(last.id)).success).toBe(false);
+      expect((await deleteGiftAction(last.id)).success).toBe(false);
+      await prisma.event.update({ where: { id: event.id }, data: { published: false } });
+      expect((await archiveGiftAction(last.id)).success).toBe(true);
+      expect((await setEventPublishedAction(event.id, true)).success).toBe(false);
+      expect((await archiveGiftAction(fundId)).success).toBe(false);
+      expect((await restoreGiftAction(fundId)).success).toBe(false);
     });
     it("supports owned gift CRUD and preserves the last published item", async () => {
       const event = await prisma.event.create({

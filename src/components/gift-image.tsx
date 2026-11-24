@@ -5,6 +5,43 @@ import Image from "next/image";
 import { ImageOff, Gift } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const PUBLIC_IMAGE_HOST = "wiirvczljhoskngovxer.supabase.co";
+const PUBLIC_IMAGE_PREFIX = "/storage/v1/object/public/gift-images/";
+
+/** Only canonical public object URLs may bypass the image optimizer. */
+export function isPublicGiftImageUrl(src: string | null | undefined): boolean {
+  if (!src || src.trim() !== src || /[\\\u0000-\u0020\u007f]/.test(src)) return false;
+  try {
+    const url = new URL(src);
+    if (
+      url.protocol !== "https:" || url.hostname !== PUBLIC_IMAGE_HOST ||
+      url.port || url.username || url.password || url.hash ||
+      !url.pathname.startsWith(PUBLIC_IMAGE_PREFIX)
+    ) return false;
+    // URL() normalizes dot segments. Inspect the original path as well so that
+    // traversal, encoded separators and double encoding never gain the exception.
+    const rawPath = src.match(/^https:\/\/[^/?#]+([^?#]*)/i)?.[1];
+    if (!rawPath || !rawPath.startsWith(PUBLIC_IMAGE_PREFIX) || /%(?:2f|5c|25)/i.test(rawPath)) return false;
+    const segments = decodeURIComponent(rawPath).split("/").slice(1);
+    if (segments.some((segment) => !segment || segment === "." || segment === ".." || /[\\\u0000-\u001f\u007f]/.test(segment))) return false;
+    // download is a Storage option; v is an inert cache-busting parameter.
+    // Unknown parameters (including signed tokens/redirect hints) keep the old path.
+    return [...url.searchParams.keys()].every((key) => key === "download" || key === "v");
+  } catch {
+    return false;
+  }
+}
+
+function isUsableImageSource(src: string | null): src is string {
+  if (!src || src.trim() !== src || /[\\\u0000-\u001f\u007f]/.test(src)) return false;
+  if (src.startsWith("/")) return !src.startsWith("//");
+  try {
+    return ["https:", "http:"].includes(new URL(src).protocol);
+  } catch {
+    return false;
+  }
+}
+
 type Sizing =
   | { fill?: false; width: number; height: number }
   | { fill: true; width?: never; height?: never };
@@ -39,7 +76,7 @@ export function GiftImage({
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const failed = src !== null && failedSrc === src;
 
-  if (!src || failed) {
+  if (!isUsableImageSource(src) || failed) {
     return (
       <div
         className={cn(
@@ -74,6 +111,7 @@ export function GiftImage({
       fill
       sizes={sizes}
       priority={priority}
+      unoptimized={isPublicGiftImageUrl(src)}
       onError={() => setFailedSrc(src)}
       className={imageClassName}
     />
@@ -84,6 +122,7 @@ export function GiftImage({
       width={width}
       height={height}
       priority={priority}
+      unoptimized={isPublicGiftImageUrl(src)}
       onError={() => setFailedSrc(src)}
       className={imageClassName}
     />

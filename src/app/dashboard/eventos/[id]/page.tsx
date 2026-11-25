@@ -395,7 +395,6 @@ export default async function EventoPage({
   const boundUpdateAction = updateEventAction.bind(null, event.id);
 
   return (
-    <>
     <EventDashboardView
       event={event}
       metricGroups={metricGroups}
@@ -410,8 +409,7 @@ export default async function EventoPage({
       rsvpItems={rsvpItems}
       messageItems={messageItems}
       pendingApprovals={pendingApprovals}
+      history={<GiftHistory eventId={event.id} />}
     />
-    <GiftHistory eventId={event.id} />
-    </>
   );
 }

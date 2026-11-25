@@ -653,7 +653,7 @@ describe.runIf(Boolean(process.env.TEST_DATABASE_URL))(
       expect(JSON.stringify(await MessageBoardSection({ eventId: event.id }))).toBe(boardBefore);
       const history = JSON.stringify(await GiftHistory({ eventId: event.id }));
       expect(history).toContain("Recado histórico");
-      expect(history).toContain("DECLARED");
+      expect(history).toContain("Pix declarado");
       const form = new FormData();
       for (const [key, value] of Object.entries({ name: "Editado retirado", kind, quantity: "9", price: "20", description: "", purchaseUrl: "", minContribution: "" })) form.set(key, value);
       expect((await updateGiftAction(gift.id, form)).success).toBe(true);

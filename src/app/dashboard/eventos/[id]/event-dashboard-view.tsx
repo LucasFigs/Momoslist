@@ -35,6 +35,7 @@ import { resolveThemeColor } from "@/lib/theme";
 type ActionResult = { success: true } | { success: false; error: string };
 
 export interface EventDashboardViewProps {
+  history?: React.ReactNode;
   event: Event & { gifts: Gift[] };
   /** Métricas do Resumo, já agrupadas por assunto (Presentes, Vaquinhas, Pix, Presença). */
   metricGroups: SummaryMetricGroup[];
@@ -72,6 +73,7 @@ export function EventDashboardView({
   rsvpItems,
   messageItems,
   pendingApprovals,
+  history,
 }: EventDashboardViewProps) {
   return (
     <div className="flex flex-col gap-6">
@@ -368,6 +370,7 @@ export function EventDashboardView({
           </Card>
         </TabsContent>
       </Tabs>
+      {history}
     </div>
   );
 }

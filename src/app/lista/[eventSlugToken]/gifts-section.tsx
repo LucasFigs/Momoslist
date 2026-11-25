@@ -16,6 +16,7 @@ import Link from "next/link";
 import { Gift as GiftIcon, SearchX } from "lucide-react";
 import type { Gift } from "@prisma/client";
 import type { Guest } from "@prisma/client";
+import { parseGiftSort, sortPublicGifts } from "./gift-sort";
 
 interface GiftsSectionProps {
   gifts: Gift[];
@@ -138,29 +139,7 @@ export async function GiftsSection({
       )
     : withAvailability;
 
-  // Em vaquinha o valor que o convidado de fato paga é o mínimo, não a meta.
-  const effectivePrice = (gift: Gift) =>
-    gift.kind === "FUND"
-      ? (gift.minContributionInCents ?? gift.priceInCents)
-      : gift.priceInCents;
-
-  // "Fora de jogo": presente/item Pix esgotado, ou vaquinha que já bateu a meta — não precisa mais de atenção.
-  const isOutOfPlay = ({ gift, availability }: (typeof filtered)[number]) =>
-    gift.kind === "FUND"
-      ? computeFundProgress(fundTotalsByGiftId.get(gift.id)!).reached
-      : availability.status === "UNAVAILABLE";
-
-  const sorted = [...filtered].sort((a, b) => {
-    switch (sort) {
-      case "price_asc":
-        return effectivePrice(a.gift) - effectivePrice(b.gift);
-      case "price_desc":
-        return effectivePrice(b.gift) - effectivePrice(a.gift);
-      default:
-        // Sugeridos: mantém a ordem de cadastro, só empurrando o que não precisa mais de atenção para o fim.
-        return Number(isOutOfPlay(a)) - Number(isOutOfPlay(b));
-    }
-  });
+  const sorted = sortPublicGifts(filtered, parseGiftSort(sort), fundTotalsByGiftId);
 
   if (gifts.length === 0) {
     return (

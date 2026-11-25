@@ -52,9 +52,9 @@ test.describe("gift archive without schema changes", () => {
     await page.getByRole("alertdialog").getByRole("button", { name: "Retirar da lista", exact: true }).click();
     await expect(page.getByRole("button", { name: "Restaurar Presente com histórico", exact: true })).toBeVisible();
     await expect(page.getByText("Retirado", { exact: true }).first()).toBeVisible();
-    await page.getByText("Histórico preservado de presentes retirados, reservas e contribuições canceladas", { exact: true }).click();
+    await page.getByText("Histórico preservado", { exact: true }).click();
     await expect(page.getByText(/Recado preservado sintético/)).toBeVisible();
-    await expect(page.getByText(/Reserva CANCELLED/)).toBeVisible();
+    await expect(page.getByText("Cancelada", { exact: true })).toBeVisible();
     for (const query of ["", "?q=histórico&sort=price_asc"]) {
       await guestPage.goto(publicPath + query);
       await expect(guestPage.getByRole("heading", { name: "Presente com histórico", exact: true })).toHaveCount(0);
